@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/.next
+.turbo
+**/.turbo
+.git
+.github
+supabase/.temp
+**/.env
+**/.env.*
+!**/.env.example
+Dockerfile
+deploy
+*.md

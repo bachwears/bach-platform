@@ -1,0 +1,34 @@
+# Production stack for the BACH VPS (/srv/bach). Deployed by GitHub Actions.
+name: bach
+services:
+  storefront:
+    image: ghcr.io/bachwears/bach-storefront:latest
+    restart: unless-stopped
+    networks: [bach]
+
+  pos:
+    image: ghcr.io/bachwears/bach-pos:latest
+    restart: unless-stopped
+    networks: [bach]
+
+  mgmt:
+    image: ghcr.io/bachwears/bach-mgmt:latest
+    restart: unless-stopped
+    networks: [bach]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    networks: [bach]
+
+networks:
+  bach:
+    name: bach

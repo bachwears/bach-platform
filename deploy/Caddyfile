@@ -1,0 +1,11 @@
+bachwears.com, www.bachwears.com {
+	reverse_proxy storefront:3000
+}
+
+pos.bachwears.com {
+	reverse_proxy pos:3000
+}
+
+mgmt.bachwears.com {
+	reverse_proxy mgmt:3000
+}
