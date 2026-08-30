@@ -109,6 +109,12 @@ importers:
       '@bach/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@bach/services':
+        specifier: workspace:*
+        version: link:../../packages/services
+      '@bach/supabase':
+        specifier: workspace:*
+        version: link:../../packages/supabase
       '@bach/types':
         specifier: workspace:*
         version: link:../../packages/types
