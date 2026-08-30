@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const URL = "http://127.0.0.1:54321";
+const URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
 const ANON = process.env.ANON_KEY!;
 const PASS = process.env.SEED_TEMP_PASSWORD!;
 
