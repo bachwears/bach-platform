@@ -1,7 +1,13 @@
+import { Button } from "@bach/ui/components/button";
+
 export default function Home() {
   return (
-    <main style={{ display: "grid", placeItems: "center", minHeight: "100dvh" }}>
-      <h1>‏BACH Management — أساس اللوحة جاهز</h1>
+    <main className="grid min-h-dvh place-items-center">
+      <div className="flex flex-col items-center gap-6">
+        <h1 className="text-3xl font-semibold tracking-tight">‏BACH Management</h1>
+        <p className="text-muted-foreground">أساس اللوحة جاهز — الثيم شغّال.</p>
+        <Button variant="secondary">فتح لوحة التحكم</Button>
+      </div>
     </main>
   );
 }

@@ -10,13 +10,16 @@
   "dependencies": {
     "@bach/i18n": "workspace:*",
     "@bach/types": "workspace:*",
+    "@bach/ui": "workspace:*",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
+    "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0"
   }
 }
