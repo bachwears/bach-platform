@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
 import { Button } from "../button";
 import { Input } from "../input";
 
 export function LoginForm({ appTitle }: { appTitle: string }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +26,8 @@ export function LoginForm({ appTitle }: { appTitle: string }) {
       setBusy(false);
       return;
     }
-    router.replace("/");
-    router.refresh();
+    // Hard navigation so middleware re-evaluates with the new session cookies.
+    window.location.assign("/");
   }
 
   return (

@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
 import { Button } from "../button";
 import { Input } from "../input";
 
 export function ChangePasswordForm() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +38,9 @@ export function ChangePasswordForm() {
       return;
     }
     await supabase.rpc("password_changed");
-    router.replace("/");
-    router.refresh();
+    // Hard navigation: cookies changed server-side; a soft replace can be
+    // cancelled by concurrent RSC refreshes.
+    window.location.assign("/");
   }
 
   return (

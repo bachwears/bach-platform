@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Button } from "@bach/ui/components/button";
+
+import { Nav } from "../components/nav";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "سوبر أدمن",
@@ -16,26 +19,33 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, { count: productCount }] = await Promise.all([
+    supabase.from("profiles").select("full_name, role").eq("id", user!.id).single(),
+    supabase.from("products").select("id", { count: "exact", head: true }),
+  ]);
 
   return (
-    <main className="grid min-h-dvh place-items-center p-6">
-      <div className="flex flex-col items-center gap-6 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">‏BACH Management</h1>
-        <p className="text-muted-foreground">
-          أهلا {profile?.full_name ?? user?.email} — دورك: {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}
-        </p>
-        <p className="text-sm text-muted-foreground">لوحة التحكم عم تتجهّز بالمرحلة الجاية.</p>
-        <form action="/logout" method="post">
-          <Button type="submit" variant="outline">
-            تسجيل الخروج
-          </Button>
-        </form>
-      </div>
-    </main>
+    <div className="min-h-dvh bg-background">
+      <Nav />
+      <main className="mx-auto max-w-6xl space-y-8 p-4 py-8">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            أهلا {profile?.full_name ?? user?.email}
+          </h1>
+          <p className="text-muted-foreground">
+            دورك: {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-md border bg-card p-5">
+            <p className="text-sm text-muted-foreground">المنتجات</p>
+            <p className="mt-1 text-3xl font-semibold">{productCount ?? 0}</p>
+            <Button asChild variant="outline" size="sm" className="mt-4">
+              <Link href="/products">إدارة المنتجات</Link>
+            </Button>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
