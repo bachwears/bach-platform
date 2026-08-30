@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Button } from "@bach/ui/components/button";
 
+const LINKS = [
+  { href: "/products", label: "المنتجات" },
+  { href: "/categories", label: "الفئات" },
+  { href: "/inventory", label: "المخزون" },
+];
+
 export function Nav() {
   return (
     <header className="border-b bg-card">
@@ -10,9 +16,15 @@ export function Nav() {
             ‏BACH Management
           </Link>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/products" className="text-muted-foreground hover:text-foreground">
-              المنتجات
-            </Link>
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {l.label}
+              </Link>
+            ))}
           </nav>
         </div>
         <form action="/logout" method="post">
