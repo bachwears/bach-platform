@@ -2,6 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
 
-onlyBuiltDependencies:
-  - supabase
-  - esbuild
+allowBuilds:
+  esbuild: true
+  supabase: true

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@bach/i18n": "workspace:*",
+    "@bach/supabase": "workspace:*",
     "@bach/types": "workspace:*",
     "@bach/ui": "workspace:*",
     "next": "^16.0.0",

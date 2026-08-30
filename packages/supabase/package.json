@@ -1,0 +1,24 @@
+{
+  "name": "@bach/supabase",
+  "private": true,
+  "exports": {
+    "./browser": "./src/browser.ts",
+    "./server": "./src/server.ts",
+    "./middleware": "./src/middleware.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.112.0"
+  },
+  "peerDependencies": {
+    "next": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "next": "^16.0.0",
+    "typescript": "^5.9.0"
+  }
+}
