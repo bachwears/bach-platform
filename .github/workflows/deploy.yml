@@ -54,7 +54,21 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # No ssh-keyscan: its burst of preauth probes trips the VPS fail2ban
+          # and gets the runner IP banned before the real connection.
+          printf 'Host *\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config
+      - name: Tune fail2ban (idempotent)
+        run: |
+          cat > /tmp/f2b.sh <<'EOS'
+          set -e
+          mkdir -p /etc/fail2ban/jail.d
+          printf '[sshd]\nmode = normal\nmaxretry = 6\nfindtime = 10m\nbantime = 10m\n' > /etc/fail2ban/jail.d/zz-bach-tuning.conf
+          systemctl restart fail2ban
+          sleep 2
+          fail2ban-client unban --all || true
+          EOS
+          scp /tmp/f2b.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/f2b.sh
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo bash /tmp/f2b.sh && rm /tmp/f2b.sh"
       - name: Ship compose + Caddyfile
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /srv/bach/caddy"
