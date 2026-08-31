@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { Input } from "@bach/ui/components/input";
 
 import { SiteHeader } from "../../components/site-header";
 
@@ -59,7 +60,15 @@ function tenure(sinceIso: string): string {
 
 export default function AccountPage() {
   const router = useRouter();
-  const [customer, setCustomer] = useState<{ full_name: string | null; created_at: string } | null>(null);
+  const [customer, setCustomer] = useState<{
+    id?: string;
+    full_name: string | null;
+    created_at: string;
+    birthday?: string | null;
+    marketing_consent?: boolean;
+  } | null>(null);
+  const [bdayInput, setBdayInput] = useState("");
+  const [bdayMsg, setBdayMsg] = useState("");
   const [orders, setOrders] = useState<MyOrder[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -75,7 +84,7 @@ export default function AccountPage() {
       }
       const { data: cust } = await supabase
         .from("customers")
-        .select("id, full_name, created_at")
+        .select("id, full_name, created_at, birthday, marketing_consent")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       setCustomer(cust ?? { full_name: user.email ?? null, created_at: user.created_at });
@@ -131,6 +140,63 @@ export default function AccountPage() {
           <Button variant="outline" size="sm" onClick={() => void signOut()}>
             Sign out
           </Button>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-md border p-4 text-sm">
+            <p className="font-medium">Birthday</p>
+            {customer?.birthday ? (
+              <p className="mt-1 text-muted-foreground">
+                {new Date(customer.birthday).toLocaleDateString("en-GB", { day: "numeric", month: "long" })} — your
+                birthday treat arrives every year. 🎂
+              </p>
+            ) : customer?.id ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-muted-foreground">
+                  Tell us once and get a gift code every year. (Set once — contact care to correct.)
+                </p>
+                <div className="flex gap-2">
+                  <Input type="date" value={bdayInput} onChange={(e) => setBdayInput(e.target.value)} dir="ltr" />
+                  <Button
+                    size="sm"
+                    disabled={!bdayInput}
+                    onClick={async () => {
+                      const { error } = await supabaseBrowser()
+                        .from("customers")
+                        .update({ birthday: bdayInput })
+                        .eq("id", customer!.id!);
+                      if (error) setBdayMsg("Could not save — try again.");
+                      else {
+                        setCustomer({ ...customer!, birthday: bdayInput });
+                        setBdayMsg("");
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+                {bdayMsg && <p className="text-destructive">{bdayMsg}</p>}
+              </div>
+            ) : (
+              <p className="mt-1 text-muted-foreground">Place your first order to unlock birthday treats.</p>
+            )}
+          </div>
+          <div className="rounded-md border p-4 text-sm">
+            <p className="font-medium">Offers &amp; updates</p>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={customer?.marketing_consent ?? false}
+                disabled={!customer?.id}
+                onChange={async (e) => {
+                  const next = e.target.checked;
+                  setCustomer({ ...customer!, marketing_consent: next });
+                  await supabaseBrowser().from("customers").update({ marketing_consent: next }).eq("id", customer!.id!);
+                }}
+              />
+              Send me birthday gifts and member offers (WhatsApp / email)
+            </label>
+          </div>
         </div>
 
         <h2 className="mt-10 text-lg font-medium">Orders</h2>

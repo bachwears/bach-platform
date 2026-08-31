@@ -4,6 +4,8 @@ import { Archivo, IBM_Plex_Sans_Arabic } from "next/font/google";
 
 import "./globals.css";
 
+import { BirthdayPopup } from "../components/birthday-popup";
+
 const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-archivo",
@@ -32,7 +34,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${archivo.variable} ${plexArabic.variable}`}
       style={{ ["--font-app-sans" as string]: "var(--font-archivo), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif" }}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <BirthdayPopup />
+      </body>
     </html>
   );
 }

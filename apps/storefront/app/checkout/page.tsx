@@ -33,6 +33,9 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
+  const [promo, setPromo] = useState("");
+  const [promoState, setPromoState] = useState<{ status: "idle" | "ok" | "bad"; message?: string; kind?: string; value?: number }>({ status: "idle" });
+  const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,11 +64,20 @@ export default function CheckoutPage() {
         }),
       );
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
+      const { data: sess } = await supabase.auth.getSession();
+      setSignedIn(!!sess.session);
     }
     void load();
   }, [router]);
 
-  const total = summary.reduce((s, l) => s + l.lineTotal, 0);
+  const subtotal = summary.reduce((s, l) => s + l.lineTotal, 0);
+  const promoDiscount =
+    promoState.status === "ok" && promoState.value
+      ? promoState.kind === "percent"
+        ? Math.round((subtotal * promoState.value) / 100)
+        : Math.min(promoState.value, subtotal)
+      : 0;
+  const total = subtotal - promoDiscount;
   const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && city.trim() && address.trim();
@@ -82,6 +94,7 @@ export default function CheckoutPage() {
       p_address: address.trim(),
       p_note: note.trim() || null,
       p_email: email.trim() || null,
+      p_promocode: promoState.status === "ok" ? promo.trim() : null,
     });
     setBusy(false);
     if (err) {
@@ -149,6 +162,48 @@ export default function CheckoutPage() {
             <Field label="Delivery notes (optional)">
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
             </Field>
+            {signedIn ? (
+              <Field label="Promo code (optional)">
+                <div className="flex gap-2">
+                  <Input
+                    value={promo}
+                    onChange={(e) => {
+                      setPromo(e.target.value);
+                      setPromoState({ status: "idle" });
+                    }}
+                    placeholder="MYBIRTHDAY"
+                    dir="ltr"
+                    className="font-mono uppercase"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!promo.trim()}
+                    onClick={async () => {
+                      const { data } = await supabaseBrowser().rpc("validate_promocode", { p_code: promo.trim() });
+                      const v = data?.[0];
+                      setPromoState(
+                        v?.valid
+                          ? { status: "ok", kind: v.kind, value: v.value }
+                          : { status: "bad", message: v?.message ?? "invalid code" },
+                      );
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {promoState.status === "ok" && (
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    Code applied — you save {`$${(promoDiscount / 100).toFixed(2)}`}.
+                  </p>
+                )}
+                {promoState.status === "bad" && <p className="text-sm text-destructive">{promoState.message}</p>}
+              </Field>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Have a promo code? <Link href="/account/login" className="underline underline-offset-4">Sign in</Link> to use it.
+              </p>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button className="h-12 w-full text-base" disabled={!canPlace} onClick={() => void placeOrder()}>
               {busy ? "Placing order…" : `Place order — ${usd(total)}`}
@@ -167,6 +222,12 @@ export default function CheckoutPage() {
                 <span className="font-mono">{usd(l.lineTotal)}</span>
               </div>
             ))}
+            {promoDiscount > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400">
+                <span>Promo discount</span>
+                <span className="font-mono">- {usd(promoDiscount)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-3 font-medium">
               <span>Total</span>
               <span className="font-mono">{usd(total)}</span>
