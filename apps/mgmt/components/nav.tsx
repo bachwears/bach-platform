@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@bach/ui/components/button";
 
 const LINKS = [
+  { href: "/orders", label: "الطلبات" },
   { href: "/products", label: "المنتجات" },
   { href: "/categories", label: "الفئات" },
   { href: "/inventory", label: "المخزون" },
