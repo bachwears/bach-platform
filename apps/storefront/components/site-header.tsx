@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AccountLink } from "./account-link";
 import { CartLink } from "./cart-link";
 
 export function SiteHeader() {
@@ -13,6 +14,7 @@ export function SiteHeader() {
           <Link href="/shop" className="text-muted-foreground hover:text-foreground">
             Shop
           </Link>
+          <AccountLink />
           <CartLink />
         </nav>
       </div>
