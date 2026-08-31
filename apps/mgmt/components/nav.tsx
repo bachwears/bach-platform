@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/inventory", label: "المخزون" },
   { href: "/product-health", label: "صحة البيانات" },
   { href: "/media-import", label: "الصور" },
+  { href: "/exchange-rate", label: "سعر الصرف" },
 ];
 
 export function Nav() {
