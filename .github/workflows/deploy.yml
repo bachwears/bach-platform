@@ -58,6 +58,7 @@ jobs:
           # and gets the runner IP banned before the real connection.
           printf 'Host *\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config
       - name: Tune fail2ban (idempotent)
+        continue-on-error: true
         run: |
           cat > /tmp/f2b.sh <<'EOS'
           set -e
