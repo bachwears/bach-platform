@@ -11,6 +11,7 @@ interface VariantHit {
   barcode: string | null;
   size: string;
   color_ar: string;
+  color_en: string;
   price_usd_cents_override: number | null;
   products: { name_ar: string; name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null };
   inventory_levels: Array<{ branch_id: string; quantity: number; reserved: number }>;
@@ -19,9 +20,9 @@ interface VariantHit {
 interface CartLine {
   variantId: string;
   sku: string | null;
-  nameAr: string;
+  nameEn: string;
   size: string;
-  colorAr: string;
+  colorEn: string;
   unitUsdCents: number;
   quantity: number;
   available: number;
@@ -88,7 +89,7 @@ export function Cashier({
           return prev.map((l) => (l.variantId === v.id ? { ...l, quantity: l.quantity + 1 } : l));
         }
         if (available <= 0) {
-          setError(`ما في مخزون كافي: ${v.sku ?? v.products.name_ar}`);
+          setError(`ما في مخزون كافي: ${v.sku ?? v.products.name_en}`);
           return prev;
         }
         return [
@@ -96,9 +97,9 @@ export function Cashier({
           {
             variantId: v.id,
             sku: v.sku,
-            nameAr: v.products.name_ar,
+            nameEn: v.products.name_en,
             size: v.size,
-            colorAr: v.color_ar,
+            colorEn: v.color_en,
             unitUsdCents: unitPrice(v),
             quantity: 1,
             available,
@@ -117,7 +118,7 @@ export function Cashier({
     if (!q) return;
     setError("");
     const select =
-      "id, sku, barcode, size, color_ar, price_usd_cents_override, products!inner(name_ar, name_en, price_usd_cents, sale_price_usd_cents), inventory_levels(branch_id, quantity, reserved)";
+      "id, sku, barcode, size, color_ar, color_en, price_usd_cents_override, products!inner(name_ar, name_en, price_usd_cents, sale_price_usd_cents), inventory_levels(branch_id, quantity, reserved)";
     if (exact) {
       const { data } = await supabase
         .from("product_variants")
@@ -233,41 +234,43 @@ export function Cashier({
   if (receipt) {
     return (
       <div className="mx-auto max-w-md space-y-4 p-6 print:p-0">
-        <div className="rounded-lg border p-6 print:border-0" dir="rtl">
+        <div className="rounded-lg border p-6 print:border-0" dir="ltr">
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-widest">BACH WEARS</h2>
             <p className="text-sm text-muted-foreground">{branchName}</p>
-            <p className="mt-2 font-mono text-lg">فاتورة #{receipt.number}</p>
+            <p className="mt-2 font-mono text-lg">Invoice #{receipt.number}</p>
             <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-GB")}</p>
           </div>
           <div className="my-4 border-t border-dashed" />
           {receipt.lines.map((l) => (
             <div key={l.variantId} className="flex justify-between py-1 text-sm">
               <span>
-                {l.nameAr} — {l.size} {l.colorAr} × {l.quantity}
+                {l.nameEn} — {l.size} {l.colorEn} × {l.quantity}
               </span>
               <span className="font-mono">{usd(l.unitUsdCents * l.quantity)}</span>
             </div>
           ))}
           <div className="my-4 border-t border-dashed" />
           <div className="space-y-1 text-sm">
-            <Row label="المجموع" value={usd(receipt.subtotal)} />
-            {receipt.discount > 0 && <Row label="خصم" value={`- ${usd(receipt.discount)}`} />}
+            <Row label="Subtotal" value={usd(receipt.subtotal)} />
+            {receipt.discount > 0 && <Row label="Discount" value={`- ${usd(receipt.discount)}`} />}
             {receipt.tva > 0 && <Row label="TVA" value={usd(receipt.tva)} />}
             <div className="flex justify-between text-base font-bold">
-              <span>الإجمالي</span>
+              <span>Total</span>
               <span className="font-mono">
-                {usd(receipt.total)} / {lbp((receipt.total / 100) * receipt.rate)}
+                {usd(receipt.total)} / LBP {((receipt.total / 100) * receipt.rate).toLocaleString("en-US")}
               </span>
             </div>
-            {receipt.paidUsdCents > 0 && <Row label="دفع دولار" value={usd(receipt.paidUsdCents)} />}
-            {receipt.paidLbp > 0 && <Row label="دفع ليرة" value={lbp(receipt.paidLbp)} />}
-            {receipt.changeLbp > 0 && <Row label="الباقي (ليرة)" value={lbp(receipt.changeLbp)} />}
+            {receipt.paidUsdCents > 0 && <Row label="Paid USD" value={usd(receipt.paidUsdCents)} />}
+            {receipt.paidLbp > 0 && <Row label="Paid LBP" value={`LBP ${receipt.paidLbp.toLocaleString("en-US")}`} />}
+            {receipt.changeLbp > 0 && (
+              <Row label="Change (LBP)" value={`LBP ${receipt.changeLbp.toLocaleString("en-US")}`} />
+            )}
             <p className="pt-2 text-center text-xs text-muted-foreground">
-              سعر الصرف: {receipt.rate.toLocaleString("en-US")} ل.ل / $
+              Exchange rate: LBP {receipt.rate.toLocaleString("en-US")} / $
             </p>
           </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground">شكراً لزيارتكم 🖤</p>
+          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us 🖤</p>
         </div>
         <div className="flex gap-3 print:hidden">
           <Button className="flex-1" onClick={() => window.print()}>
@@ -317,7 +320,7 @@ export function Cashier({
                     onClick={() => addVariant(v)}
                   >
                     <span>
-                      {v.products.name_ar} — {v.size} {v.color_ar}
+                      {v.products.name_en} — {v.size} {v.color_en}
                       <span className="block text-xs text-muted-foreground" dir="ltr">
                         {v.sku}
                       </span>
@@ -355,9 +358,9 @@ export function Cashier({
                 {cart.map((l) => (
                   <tr key={l.variantId} className="border-b last:border-0">
                     <td className="p-3">
-                      {l.nameAr}
+                      {l.nameEn}
                       <span className="block text-xs text-muted-foreground">
-                        {l.size} {l.colorAr} <span dir="ltr">{l.sku}</span>
+                        {l.size} {l.colorEn} <span dir="ltr">{l.sku}</span>
                       </span>
                     </td>
                     <td className="p-3">
