@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CartLink } from "./cart-link";
+
 export function SiteHeader() {
   return (
     <header className="border-b">
@@ -11,6 +13,7 @@ export function SiteHeader() {
           <Link href="/shop" className="text-muted-foreground hover:text-foreground">
             Shop
           </Link>
+          <CartLink />
         </nav>
       </div>
     </header>

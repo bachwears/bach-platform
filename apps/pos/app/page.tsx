@@ -42,6 +42,7 @@ export default async function Home() {
           <span className="text-sm text-muted-foreground">{branch?.name}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <a href="/queue" className="hover:text-foreground">طلبات الأونلاين</a>
           <a href="/returns" className="hover:text-foreground">مرتجع / تبديل</a>
           <span>
             {profile?.full_name ?? user?.email} · {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}

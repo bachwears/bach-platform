@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
+import { AddToCart } from "../../../components/add-to-cart";
 import { SiteHeader } from "../../../components/site-header";
 
 interface VariantRow {
+  id: string;
   size: string;
   color_code: string;
   color_en: string;
   is_active: boolean;
+  inventory_levels: Array<{ quantity: number; reserved: number }>;
 }
 
 function usd(cents: number) {
@@ -20,7 +23,7 @@ async function getProduct(slug: string) {
   const { data } = await supabase
     .from("products")
     .select(
-      "id, slug, name_en, description_en, price_usd_cents, sale_price_usd_cents, material_en, care_en, fit, categories(name_en), media_assets(kind, storage_path), product_variants(size, color_code, color_en, is_active)",
+      "id, slug, name_en, description_en, price_usd_cents, sale_price_usd_cents, material_en, care_en, fit, categories(name_en), media_assets(kind, storage_path), product_variants(id, size, color_code, color_en, is_active, inventory_levels(quantity, reserved))",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -59,8 +62,6 @@ export default async function ProductPage({
   const variants = ((product.product_variants as unknown as VariantRow[]) ?? []).filter(
     (v) => v.is_active,
   );
-  const colors = [...new Map(variants.map((v) => [v.color_code, v.color_en])).entries()];
-  const sizes = [...new Set(variants.map((v) => v.size))];
   const onSale = product.sale_price_usd_cents != null;
   const category = product.categories as unknown as { name_en: string } | null;
 
@@ -130,35 +131,15 @@ export default async function ProductPage({
             <p className="mt-6 leading-relaxed text-muted-foreground">{product.description_en}</p>
           ) : null}
 
-          {colors.length ? (
-            <div className="mt-8">
-              <p className="text-sm font-medium">Color</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {colors.map(([code, name]) => (
-                  <span key={code} className="rounded-md border px-3 py-1.5 text-sm">
-                    {name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {sizes.length ? (
-            <div className="mt-6">
-              <p className="text-sm font-medium">Size</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {sizes.map((s) => (
-                  <span key={s} className="min-w-11 rounded-md border px-3 py-1.5 text-center text-sm">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <p className="mt-8 rounded-md bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-            Online ordering is launching soon. Visit us in store in the meantime.
-          </p>
+          <AddToCart
+            variants={variants.map((v) => ({
+              id: v.id,
+              size: v.size,
+              color_code: v.color_code,
+              color_en: v.color_en,
+              available: (v.inventory_levels ?? []).reduce((s, l) => s + l.quantity - l.reserved, 0),
+            }))}
+          />
 
           <dl className="mt-10 space-y-4 border-t pt-6 text-sm">
             {product.fit ? (
