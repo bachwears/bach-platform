@@ -79,6 +79,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-app-sans, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-app-mono, ui-monospace, "SF Mono", monospace);
 }
 
 @layer base {
@@ -88,5 +90,6 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 }
