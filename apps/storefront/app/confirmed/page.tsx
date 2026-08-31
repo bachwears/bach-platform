@@ -21,9 +21,20 @@ export default async function ConfirmedPage({
             We&apos;ll call you shortly to confirm delivery details. Payment is in cash when your
             order arrives — keep your order number handy.
           </p>
-          <Link href="/shop" className="mt-8 inline-block underline underline-offset-4">
-            Continue shopping
-          </Link>
+          <div className="mt-8 space-y-4">
+            <Link
+              href="/account/new"
+              className="inline-block rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background"
+            >
+              Create an account — details already filled
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Track this order and skip the forms next time.
+            </p>
+            <Link href="/shop" className="inline-block text-sm underline underline-offset-4">
+              Continue shopping
+            </Link>
+          </div>
         </div>
       </main>
     </div>

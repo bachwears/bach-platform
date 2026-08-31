@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [rate, setRate] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
@@ -66,7 +67,8 @@ export default function CheckoutPage() {
 
   const total = summary.reduce((s, l) => s + l.lineTotal, 0);
   const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
-  const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && city.trim() && address.trim();
+  const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && city.trim() && address.trim();
 
   async function placeOrder() {
     if (!canPlace) return;
@@ -79,6 +81,7 @@ export default function CheckoutPage() {
       p_city: city.trim(),
       p_address: address.trim(),
       p_note: note.trim() || null,
+      p_email: email.trim() || null,
     });
     setBusy(false);
     if (err) {
@@ -90,6 +93,14 @@ export default function CheckoutPage() {
       return;
     }
     clearCart();
+    try {
+      sessionStorage.setItem(
+        "bach-checkout-info",
+        JSON.stringify({ name: name.trim(), phone, email: email.trim(), city: city.trim(), address: address.trim() }),
+      );
+    } catch {
+      /* storage unavailable */
+    }
     router.replace(`/confirmed?n=${data![0].order_number}`);
   }
 
@@ -114,6 +125,16 @@ export default function CheckoutPage() {
                 placeholder="+961 71 000 000"
                 inputMode="tel"
                 autoComplete="tel"
+                dir="ltr"
+              />
+            </Field>
+            <Field label="Email (optional — for your order confirmation)">
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                inputMode="email"
+                autoComplete="email"
                 dir="ltr"
               />
             </Field>
