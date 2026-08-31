@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/products", label: "المنتجات" },
   { href: "/categories", label: "الفئات" },
   { href: "/inventory", label: "المخزون" },
+  { href: "/product-health", label: "صحة البيانات" },
 ];
 
 export function Nav() {
