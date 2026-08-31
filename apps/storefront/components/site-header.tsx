@@ -14,6 +14,9 @@ export function SiteHeader() {
           <Link href="/shop" className="text-muted-foreground hover:text-foreground">
             Shop
           </Link>
+          <Link href="/help" className="text-muted-foreground hover:text-foreground">
+            Help
+          </Link>
           <AccountLink />
           <CartLink />
         </nav>

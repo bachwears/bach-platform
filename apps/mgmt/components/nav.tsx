@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/product-health", label: "صحة البيانات" },
   { href: "/media-import", label: "الصور" },
   { href: "/exchange-rate", label: "سعر الصرف" },
+  { href: "/help", label: "مساعدة" },
 ];
 
 export function Nav() {

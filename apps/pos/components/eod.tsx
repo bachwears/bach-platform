@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { HintDot, type HintContent } from "@bach/ui/components/hint-dot";
 
 interface Totals {
   ordersCount: number;
@@ -37,7 +38,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function Eod({ branchId, branchName }: { branchId: string; branchName: string }) {
+export function Eod({ branchId, branchName, hint }: { branchId: string; branchName: string; hint?: HintContent | null }) {
   const supabase = supabaseBrowser();
   const [date, setDate] = useState(todayStr());
   const [totals, setTotals] = useState<Totals | null>(null);
@@ -199,7 +200,10 @@ export function Eod({ branchId, branchName }: { branchId: string; branchName: st
             </section>
 
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cash drawer</h3>
+              <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Cash drawer
+                {hint && <HintDot hint={hint} />}
+              </h3>
               <dl className="mt-2 space-y-1.5 text-sm">
                 <Row label="Cash in (USD)" value={usd(totals.cashInUsd)} />
                 <Row label="Cash in (LBP)" value={lbp(totals.cashInLbp)} />

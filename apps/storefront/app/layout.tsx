@@ -4,6 +4,7 @@ import { Archivo, IBM_Plex_Sans_Arabic } from "next/font/google";
 
 import "./globals.css";
 
+import { AssistantWidget } from "../components/assistant-widget";
 import { BirthdayPopup } from "../components/birthday-popup";
 
 const archivo = Archivo({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {children}
         <BirthdayPopup />
+        <AssistantWidget />
       </body>
     </html>
   );

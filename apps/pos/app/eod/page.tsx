@@ -12,9 +12,10 @@ export default async function EodPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: branch }] = await Promise.all([
+  const [{ data: profile }, { data: branch }, { data: hint }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user!.id).single(),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at").limit(1).single(),
+    supabase.from("hint_registry").select("*").eq("key", "eod-expected-cash").maybeSingle(),
   ]);
 
   const allowed = EOD_ROLES.has(profile?.role ?? "");
@@ -45,7 +46,11 @@ export default async function EodPage() {
         ) : !branch ? (
           <p className="p-8 text-center text-muted-foreground">ما في فرع مفعّل.</p>
         ) : (
-          <Eod branchId={branch.id} branchName={branch.name} />
+          <Eod
+            branchId={branch.id}
+            branchName={branch.name}
+            hint={hint ? { title: hint.title_ar, what: hint.what_ar, source: hint.source_ar, edit: hint.edit_ar, articleHref: "/help" } : null}
+          />
         )}
       </main>
     </div>

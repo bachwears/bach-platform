@@ -2,6 +2,8 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 
+import { HintDot } from "@bach/ui/components/hint-dot";
+
 import { Nav } from "../../components/nav";
 import { ISSUES, analyze, type HealthRow } from "../../lib/product-health";
 
@@ -16,6 +18,7 @@ export default async function ProductHealthPage({
   const { issue } = await searchParams;
   const supabase = await supabaseServer();
 
+  const { data: hint } = await supabase.from("hint_registry").select("*").eq("key", "health-score").maybeSingle();
   const { data } = await supabase
     .from("products")
     .select(
@@ -50,7 +53,16 @@ export default async function ProductHealthPage({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-4">
-          <Stat label="نسبة الجهوزية" value={`${score}%`} sub={`${clean} منتج مكتمل من ${products.length}`} />
+          <div className="rounded-lg border p-4">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              نسبة الجهوزية
+              {hint && (
+                <HintDot hint={{ title: hint.title_ar, what: hint.what_ar, source: hint.source_ar, edit: hint.edit_ar, articleHref: hint.article_slug ? `/help#${hint.article_slug}` : null }} />
+              )}
+            </p>
+            <p className="mt-1 font-mono text-2xl font-semibold">{score}%</p>
+            <p className="text-xs text-muted-foreground">{clean} منتج مكتمل من {products.length}</p>
+          </div>
           <Stat label="فيها نواقص أساسية" value={String(critical)} sub="صور، مقاسات، وصف عربي، فئة" tone="bad" />
           <Stat
             label="فيها نواقص ثانوية بس"

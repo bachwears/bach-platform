@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { HintDot } from "@bach/ui/components/hint-dot";
+
 import { Nav } from "../../components/nav";
 import { RateForm } from "../../components/rate-form";
 
@@ -13,13 +15,14 @@ export default async function ExchangeRatePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: history }] = await Promise.all([
+  const [{ data: profile }, { data: history }, { data: hint }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user!.id).single(),
     supabase
       .from("exchange_rates")
       .select("id, lbp_per_usd, effective_at, profiles(full_name)")
       .order("effective_at", { ascending: false })
       .limit(30),
+    supabase.from("hint_registry").select("*").eq("key", "rate-current").maybeSingle(),
   ]);
 
   const canSet = ["super_admin", "store_manager"].includes(profile?.role ?? "");
@@ -39,7 +42,12 @@ export default async function ExchangeRatePage() {
         </div>
 
         <div className="rounded-lg border p-6">
-          <p className="text-sm text-muted-foreground">السعر الحالي</p>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            السعر الحالي
+            {hint && (
+              <HintDot hint={{ title: hint.title_ar, what: hint.what_ar, source: hint.source_ar, edit: hint.edit_ar, articleHref: hint.article_slug ? `/help#${hint.article_slug}` : null }} />
+            )}
+          </p>
           {current != null && latest ? (
             <>
               <p className="mt-1 font-mono text-4xl font-semibold">
