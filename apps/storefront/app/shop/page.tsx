@@ -137,6 +137,7 @@ export default async function ShopPage({
       sale_price_usd_cents: p.sale_price_usd_cents,
       front: media.find((m) => m.kind === "front")?.storage_path ?? null,
       back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+      colors: p.product_variants.filter((v) => v.is_active).map((v) => v.color_en),
     };
   });
 

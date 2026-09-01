@@ -260,5 +260,11 @@
   "sf.unsub.title": "Unsubscribe",
   "sf.unsub.sub": "Enter your email and we'll take you off the newsletter list.",
   "sf.unsub.cta": "Unsubscribe",
-  "sf.unsub.done": "Done — you won't hear from the newsletter again. Changed your mind? Subscribe again anytime from the footer."
+  "sf.unsub.done": "Done — you won't hear from the newsletter again. Changed your mind? Subscribe again anytime from the footer.",
+  "sf.pdp.delivery": "Delivery",
+  "sf.pdp.deliveryBody": "Lebanon-wide delivery. We call to confirm before dispatch, and the courier fee is settled on arrival. Cash on delivery in USD or LBP.",
+  "sf.pdp.returnsTitle": "Returns & exchanges",
+  "sf.pdp.returnsBody": "Delivered online orders can be returned or exchanged within 30 days.",
+  "sf.pdp.returnsLink": "Start a return",
+  "sf.pdp.recentlyViewed": "Recently viewed"
 }

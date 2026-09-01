@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Locale } from "@bach/i18n";
 
+import { colorHex } from "../lib/colors";
+
 export interface CardProduct {
   slug: string;
   name_en: string;
@@ -9,6 +11,7 @@ export interface CardProduct {
   sale_price_usd_cents: number | null;
   front?: string | null;
   back?: string | null;
+  colors?: string[];
 }
 
 function usd(cents: number) {
@@ -63,7 +66,28 @@ export function ProductCard({ product, locale = "en" }: { product: CardProduct; 
             usd(product.price_usd_cents)
           )}
         </p>
+        <ColorChips colors={product.colors} />
       </div>
     </Link>
+  );
+}
+
+function ColorChips({ colors }: { colors?: string[] }) {
+  const swatches = [...new Set(colors ?? [])]
+    .map((c) => ({ name: c, hex: colorHex(c) }))
+    .filter((c): c is { name: string; hex: string } => c.hex != null);
+  if (swatches.length < 2) return null;
+  return (
+    <span className="flex items-center gap-1.5 pt-0.5" aria-label={swatches.map((s) => s.name).join(", ")}>
+      {swatches.slice(0, 5).map((s) => (
+        <span
+          key={s.name}
+          title={s.name}
+          className="h-2.5 w-2.5 rounded-full border border-black/10 dark:border-white/20"
+          style={{ backgroundColor: s.hex }}
+        />
+      ))}
+      {swatches.length > 5 && <span className="text-[10px] text-muted-foreground">+{swatches.length - 5}</span>}
+    </span>
   );
 }

@@ -6,7 +6,10 @@ import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
 import { AddToCart } from "../../../components/add-to-cart";
+import { PdpAccordion } from "../../../components/pdp-accordion";
+import { PdpGallery } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
+import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 
@@ -86,7 +89,7 @@ export default async function ProductPage({
 
   const supabase = await supabaseServer();
   const cardSelect =
-    "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path)";
+    "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path), product_variants(color_en, is_active)";
 
   // "You may also like": same category, newest first.
   const relatedQ = product.category_id
@@ -138,6 +141,7 @@ export default async function ProductPage({
     price_usd_cents: number;
     sale_price_usd_cents: number | null;
     media_assets: Array<{ kind: string; storage_path: string }> | null;
+    product_variants: Array<{ color_en: string; is_active: boolean }> | null;
   }): CardProduct => ({
     slug: p.slug,
     name_en: p.name_en,
@@ -146,6 +150,7 @@ export default async function ProductPage({
     sale_price_usd_cents: p.sale_price_usd_cents,
     front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null,
     back: (p.media_assets ?? []).find((m) => m.kind === "back")?.storage_path ?? null,
+    colors: (p.product_variants ?? []).filter((v) => v.is_active).map((v) => v.color_en),
   });
   const related = ((relatedRaw ?? []) as Parameters<typeof toCard>[0][]).map(toCard);
   const look = ((lookRaw ?? []) as Parameters<typeof toCard>[0][]).map(toCard);
@@ -236,17 +241,12 @@ export default async function ProductPage({
         <span className="text-foreground">{displayName}</span>
       </nav>
       <main className="mx-auto grid max-w-6xl gap-10 px-4 py-8 lg:grid-cols-2">
-        <div className="space-y-4">
+        <div>
           {gallery.length ? (
-            gallery.map((m) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={m.kind}
-                src={m.storage_path}
-                alt={`${product.name_en} — ${m.kind}`}
-                className="aspect-[3/4] w-full bg-secondary object-cover"
-              />
-            ))
+            <PdpGallery
+              images={gallery.map((m) => ({ kind: m.kind, url: m.storage_path }))}
+              name={displayName}
+            />
           ) : (
             <div className="grid aspect-[3/4] place-items-center bg-secondary p-6 text-center">
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -313,11 +313,11 @@ export default async function ProductPage({
               </div>
             ) : null}
           </dl>
+          <PdpAccordion locale={locale} />
         </div>
       </main>
 
-      {(related.length > 0 || look.length > 0) && (
-        <section className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
+      <section className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
           {related.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold tracking-tight">{t(locale, "sf.pdp.related")}</h2>
@@ -338,8 +338,8 @@ export default async function ProductPage({
               </div>
             </div>
           )}
+          <RecentlyViewed currentSlug={product.slug} />
         </section>
-      )}
     </div>
   );
 }

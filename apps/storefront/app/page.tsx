@@ -11,7 +11,7 @@ export default async function Home() {
   const supabase = await supabaseServer();
   const { data: products } = await supabase
     .from("products")
-    .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path)")
+    .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(4);
@@ -26,6 +26,9 @@ export default async function Home() {
       sale_price_usd_cents: p.sale_price_usd_cents,
       front: media.find((m) => m.kind === "front")?.storage_path ?? null,
       back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+      colors: ((p.product_variants as unknown as Array<{ color_en: string; is_active: boolean }>) ?? [])
+        .filter((v) => v.is_active)
+        .map((v) => v.color_en),
     };
   });
 
