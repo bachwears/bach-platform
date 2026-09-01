@@ -46,6 +46,7 @@ export default async function Home() {
           <a href="/eod" className="hover:text-foreground">تسكير اليوم</a>
           <a href="/help" className="hover:text-foreground">مساعدة</a>
           <a href="/returns" className="hover:text-foreground">مرتجع / تبديل</a>
+          <a href="/stocktake" className="hover:text-foreground">جرد</a>
           <span>
             {profile?.full_name ?? user?.email} · {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}
           </span>
