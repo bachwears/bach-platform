@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/product-health", label: "صحة البيانات" },
   { href: "/media-import", label: "الصور" },
   { href: "/marketing", label: "التسويق" },
+  { href: "/reports", label: "التقارير" },
   { href: "/exchange-rate", label: "سعر الصرف" },
   { href: "/payments", label: "الدفع" },
   { href: "/complaints", label: "الشكاوى" },
