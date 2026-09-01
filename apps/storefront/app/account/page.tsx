@@ -283,6 +283,14 @@ export default function AccountPage() {
                     </li>
                   ))}
                 </ul>
+                {["delivered", "completed"].includes(o.status) && o.channel === "online" && (
+                  <Link
+                    href={lhref(locale, `/returns?n=${o.number}`)}
+                    className="mt-3 inline-block text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    {t(locale, "sf.acct.requestReturn")}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
