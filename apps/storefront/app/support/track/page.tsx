@@ -6,16 +6,9 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { t, type Locale } from "@bach/i18n";
 
-
-const STATUS_EN: Record<string, string> = {
-  open: "Received",
-  in_progress: "Being handled",
-  waiting_customer: "Waiting for you",
-  escalated: "Escalated",
-  resolved: "Resolved",
-  closed: "Closed",
-};
+import { useLocale } from "../../../lib/locale-client";
 
 interface Tracked {
   status: string;
@@ -24,13 +17,21 @@ interface Tracked {
   events: Array<{ kind: string; body: string; at: string }>;
 }
 
+function statusLabel(locale: Locale, status: string) {
+  const label = t(locale, `sf.status.${status}`);
+  return label === `sf.status.${status}` ? status : label;
+}
+
 function TrackForm() {
+  const locale = useLocale();
   const params = useSearchParams();
   const [number, setNumber] = useState(params.get("n") ?? "");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Tracked | null>(null);
+
+  const dateLocale = locale === "ar" ? "ar-LB" : "en-GB";
 
   async function track() {
     const n = parseInt(number.replace(/[^0-9]/g, ""), 10);
@@ -44,7 +45,7 @@ function TrackForm() {
     });
     setBusy(false);
     if (err || !data?.length) {
-      setError("No ticket found for that number and phone.");
+      setError(t(locale, "sf.track.notFound"));
       return;
     }
     setResult(data[0] as unknown as Tracked);
@@ -52,16 +53,14 @@ function TrackForm() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Track your ticket</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Enter your ticket number and the phone you used when filing it.
-      </p>
+      <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.track.title")}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.track.sub")}</p>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Input
           value={number}
           onChange={(e) => setNumber(e.target.value)}
-          placeholder="Ticket #"
+          placeholder={t(locale, "sf.track.ticketPh")}
           inputMode="numeric"
           dir="ltr"
           className="w-32 font-mono"
@@ -76,7 +75,7 @@ function TrackForm() {
           onKeyDown={(e) => e.key === "Enter" && void track()}
         />
         <Button disabled={busy} onClick={() => void track()}>
-          {busy ? "…" : "Track"}
+          {busy ? "…" : t(locale, "sf.track.go")}
         </Button>
       </div>
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
@@ -86,19 +85,29 @@ function TrackForm() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-medium">{result.subject}</p>
             <Badge variant={["resolved", "closed"].includes(result.status) ? "default" : "secondary"}>
-              {STATUS_EN[result.status] ?? result.status}
+              {statusLabel(locale, result.status)}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Filed {new Date(result.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            {t(locale, "sf.track.filed", {
+              d: new Date(result.created_at).toLocaleDateString(dateLocale, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+            })}
           </p>
           {result.events.length > 0 && (
             <ul className="mt-4 space-y-3 border-t pt-4 text-sm">
               {result.events.map((e, i) => (
                 <li key={i}>
-                  <p className="whitespace-pre-line">{e.kind === "status" ? `Status: ${e.body}` : e.body}</p>
+                  <p className="whitespace-pre-line">
+                    {e.kind === "status"
+                      ? t(locale, "sf.track.statusPrefix", { s: statusLabel(locale, e.body) })
+                      : e.body}
+                  </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {new Date(e.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                    {new Date(e.at).toLocaleString(dateLocale, { dateStyle: "medium", timeStyle: "short" })}
                   </p>
                 </li>
               ))}
