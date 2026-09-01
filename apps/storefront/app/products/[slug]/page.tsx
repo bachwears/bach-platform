@@ -132,6 +132,7 @@ export default async function ProductPage({
           ) : null}
 
           <AddToCart
+            productId={product.id}
             variants={variants.map((v) => ({
               id: v.id,
               size: v.size,

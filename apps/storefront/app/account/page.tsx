@@ -70,6 +70,7 @@ export default function AccountPage() {
   const [bdayInput, setBdayInput] = useState("");
   const [bdayMsg, setBdayMsg] = useState("");
   const [orders, setOrders] = useState<MyOrder[]>([]);
+  const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -89,13 +90,21 @@ export default function AccountPage() {
         .maybeSingle();
       setCustomer(cust ?? { full_name: user.email ?? null, created_at: user.created_at });
       if (cust) {
-        const { data } = await supabase
-          .from("orders")
-          .select("id, number, status, total_usd_cents, created_at, channel, order_items(name_en, size, color_en, quantity)")
-          .eq("customer_id", cust.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
+        const [{ data }, { data: wl }] = await Promise.all([
+          supabase
+            .from("orders")
+            .select("id, number, status, total_usd_cents, created_at, channel, order_items(name_en, size, color_en, quantity)")
+            .eq("customer_id", cust.id)
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("wishlists")
+            .select("product_id, products(slug, name_en, price_usd_cents, sale_price_usd_cents)")
+            .eq("customer_id", cust.id)
+            .order("created_at", { ascending: false }),
+        ]);
         setOrders((data ?? []) as unknown as MyOrder[]);
+        setWishlist((wl ?? []) as unknown as typeof wishlist extends Array<infer T> ? T[] : never);
       }
       setLoaded(true);
     }
@@ -198,6 +207,38 @@ export default function AccountPage() {
             </label>
           </div>
         </div>
+
+        {wishlist.length > 0 && (
+          <>
+            <h2 className="mt-10 text-lg font-medium">Wishlist</h2>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {wishlist.map((w) => (
+                <li key={w.product_id} className="flex items-center justify-between gap-3 rounded-md border px-4 py-3 text-sm">
+                  <Link href={`/products/${w.products.slug}`} className="hover:underline">
+                    {w.products.name_en}
+                  </Link>
+                  <span className="flex items-center gap-3">
+                    <span className="font-mono">
+                      ${((w.products.sale_price_usd_cents ?? w.products.price_usd_cents) / 100).toFixed(2)}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={async () => {
+                        setWishlist(wishlist.filter((x) => x.product_id !== w.product_id));
+                        if (customer?.id) {
+                          await supabaseBrowser().from("wishlists").delete().eq("customer_id", customer.id).eq("product_id", w.product_id);
+                        }
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h2 className="mt-10 text-lg font-medium">Orders</h2>
         {orders.length === 0 ? (
