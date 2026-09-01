@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface CatalogItem {
   id: string;
+  product_id: string;
   sku: string | null;
   barcode: string | null;
   size: string;
@@ -23,10 +24,17 @@ const CATALOG_KEY = "bach-pos-catalog";
 const QUEUE_KEY = "bach-pos-queue";
 export const CATALOG_TTL_MS = 5 * 60 * 1000;
 
+export interface BarcodeAlias {
+  barcode: string;
+  product_id: string;
+}
+
 interface CatalogBlob {
   at: number;
   branchId: string;
   items: CatalogItem[];
+  /** Retired one-size variants: their physical tag barcode resolves to the product's sizes. */
+  aliases?: BarcodeAlias[];
 }
 
 export function readCatalog(branchId: string): CatalogBlob | null {
@@ -41,13 +49,22 @@ export function readCatalog(branchId: string): CatalogBlob | null {
 }
 
 export async function refreshCatalog(supabase: SupabaseClient, branchId: string): Promise<CatalogBlob | null> {
-  const { data, error } = await supabase
-    .from("product_variants")
-    .select(
-      "id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
-    )
-    .eq("is_active", true)
-    .eq("products.status", "published");
+  const [{ data, error }, { data: aliasRows }] = await Promise.all([
+    supabase
+      .from("product_variants")
+      .select(
+        "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
+      )
+      .eq("is_active", true)
+      .eq("products.status", "published"),
+    supabase
+      .from("product_variants")
+      .select("barcode, product_id, products!inner(status)")
+      .eq("is_active", false)
+      .eq("size", "OS")
+      .eq("products.status", "published")
+      .not("barcode", "is", null),
+  ]);
   if (error || !data) return readCatalog(branchId);
   const items: CatalogItem[] = (data as unknown as Array<Record<string, unknown>>).map((v) => {
     const p = v.products as { name_en: string; name_ar: string; price_usd_cents: number; sale_price_usd_cents: number | null };
@@ -67,9 +84,14 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
       price_usd_cents: p.price_usd_cents,
       sale_price_usd_cents: p.sale_price_usd_cents,
       available: level ? level.quantity - level.reserved : 0,
+      product_id: v.product_id as string,
     };
   });
-  const blob: CatalogBlob = { at: Date.now(), branchId, items };
+  const aliases: BarcodeAlias[] = ((aliasRows ?? []) as Array<{ barcode: string; product_id: string }>).map((a) => ({
+    barcode: a.barcode,
+    product_id: a.product_id,
+  }));
+  const blob: CatalogBlob = { at: Date.now(), branchId, items, aliases };
   try {
     localStorage.setItem(CATALOG_KEY, JSON.stringify(blob));
   } catch {
@@ -78,12 +100,21 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
   return blob;
 }
 
-export function searchCatalog(items: CatalogItem[], query: string, exact: boolean): CatalogItem[] {
+export function searchCatalog(
+  items: CatalogItem[],
+  query: string,
+  exact: boolean,
+  aliases: BarcodeAlias[] = [],
+): CatalogItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   if (exact) {
     const hit = items.find((i) => i.barcode?.toLowerCase() === q || i.sku?.toLowerCase() === q);
-    return hit ? [hit] : [];
+    if (hit) return [hit];
+    // Physical tag of a retired one-size variant: offer the product's sizes.
+    const alias = aliases.find((a) => a.barcode.toLowerCase() === q);
+    if (alias) return items.filter((i) => i.product_id === alias.product_id);
+    return [];
   }
   return items
     .filter(

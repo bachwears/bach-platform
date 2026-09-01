@@ -6,6 +6,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
 import {
+  type BarcodeAlias,
   type CatalogItem,
   CATALOG_TTL_MS,
   decrementCatalog,
@@ -71,6 +72,7 @@ export function Cashier({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogItem[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [aliases, setAliases] = useState<BarcodeAlias[]>([]);
   const [online, setOnline] = useState(true);
   const [queueCount, setQueueCount] = useState(0);
   const [syncMsg, setSyncMsg] = useState("");
@@ -173,7 +175,7 @@ export function Cashier({
     setQueueCount(res.remaining);
     if (res.synced > 0) {
       setSyncMsg(`تزامنت ${res.synced} مبيعات ✓`);
-      void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+      void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
       setTimeout(() => setSyncMsg(""), 5000);
     }
     if (res.failed > 0) {
@@ -186,12 +188,15 @@ export function Cashier({
     setOnline(navigator.onLine);
     setQueueCount(readQueue().length);
     const cached = readCatalog(branchId);
-    if (cached) setCatalog(cached.items);
+    if (cached) {
+      setCatalog(cached.items);
+      setAliases(cached.aliases ?? []);
+    }
     if (!cached || Date.now() - cached.at > CATALOG_TTL_MS) {
-      void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+      void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
     }
     const timer = setInterval(() => {
-      if (navigator.onLine) void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+      if (navigator.onLine) void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
     }, CATALOG_TTL_MS);
     const goOnline = () => {
       setOnline(true);
@@ -247,16 +252,21 @@ export function Cashier({
     if (!q) return;
     setError("");
     let items = catalog;
+    let aliasList = aliases;
     if (!items.length) {
       const blob = (await refreshCatalog(supabase, branchId)) ?? readCatalog(branchId);
       items = blob?.items ?? [];
-      if (blob) setCatalog(blob.items);
+      aliasList = blob?.aliases ?? [];
+      if (blob) {
+        setCatalog(blob.items);
+        setAliases(blob.aliases ?? []);
+      }
     }
     if (!items.length) {
       setError("الكتالوج مش محمّل — تأكد من الاتصال أول مرة.");
       return;
     }
-    const hits = searchCatalog(items, q, exact);
+    const hits = searchCatalog(items, q, exact, aliasList);
     if (exact && hits.length === 1) {
       addVariant(hits[0]!);
       return;
@@ -446,7 +456,7 @@ export function Cashier({
       );
       return;
     }
-    void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+    void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
     finishSale(data![0].order_number);
   }
 
