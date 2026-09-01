@@ -7,7 +7,6 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
-import { SiteHeader } from "../../../components/site-header";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +41,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-md px-4 py-12">
         <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
         <p className="mt-1 text-sm text-muted-foreground">Your orders, one place.</p>

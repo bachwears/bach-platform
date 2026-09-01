@@ -6,20 +6,30 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
+import { t } from "@bach/i18n";
+
 import { addToCart } from "../lib/cart";
+import { lhref, useLocale } from "../lib/locale-client";
 
 export interface PdpVariant {
   id: string;
   size: string;
   color_code: string;
   color_en: string;
+  color_ar?: string | null;
   available: number;
 }
 
 export function AddToCart({ variants, productId }: { variants: PdpVariant[]; productId: string }) {
+  const locale = useLocale();
   const colors = useMemo(
-    () => [...new Map(variants.map((v) => [v.color_code, v.color_en])).entries()],
-    [variants],
+    () =>
+      [
+        ...new Map(
+          variants.map((v) => [v.color_code, locale === "ar" && v.color_ar ? v.color_ar : v.color_en]),
+        ).entries(),
+      ],
+    [variants, locale],
   );
   const [color, setColor] = useState(colors.length === 1 ? colors[0]![0] : "");
   const sizes = useMemo(
@@ -80,7 +90,7 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
     <div className="mt-8 space-y-6">
       {colors.length > 0 && (
         <div>
-          <p className="text-sm font-medium">Color</p>
+          <p className="text-sm font-medium">{t(locale, "sf.pdp.color")}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {colors.map(([code, name]) => (
               <button
@@ -103,9 +113,9 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
       )}
 
       <div>
-        <p className="text-sm font-medium">Size</p>
+        <p className="text-sm font-medium">{t(locale, "sf.pdp.size")}</p>
         {colors.length > 1 && !color ? (
-          <p className="mt-2 text-sm text-muted-foreground">Select a color first.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t(locale, "sf.pdp.selectColor")}</p>
         ) : null}
         <div className="mt-2 flex flex-wrap gap-2">
           {(colors.length > 1 && !color ? [] : sizes).map((v) => (
@@ -130,16 +140,16 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
           ))}
         </div>
         {chosen && chosen.available > 0 && chosen.available <= 3 && (
-          <p className="mt-2 text-xs text-muted-foreground">Only {chosen.available} left</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.onlyLeft", { n: chosen.available })}</p>
         )}
       </div>
 
       {chosen && chosen.available <= 0 ? (
         <div className="space-y-3 rounded-md border border-dashed p-4">
-          <p className="text-sm font-medium">This size is sold out.</p>
+          <p className="text-sm font-medium">{t(locale, "sf.pdp.soldOut")}</p>
           {notifyState === "done" ? (
             <p className="text-sm text-green-600 dark:text-green-400">
-              You&apos;re on the list — we&apos;ll message you the moment it&apos;s back.
+              {t(locale, "sf.pdp.notifyDone")}
             </p>
           ) : (
             <>
@@ -158,10 +168,10 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
                 disabled={!signedIn && notifyPhone.replace(/[^0-9+]/g, "").length < 7}
                 onClick={() => void subscribeAlert()}
               >
-                Notify me when it&apos;s back
+                {t(locale, "sf.pdp.notifyCta")}
               </Button>
               {notifyState === "error" && (
-                <p className="text-sm text-destructive">Could not save the alert — try again.</p>
+                <p className="text-sm text-destructive">{t(locale, "sf.pdp.notifyError")}</p>
               )}
             </>
           )}
@@ -176,7 +186,7 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
             setAdded(true);
           }}
         >
-          {added ? "Added to bag ✓" : chosen ? "Add to bag" : "Select a size"}
+          {added ? t(locale, "sf.pdp.added") : chosen ? t(locale, "sf.pdp.addToBag") : t(locale, "sf.pdp.selectSize")}
         </Button>
       )}
 
@@ -186,11 +196,11 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
           onClick={() => void toggleWishlist()}
           className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          {saved ? "♥ Saved to wishlist — remove" : "♡ Save to wishlist"}
+          {saved ? t(locale, "sf.pdp.wishSaved") : t(locale, "sf.pdp.wishSave")}
         </button>
       ) : (
         <p className="text-center text-xs text-muted-foreground">
-          <Link href="/account/login" className="underline underline-offset-4">Sign in</Link> to save pieces to your wishlist.
+          <Link href={lhref(locale, "/account/login")} className="underline underline-offset-4">{t(locale, "sf.pdp.signIn")}</Link> {t(locale, "sf.pdp.signInWish")}
         </p>
       )}
     </div>

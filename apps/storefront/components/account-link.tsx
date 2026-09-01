@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
+import { lhref, useLocale } from "../lib/locale-client";
+
 export function AccountLink() {
+  const locale = useLocale();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -16,12 +19,19 @@ export function AccountLink() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const label = signedIn
+    ? locale === "ar"
+      ? "حسابي"
+      : "Account"
+    : locale === "ar"
+      ? "تسجيل الدخول"
+      : "Sign in";
   return (
     <Link
-      href={signedIn ? "/account" : "/account/login"}
+      href={lhref(locale, signedIn ? "/account" : "/account/login")}
       className="text-muted-foreground hover:text-foreground"
     >
-      {signedIn ? "Account" : "Sign in"}
+      {label}
     </Link>
   );
 }

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
-import { SiteHeader } from "../../../components/site-header";
 
 export default async function HelpArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,7 +15,6 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-2xl px-4 py-12">
         <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground">
           ← Help Center

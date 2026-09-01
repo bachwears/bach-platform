@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Archivo, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { dir } from "@bach/i18n";
 
 import "./globals.css";
 
 import { AssistantWidget } from "../components/assistant-widget";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
+import { SiteHeader } from "../components/site-header";
+import { getLocale } from "../lib/locale";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -22,22 +25,35 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://bachwears.com"),
   title: "BACH Wears",
   description: "Menswear, considered. BACH Wears — Lebanon.",
+  alternates: {
+    languages: { en: "/", ar: "/ar" },
+  },
 };
 
-// EN/LTR default; AR/RTL locale routing lands with the i18n phase.
-// Latin renders in Archivo; Arabic glyphs fall through to IBM Plex Sans Arabic.
-export default function RootLayout({ children }: { children: ReactNode }) {
+// EN/LTR default; /ar serves the same routes RTL in Arabic (middleware rewrite).
+// Latin renders in Archivo; Arabic glyphs fall through to IBM Plex Sans Arabic —
+// the stack order flips per locale so each script leads with its own face.
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+  const stack =
+    locale === "ar"
+      ? "var(--font-plex-arabic), var(--font-archivo), ui-sans-serif, system-ui, sans-serif"
+      : "var(--font-archivo), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif";
   return (
     <html
-      lang="en"
-      dir="ltr"
+      lang={locale}
+      dir={dir(locale)}
       className={`${archivo.variable} ${plexArabic.variable}`}
-      style={{ ["--font-app-sans" as string]: "var(--font-archivo), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif" }}
+      style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
-        {children}
+        <div className="min-h-dvh bg-background">
+          <SiteHeader />
+          {children}
+        </div>
         <BirthdayPopup />
         <MarketingPopup />
         <AssistantWidget />

@@ -6,7 +6,6 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
-import { SiteHeader } from "../../../components/site-header";
 
 export default function NewAccountPage() {
   const [name, setName] = useState("");
@@ -63,7 +62,6 @@ export default function NewAccountPage() {
   if (done) {
     return (
       <div className="min-h-dvh bg-background">
-        <SiteHeader />
         <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Almost there</p>
@@ -83,7 +81,6 @@ export default function NewAccountPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-md px-4 py-12">
         <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
         <p className="mt-1 text-sm text-muted-foreground">

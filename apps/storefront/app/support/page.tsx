@@ -7,7 +7,6 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Textarea } from "@bach/ui/components/textarea";
 
-import { SiteHeader } from "../../components/site-header";
 
 export default function SupportPage() {
   const [name, setName] = useState("");
@@ -50,7 +49,6 @@ export default function SupportPage() {
   if (ticket) {
     return (
       <div className="min-h-dvh bg-background">
-        <SiteHeader />
         <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">We hear you</p>
@@ -77,7 +75,6 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-xl px-4 py-12">
         <h1 className="text-2xl font-semibold tracking-tight">Something wrong? Tell us.</h1>
         <p className="mt-1 text-sm text-muted-foreground">

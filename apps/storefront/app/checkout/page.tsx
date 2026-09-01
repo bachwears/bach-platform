@@ -8,8 +8,10 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Textarea } from "@bach/ui/components/textarea";
 
-import { SiteHeader } from "../../components/site-header";
+import { t } from "@bach/i18n";
+
 import { clearCart, readCart } from "../../lib/cart";
+import { lhref, useLocale } from "../../lib/locale-client";
 
 interface SummaryLine {
   name: string;
@@ -25,6 +27,7 @@ function usd(cents: number) {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const locale = useLocale();
   const [summary, setSummary] = useState<SummaryLine[]>([]);
   const [rate, setRate] = useState<number | null>(null);
   const [name, setName] = useState("");
@@ -46,13 +49,13 @@ export default function CheckoutPage() {
     async function load() {
       const cart = readCart();
       if (cart.length === 0) {
-        router.replace("/cart");
+        router.replace(lhref(locale, "/cart"));
         return;
       }
       const [{ data }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
-          .select("id, size, color_en, products!inner(name_en, price_usd_cents, sale_price_usd_cents)")
+          .select("id, size, color_en, color_ar, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents)")
           .in("id", cart.map((l) => l.variantId)),
         supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
@@ -60,9 +63,11 @@ export default function CheckoutPage() {
         cart.flatMap((l) => {
           const v = (data ?? []).find((x) => x.id === l.variantId) as Record<string, unknown> | undefined;
           if (!v) return [];
-          const p = v.products as { name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null };
+          const p = v.products as { name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null };
           const price = Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
-          return [{ name: p.name_en, size: v.size as string, color: v.color_en as string, quantity: l.quantity, lineTotal: price * l.quantity }];
+          const name = locale === "ar" && p.name_ar ? p.name_ar : p.name_en;
+          const color = (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string;
+          return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity }];
         }),
       );
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
@@ -73,7 +78,7 @@ export default function CheckoutPage() {
       if (kinds.length) setMethods(kinds.sort());
     }
     void load();
-  }, [router]);
+  }, [router, locale]);
 
   const subtotal = summary.reduce((s, l) => s + l.lineTotal, 0);
   const promoDiscount =
@@ -106,8 +111,8 @@ export default function CheckoutPage() {
     if (err) {
       setError(
         err.message.includes("insufficient stock")
-          ? "One of your items just sold out — please review your bag."
-          : "Something went wrong placing your order. Please try again.",
+          ? t(locale, "sf.co.soldOut")
+          : t(locale, "sf.co.failed"),
       );
       return;
     }
@@ -140,24 +145,21 @@ export default function CheckoutPage() {
     } catch {
       /* storage unavailable */
     }
-    router.replace(`/confirmed?n=${data![0].order_number}`);
+    router.replace(lhref(locale, `/confirmed?n=${data![0].order_number}`));
   }
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">Checkout</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Cash on delivery. We&apos;ll call to confirm before dispatch.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.co.title")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.co.sub")}</p>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_320px]">
           <div className="space-y-4">
-            <Field label="Full name">
+            <Field label={t(locale, "sf.co.name")}>
               <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </Field>
-            <Field label="Phone (we confirm by phone)">
+            <Field label={t(locale, "sf.co.phone")}>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -167,7 +169,7 @@ export default function CheckoutPage() {
                 dir="ltr"
               />
             </Field>
-            <Field label="Email (optional — for your order confirmation)">
+            <Field label={t(locale, "sf.co.email")}>
               <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -178,19 +180,19 @@ export default function CheckoutPage() {
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="City">
+              <Field label={t(locale, "sf.co.city")}>
                 <Input value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
               </Field>
-              <Field label="Address">
+              <Field label={t(locale, "sf.co.address")}>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
               </Field>
             </div>
-            <Field label="Delivery notes (optional)">
+            <Field label={t(locale, "sf.co.notes")}>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
             </Field>
             {methods.length > 1 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Payment</p>
+                <p className="text-sm font-medium">{t(locale, "sf.co.payment")}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {methods.includes("cod") && (
                     <button
@@ -198,8 +200,8 @@ export default function CheckoutPage() {
                       onClick={() => setPayMethod("cod")}
                       className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "cod" ? "border-foreground" : "hover:border-foreground/50"}`}
                     >
-                      <span className="font-medium">Cash on delivery</span>
-                      <span className="block text-xs text-muted-foreground">Pay when it arrives — USD or LBP</span>
+                      <span className="font-medium">{t(locale, "sf.co.cod")}</span>
+                      <span className="block text-xs text-muted-foreground">{t(locale, "sf.co.codSub")}</span>
                     </button>
                   )}
                   {methods.includes("stripe") && (
@@ -208,15 +210,15 @@ export default function CheckoutPage() {
                       onClick={() => setPayMethod("stripe")}
                       className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "stripe" ? "border-foreground" : "hover:border-foreground/50"}`}
                     >
-                      <span className="font-medium">Card</span>
-                      <span className="block text-xs text-muted-foreground">Visa / Mastercard — secure checkout</span>
+                      <span className="font-medium">{t(locale, "sf.co.card")}</span>
+                      <span className="block text-xs text-muted-foreground">{t(locale, "sf.co.cardSub")}</span>
                     </button>
                   )}
                 </div>
               </div>
             )}
             {signedIn ? (
-              <Field label="Promo code (optional)">
+              <Field label={t(locale, "sf.co.promo")}>
                 <div className="flex gap-2">
                   <Input
                     value={promo}
@@ -242,27 +244,27 @@ export default function CheckoutPage() {
                       );
                     }}
                   >
-                    Apply
+                    {t(locale, "sf.co.apply")}
                   </Button>
                 </div>
                 {promoState.status === "ok" && (
                   <p className="text-sm text-green-600 dark:text-green-400">
-                    Code applied — you save {`$${(promoDiscount / 100).toFixed(2)}`}.
+                    {t(locale, "sf.co.promoOk", { v: `${(promoDiscount / 100).toFixed(2)}` })}
                   </p>
                 )}
                 {promoState.status === "bad" && <p className="text-sm text-destructive">{promoState.message}</p>}
               </Field>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Have a promo code? <Link href="/account/login" className="underline underline-offset-4">Sign in</Link> to use it.
+                {t(locale, "sf.co.promoAsk")} <Link href={lhref(locale, "/account/login")} className="underline underline-offset-4">{t(locale, "sf.pdp.signIn")}</Link> {t(locale, "sf.co.promoSignIn")}
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button className="h-12 w-full text-base" disabled={!canPlace} onClick={() => void placeOrder()}>
-              {busy ? "Placing order…" : `Place order — ${usd(total)}`}
+              {busy ? t(locale, "sf.co.placing") : t(locale, "sf.co.place", { v: usd(total) })}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              By placing an order you agree to be contacted for delivery coordination.
+              {t(locale, "sf.co.consent")}
             </p>
           </div>
 
@@ -277,12 +279,12 @@ export default function CheckoutPage() {
             ))}
             {promoDiscount > 0 && (
               <div className="flex justify-between text-green-600 dark:text-green-400">
-                <span>Promo discount</span>
+                <span>{t(locale, "sf.co.promoDiscount")}</span>
                 <span className="font-mono">- {usd(promoDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between border-t pt-3 font-medium">
-              <span>Total</span>
+              <span>{t(locale, "sf.co.total")}</span>
               <span className="font-mono">{usd(total)}</span>
             </div>
             {rate && (
@@ -290,9 +292,9 @@ export default function CheckoutPage() {
                 ≈ {Math.round((total / 100) * rate).toLocaleString("en-US")} LBP
               </p>
             )}
-            <p className="text-xs text-muted-foreground">Paid in cash when your order arrives.</p>
-            <Link href="/cart" className="block text-xs underline underline-offset-4">
-              Edit bag
+            <p className="text-xs text-muted-foreground">{t(locale, "sf.co.cashNote")}</p>
+            <Link href={lhref(locale, "/cart")} className="block text-xs underline underline-offset-4">
+              {t(locale, "sf.co.editBag")}
             </Link>
           </aside>
         </div>

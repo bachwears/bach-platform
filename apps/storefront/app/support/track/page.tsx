@@ -7,7 +7,6 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
-import { SiteHeader } from "../../../components/site-header";
 
 const STATUS_EN: Record<string, string> = {
   open: "Received",
@@ -114,7 +113,6 @@ function TrackForm() {
 export default function TrackPage() {
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <Suspense>
         <TrackForm />
       </Suspense>

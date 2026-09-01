@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 
-import { SiteHeader } from "../../components/site-header";
 
 export const metadata = { title: "Help Center — BACH Wears" };
 
@@ -20,7 +19,6 @@ export default async function HelpPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Help Center</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">How can we help?</h1>

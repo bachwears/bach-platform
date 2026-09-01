@@ -8,7 +8,6 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
-import { SiteHeader } from "../../components/site-header";
 
 const STATUS_EN: Record<string, string> = {
   pending: "Placed",
@@ -119,14 +118,12 @@ export default function AccountPage() {
   if (!loaded) {
     return (
       <div className="min-h-dvh bg-background">
-        <SiteHeader />
       </div>
     );
   }
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
