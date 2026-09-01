@@ -75,6 +75,12 @@ export function Cashier({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [custQuery, setCustQuery] = useState("");
+  const [custResults, setCustResults] = useState<Array<{ id: string; full_name: string | null; phone: string | null }>>([]);
+  const [customer, setCustomer] = useState<{ id: string; name: string; phone: string | null } | null>(null);
+  const [bday, setBday] = useState<{ eligible: boolean; percent: number } | null>(null);
+  const [bdayApplied, setBdayApplied] = useState(false);
+  const [newCustName, setNewCustName] = useState("");
 
   useEffect(() => searchRef.current?.focus(), [receipt]);
 
@@ -163,6 +169,54 @@ export function Cashier({
     if (exact && !hits.length) setError("ما لقينا شي بهالرقم أو الاسم.");
   }
 
+  async function searchCustomers(q: string) {
+    const t = q.trim();
+    if (t.length < 3) {
+      setCustResults([]);
+      return;
+    }
+    const digits = t.replace(/[^0-9+]/g, "");
+    const { data } = await supabase
+      .from("customers")
+      .select("id, full_name, phone")
+      .or(digits.length >= 3 ? `phone.ilike.%${digits}%,full_name.ilike.%${t}%` : `full_name.ilike.%${t}%`)
+      .limit(5);
+    setCustResults(data ?? []);
+  }
+
+  async function attachCustomer(c: { id: string; full_name: string | null; phone: string | null }) {
+    setCustomer({ id: c.id, name: c.full_name ?? c.phone ?? "زبون", phone: c.phone });
+    setCustQuery("");
+    setCustResults([]);
+    setBday(null);
+    setBdayApplied(false);
+    const { data } = await supabase.rpc("pos_birthday_eligibility", { p_customer_id: c.id });
+    const e = data?.[0];
+    if (e?.eligible) setBday({ eligible: true, percent: e.percent });
+  }
+
+  async function quickCreateCustomer() {
+    const phone = custQuery.replace(/[^0-9+]/g, "");
+    if (phone.length < 7 || !newCustName.trim()) return;
+    const { data, error: err } = await supabase
+      .from("customers")
+      .insert({ full_name: newCustName.trim(), phone })
+      .select("id, full_name, phone")
+      .single();
+    if (err) {
+      setError(err.message.includes("duplicate") ? "هالرقم مسجّل من قبل — فتّش عليه." : `ما مشي الإنشاء: ${err.message}`);
+      return;
+    }
+    setNewCustName("");
+    void attachCustomer(data);
+  }
+
+  function detachCustomer() {
+    setCustomer(null);
+    setBday(null);
+    setBdayApplied(false);
+  }
+
   const setQty = (variantId: string, qty: number) =>
     setCart((prev) =>
       qty <= 0
@@ -171,7 +225,8 @@ export function Cashier({
     );
 
   const subtotal = cart.reduce((s, l) => s + l.unitUsdCents * l.quantity, 0);
-  const discountBp = Math.round(Math.min(Math.max(parseFloat(discountPct) || 0, 0), 100) * 100);
+  const manualBp = Math.round(Math.min(Math.max(parseFloat(discountPct) || 0, 0), 100) * 100);
+  const discountBp = bdayApplied && bday ? Math.max(manualBp, bday.percent * 100) : manualBp;
   const discount = Math.round((subtotal * discountBp) / 10_000);
   let total = subtotal - discount;
   let tvaCents = 0;
@@ -202,7 +257,9 @@ export function Cashier({
       p_branch_id: branchId,
       p_items: cart.map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
       p_payments: payments,
-      p_discount_basis_points: discountBp,
+      p_discount_basis_points: manualBp,
+      p_customer_id: customer?.id ?? null,
+      p_apply_birthday: bdayApplied,
     });
     setBusy(false);
     if (err) {
@@ -229,6 +286,7 @@ export function Cashier({
     setDiscountPct("");
     setPaidUsd("");
     setPaidLbpStr("");
+    detachCustomer();
   }
 
   if (receipt) {
@@ -396,6 +454,75 @@ export function Cashier({
 
       {/* Totals + payment */}
       <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="space-y-2 border-b pb-3 text-sm">
+          {customer ? (
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                👤 {customer.name}
+                {customer.phone && (
+                  <span className="block text-xs text-muted-foreground" dir="ltr">{customer.phone}</span>
+                )}
+              </span>
+              <Button size="sm" variant="ghost" onClick={detachCustomer}>✕</Button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Input
+                value={custQuery}
+                onChange={(e) => {
+                  setCustQuery(e.target.value);
+                  void searchCustomers(e.target.value);
+                }}
+                placeholder="زبون؟ رقم التلفون أو الاسم…"
+                className="h-9"
+              />
+              {custResults.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+                  {custResults.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="flex w-full items-center justify-between px-3 py-2 text-right text-sm hover:bg-muted"
+                      onClick={() => void attachCustomer(c)}
+                    >
+                      <span>{c.full_name ?? "—"}</span>
+                      <span className="font-mono text-xs text-muted-foreground" dir="ltr">{c.phone}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {custQuery.replace(/[^0-9+]/g, "").length >= 7 && custResults.length === 0 && (
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={newCustName}
+                    onChange={(e) => setNewCustName(e.target.value)}
+                    placeholder="اسم الزبون الجديد"
+                    className="h-9"
+                  />
+                  <Button size="sm" disabled={!newCustName.trim()} onClick={() => void quickCreateCustomer()}>
+                    ضيفه
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          {customer && bday?.eligible && !bdayApplied && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setBdayApplied(true)}
+            >
+              🎂 عيد ميلادو — طبّق خصم {bday.percent}%
+            </Button>
+          )}
+          {bdayApplied && bday && (
+            <p className="flex items-center justify-between text-xs text-green-600 dark:text-green-400">
+              🎂 خصم عيد الميلاد {bday.percent}% مُطبّق
+              <Button size="sm" variant="ghost" onClick={() => setBdayApplied(false)}>تراجع</Button>
+            </p>
+          )}
+        </div>
         <div className="space-y-2 text-sm">
           <Row label="المجموع" value={usd(subtotal)} />
           <div className="flex items-center justify-between gap-2">
