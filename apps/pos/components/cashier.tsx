@@ -26,6 +26,7 @@ interface CartLine {
   unitUsdCents: number;
   quantity: number;
   available: number;
+  lineDiscountPct?: number;
 }
 
 interface Receipt {
@@ -56,14 +57,19 @@ function unitPrice(v: VariantHit): number {
 export function Cashier({
   branchId,
   branchName,
+  role,
+  currentUser,
   rate,
   tva,
 }: {
   branchId: string;
   branchName: string;
+  role: string;
+  currentUser: { id: string; name: string };
   rate: number;
   tva: { enabled: boolean; rateBasisPoints: number; pricesIncludeTva: boolean };
 }) {
+  const isManager = role === "super_admin" || role === "store_manager";
   const supabase = supabaseBrowser();
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -81,6 +87,80 @@ export function Cashier({
   const [bday, setBday] = useState<{ eligible: boolean; percent: number } | null>(null);
   const [bdayApplied, setBdayApplied] = useState(false);
   const [newCustName, setNewCustName] = useState("");
+  const [parked, setParked] = useState<Array<{ id: string; label: string; cart: CartLine[]; customer_id: string | null; created_at: string }>>([]);
+  const [acting, setActing] = useState<{ id: string; name: string }>(currentUser);
+  const [switching, setSwitching] = useState(false);
+  const [cashiers, setCashiers] = useState<Array<{ profile_id: string; full_name: string; role: string; has_pin: boolean }>>([]);
+  const [pinFor, setPinFor] = useState<{ id: string; name: string } | null>(null);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+
+  const loadParked = useCallback(async () => {
+    const { data } = await supabase
+      .from("parked_sales")
+      .select("id, label, cart, customer_id, created_at")
+      .eq("branch_id", branchId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setParked((data ?? []) as never);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId]);
+
+  useEffect(() => {
+    void loadParked();
+  }, [loadParked]);
+
+  async function parkSale() {
+    if (!cart.length) return;
+    const label = customer?.name ?? `بيع ${new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" })}`;
+    const { error: err } = await supabase.from("parked_sales").insert({
+      branch_id: branchId,
+      label,
+      cart: cart as never,
+      customer_id: customer?.id ?? null,
+      parked_by: currentUser.id,
+    });
+    if (err) {
+      setError("ما قدرنا نركن البيع.");
+      return;
+    }
+    setCart([]);
+    setDiscountPct("");
+    detachCustomer();
+    void loadParked();
+  }
+
+  async function resumeSale(p: { id: string; cart: CartLine[]; customer_id: string | null }) {
+    if (cart.length) return;
+    setCart(p.cart);
+    if (p.customer_id) {
+      const { data } = await supabase.from("customers").select("id, full_name, phone").eq("id", p.customer_id).maybeSingle();
+      if (data) void attachCustomer(data);
+    }
+    await supabase.from("parked_sales").delete().eq("id", p.id);
+    void loadParked();
+  }
+
+  async function openSwitcher() {
+    setSwitching(true);
+    const { data } = await supabase.rpc("pos_cashiers");
+    setCashiers((data ?? []) as never);
+  }
+
+  async function confirmPin() {
+    if (!pinFor || pin.length < 4) return;
+    const { data } = await supabase.rpc("verify_pos_pin", { p_profile_id: pinFor.id, p_pin: pin });
+    if (data === true) {
+      setActing(pinFor);
+      setPinFor(null);
+      setPin("");
+      setPinError("");
+      setSwitching(false);
+    } else {
+      setPinError("رمز غلط — جرّب مرة تانية.");
+      setPin("");
+    }
+  }
 
   useEffect(() => searchRef.current?.focus(), [receipt]);
 
@@ -225,9 +305,13 @@ export function Cashier({
     );
 
   const subtotal = cart.reduce((s, l) => s + l.unitUsdCents * l.quantity, 0);
+  const lineDiscounts = cart.reduce(
+    (s, l) => s + Math.round((l.unitUsdCents * l.quantity * Math.round((l.lineDiscountPct ?? 0) * 100)) / 10_000),
+    0,
+  );
   const manualBp = Math.round(Math.min(Math.max(parseFloat(discountPct) || 0, 0), 100) * 100);
   const discountBp = bdayApplied && bday ? Math.max(manualBp, bday.percent * 100) : manualBp;
-  const discount = Math.round((subtotal * discountBp) / 10_000);
+  const discount = lineDiscounts + Math.round(((subtotal - lineDiscounts) * discountBp) / 10_000);
   let total = subtotal - discount;
   let tvaCents = 0;
   if (tva.enabled) {
@@ -255,11 +339,16 @@ export function Cashier({
     if (paidLbp > 0) payments.push({ currency: "LBP", amount_minor: paidLbp });
     const { data, error: err } = await supabase.rpc("pos_checkout", {
       p_branch_id: branchId,
-      p_items: cart.map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
+      p_items: cart.map((l) => ({
+        variant_id: l.variantId,
+        quantity: l.quantity,
+        line_discount_bp: Math.round((l.lineDiscountPct ?? 0) * 100),
+      })),
       p_payments: payments,
       p_discount_basis_points: manualBp,
       p_customer_id: customer?.id ?? null,
       p_apply_birthday: bdayApplied,
+      p_acting_cashier: acting.id !== currentUser.id ? acting.id : null,
     });
     setBusy(false);
     if (err) {
@@ -398,6 +487,22 @@ export function Cashier({
 
         {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
+        {parked.length > 0 && cart.length === 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">مبيعات مركونة:</span>
+            {parked.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => void resumeSale(p)}
+                className="rounded-full border px-3 py-1 hover:border-foreground"
+              >
+                {p.label} · {p.cart.length} قطعة
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="rounded-lg border">
           {cart.length === 0 ? (
             <p className="p-8 text-center text-muted-foreground">السلة فاضية — امسح أول قطعة.</p>
@@ -408,6 +513,7 @@ export function Cashier({
                   <th className="p-3 font-normal">القطعة</th>
                   <th className="p-3 font-normal">الكمية</th>
                   <th className="p-3 font-normal">السعر</th>
+                  {isManager && <th className="p-3 font-normal">خصم %</th>}
                   <th className="p-3 font-normal">المجموع</th>
                   <th />
                 </tr>
@@ -438,7 +544,28 @@ export function Cashier({
                       </div>
                     </td>
                     <td className="p-3 font-mono">{usd(l.unitUsdCents)}</td>
-                    <td className="p-3 font-mono">{usd(l.unitUsdCents * l.quantity)}</td>
+                    {isManager && (
+                      <td className="p-3">
+                        <Input
+                          value={l.lineDiscountPct ? String(l.lineDiscountPct) : ""}
+                          onChange={(e) => {
+                            const pct = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 100);
+                            setCart((prev) =>
+                              prev.map((x) => (x.variantId === l.variantId ? { ...x, lineDiscountPct: pct } : x)),
+                            );
+                          }}
+                          className="h-8 w-16 text-left font-mono"
+                          inputMode="decimal"
+                          placeholder="0"
+                        />
+                      </td>
+                    )}
+                    <td className="p-3 font-mono">
+                      {usd(
+                        l.unitUsdCents * l.quantity -
+                          Math.round((l.unitUsdCents * l.quantity * Math.round((l.lineDiscountPct ?? 0) * 100)) / 10_000),
+                      )}
+                    </td>
                     <td className="p-3">
                       <Button size="sm" variant="ghost" onClick={() => setQty(l.variantId, 0)}>
                         ✕
@@ -450,10 +577,66 @@ export function Cashier({
             </table>
           )}
         </div>
+        {cart.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => void parkSale()}>
+            ⏸ اركن البيع لبعدين
+          </Button>
+        )}
       </section>
 
       {/* Totals + payment */}
       <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="flex items-center justify-between border-b pb-2 text-sm">
+          <span className="text-muted-foreground">الكاشير: <span className="text-foreground">{acting.name}</span></span>
+          <Button size="sm" variant="ghost" onClick={() => void openSwitcher()}>
+            تبديل
+          </Button>
+        </div>
+        {switching && (
+          <div className="space-y-2 rounded-md border p-3 text-sm">
+            {pinFor ? (
+              <div className="space-y-2">
+                <p>رمز {pinFor.name}:</p>
+                <Input
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  type="password"
+                  inputMode="numeric"
+                  className="text-center font-mono tracking-[0.5em]"
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && void confirmPin()}
+                />
+                {pinError && <p className="text-xs text-destructive">{pinError}</p>}
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" disabled={pin.length < 4} onClick={() => void confirmPin()}>
+                    تأكيد
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setPinFor(null); setPin(""); setPinError(""); }}>
+                    رجوع
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {cashiers.map((c) => (
+                  <button
+                    key={c.profile_id}
+                    type="button"
+                    disabled={!c.has_pin}
+                    onClick={() => setPinFor({ id: c.profile_id, name: c.full_name })}
+                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted disabled:opacity-40"
+                  >
+                    <span>{c.full_name}</span>
+                    <span className="text-xs text-muted-foreground">{c.has_pin ? "" : "ما عندو رمز"}</span>
+                  </button>
+                ))}
+                <Button size="sm" variant="ghost" className="w-full" onClick={() => setSwitching(false)}>
+                  إغلاق
+                </Button>
+              </>
+            )}
+          </div>
+        )}
         <div className="space-y-2 border-b pb-3 text-sm">
           {customer ? (
             <div className="flex items-center justify-between gap-2">

@@ -21,7 +21,7 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   const [{ data: profile }, { data: branch }, { data: rate }, { data: tva }] = await Promise.all([
-    supabase.from("profiles").select("full_name, role").eq("id", user!.id).single(),
+    supabase.from("profiles").select("id, full_name, role").eq("id", user!.id).single(),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at").limit(1).single(),
     supabase
       .from("exchange_rates")
@@ -70,6 +70,8 @@ export default async function Home() {
           <Cashier
             branchId={branch.id}
             branchName={branch.name}
+            role={profile!.role}
+            currentUser={{ id: profile!.id, name: profile!.full_name ?? user!.email ?? "" }}
             rate={Number(rate.lbp_per_usd)}
             tva={{
               enabled: tva?.enabled ?? false,
