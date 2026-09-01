@@ -462,8 +462,10 @@ export function Cashier({
 
   if (receipt) {
     return (
-      <div className="mx-auto max-w-md space-y-4 p-6 print:p-0">
-        <div className="rounded-lg border p-6 print:border-0" dir="ltr">
+      <div className="mx-auto max-w-md space-y-4 p-6 print:m-0 print:max-w-none print:p-0">
+        {/* C200I thermal receipt: 80mm roll, ~72mm printable. */}
+        <style>{`@media print { @page { size: 80mm auto; margin: 0; } .receipt-80 { width: 72mm; margin: 0 auto; font-size: 11px; } }`}</style>
+        <div className="receipt-80 rounded-lg border p-6 print:rounded-none print:border-0 print:p-1" dir="ltr">
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-widest">BACH WEARS</h2>
             <p className="text-sm text-muted-foreground">{branchName}</p>
