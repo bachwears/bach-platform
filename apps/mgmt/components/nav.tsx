@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/reports", label: "التقارير" },
   { href: "/exchange-rate", label: "سعر الصرف" },
   { href: "/payments", label: "الدفع" },
+  { href: "/purchasing", label: "المشتريات" },
   { href: "/returns", label: "الإرجاع" },
   { href: "/complaints", label: "الشكاوى" },
   { href: "/help", label: "مساعدة" },
