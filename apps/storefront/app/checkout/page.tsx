@@ -36,6 +36,8 @@ export default function CheckoutPage() {
   const [promo, setPromo] = useState("");
   const [promoState, setPromoState] = useState<{ status: "idle" | "ok" | "bad"; message?: string; kind?: string; value?: number }>({ status: "idle" });
   const [signedIn, setSignedIn] = useState(false);
+  const [methods, setMethods] = useState<string[]>(["cod"]);
+  const [payMethod, setPayMethod] = useState("cod");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,6 +68,9 @@ export default function CheckoutPage() {
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
       const { data: sess } = await supabase.auth.getSession();
       setSignedIn(!!sess.session);
+      const { data: pm } = await supabase.from("payment_methods").select("kind").eq("is_enabled", true).in("kind", ["cod", "stripe"]);
+      const kinds = (pm ?? []).map((x) => x.kind);
+      if (kinds.length) setMethods(kinds.sort());
     }
     void load();
   }, [router]);
@@ -95,6 +100,7 @@ export default function CheckoutPage() {
       p_note: note.trim() || null,
       p_email: email.trim() || null,
       p_promocode: promoState.status === "ok" ? promo.trim() : null,
+      p_payment_method: payMethod,
     });
     setBusy(false);
     if (err) {
@@ -104,6 +110,26 @@ export default function CheckoutPage() {
           : "Something went wrong placing your order. Please try again.",
       );
       return;
+    }
+    if (payMethod === "stripe") {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ order_id: data![0].order_id, origin: window.location.origin }),
+        });
+        const pay = await res.json();
+        if (res.ok && pay.url) {
+          clearCart();
+          window.location.href = pay.url;
+          return;
+        }
+      } catch {
+        /* fall through to COD-style confirmation; the shop will follow up */
+      }
     }
     clearCart();
     try {
@@ -162,6 +188,33 @@ export default function CheckoutPage() {
             <Field label="Delivery notes (optional)">
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
             </Field>
+            {methods.length > 1 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Payment</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {methods.includes("cod") && (
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod("cod")}
+                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "cod" ? "border-foreground" : "hover:border-foreground/50"}`}
+                    >
+                      <span className="font-medium">Cash on delivery</span>
+                      <span className="block text-xs text-muted-foreground">Pay when it arrives — USD or LBP</span>
+                    </button>
+                  )}
+                  {methods.includes("stripe") && (
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod("stripe")}
+                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "stripe" ? "border-foreground" : "hover:border-foreground/50"}`}
+                    >
+                      <span className="font-medium">Card</span>
+                      <span className="block text-xs text-muted-foreground">Visa / Mastercard — secure checkout</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             {signedIn ? (
               <Field label="Promo code (optional)">
                 <div className="flex gap-2">
