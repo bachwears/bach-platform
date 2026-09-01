@@ -18,7 +18,7 @@ export default async function HelpPage() {
   const supabase = await supabaseServer();
   const { data: articles } = await supabase
     .from("help_articles")
-    .select("slug, category, title_en, title_ar")
+    .select("slug, category, title_en, title_ar, body_en, body_ar")
     .order("sort");
 
   const byCategory = new Map<string, Array<{ slug: string; title: string }>>();
@@ -27,8 +27,20 @@ export default async function HelpPage() {
     byCategory.get(a.category)!.push({ slug: a.slug, title: pick(locale, a.title_en, a.title_ar) });
   }
 
+  // AEO (§12): the Help Center doubles as an FAQ answer source.
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: (articles ?? []).map((a) => ({
+      "@type": "Question",
+      name: pick(locale, a.title_en, a.title_ar),
+      acceptedAnswer: { "@type": "Answer", text: pick(locale, a.body_en, a.body_ar) },
+    })),
+  };
+
   return (
     <div className="min-h-dvh bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
           {t(locale, "sf.help.eyebrow")}

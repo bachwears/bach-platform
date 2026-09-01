@@ -29,8 +29,41 @@ export default async function Home() {
     };
   });
 
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "BACH Wears",
+    url: "https://bachwears.com",
+    founder: { "@type": "Person", name: "Bachar Elmir" },
+    address: { "@type": "PostalAddress", addressCountry: "LB" },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "care@bachwears.com",
+      telephone: "+961-71-566-296",
+      availableLanguage: ["en", "ar"],
+    },
+  };
+  const siteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "BACH Wears",
+    url: "https://bachwears.com",
+    inLanguage: [locale === "ar" ? "ar" : "en"],
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `https://bachwears.com${locale === "ar" ? "/ar" : ""}/shop?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <div className="min-h-dvh bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }} />
       <main>
         <section className="mx-auto max-w-6xl px-4 py-24 text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
