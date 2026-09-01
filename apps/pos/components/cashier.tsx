@@ -5,17 +5,17 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
-interface VariantHit {
-  id: string;
-  sku: string | null;
-  barcode: string | null;
-  size: string;
-  color_ar: string;
-  color_en: string;
-  price_usd_cents_override: number | null;
-  products: { name_ar: string; name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null };
-  inventory_levels: Array<{ branch_id: string; quantity: number; reserved: number }>;
-}
+import {
+  type CatalogItem,
+  CATALOG_TTL_MS,
+  decrementCatalog,
+  enqueueSale,
+  readCatalog,
+  readQueue,
+  refreshCatalog,
+  searchCatalog,
+  syncQueue,
+} from "../lib/offline";
 
 interface CartLine {
   variantId: string;
@@ -30,7 +30,8 @@ interface CartLine {
 }
 
 interface Receipt {
-  number: number;
+  number: number | null;
+  offlineRef?: string;
   lines: CartLine[];
   subtotal: number;
   discount: number;
@@ -47,11 +48,6 @@ function usd(cents: number): string {
 }
 function lbp(amount: number): string {
   return `${Math.round(amount).toLocaleString("en-US")} ل.ل`;
-}
-
-function unitPrice(v: VariantHit): number {
-  const p = v.products;
-  return v.price_usd_cents_override ?? Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
 }
 
 export function Cashier({
@@ -73,7 +69,11 @@ export function Cashier({
   const supabase = supabaseBrowser();
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<VariantHit[]>([]);
+  const [results, setResults] = useState<CatalogItem[]>([]);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [online, setOnline] = useState(true);
+  const [queueCount, setQueueCount] = useState(0);
+  const [syncMsg, setSyncMsg] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [discountPct, setDiscountPct] = useState("");
   const [paidUsd, setPaidUsd] = useState("");
@@ -164,88 +164,104 @@ export function Cashier({
 
   useEffect(() => searchRef.current?.focus(), [receipt]);
 
-  const addVariant = useCallback(
-    (v: VariantHit) => {
-      const level = v.inventory_levels.find((l) => l.branch_id === branchId);
-      const available = level ? level.quantity - level.reserved : 0;
-      setCart((prev) => {
-        const existing = prev.find((l) => l.variantId === v.id);
-        if (existing) {
-          if (existing.quantity >= available) return prev;
-          return prev.map((l) => (l.variantId === v.id ? { ...l, quantity: l.quantity + 1 } : l));
-        }
-        if (available <= 0) {
-          setError(`ما في مخزون كافي: ${v.sku ?? v.products.name_en}`);
-          return prev;
-        }
-        return [
-          ...prev,
-          {
-            variantId: v.id,
-            sku: v.sku,
-            nameEn: v.products.name_en,
-            size: v.size,
-            colorEn: v.color_en,
-            unitUsdCents: unitPrice(v),
-            quantity: 1,
-            available,
-          },
-        ];
-      });
-      setQuery("");
-      setResults([]);
-      searchRef.current?.focus();
-    },
-    [branchId],
-  );
+  const doSync = useCallback(async () => {
+    if (readQueue().filter((q) => q.status === "pending").length === 0) {
+      setQueueCount(readQueue().length);
+      return;
+    }
+    const res = await syncQueue(supabase);
+    setQueueCount(res.remaining);
+    if (res.synced > 0) {
+      setSyncMsg(`تزامنت ${res.synced} مبيعات ✓`);
+      void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+      setTimeout(() => setSyncMsg(""), 5000);
+    }
+    if (res.failed > 0) {
+      setSyncMsg(`${res.failed} مبيعات ما قبلها السيرفر — راجع المدير.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId]);
 
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    setQueueCount(readQueue().length);
+    const cached = readCatalog(branchId);
+    if (cached) setCatalog(cached.items);
+    if (!cached || Date.now() - cached.at > CATALOG_TTL_MS) {
+      void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+    }
+    const timer = setInterval(() => {
+      if (navigator.onLine) void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+    }, CATALOG_TTL_MS);
+    const goOnline = () => {
+      setOnline(true);
+      void doSync();
+    };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    if (navigator.onLine) void doSync();
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, doSync]);
+
+  const addVariant = useCallback((v: CatalogItem) => {
+    const available = v.available;
+    setCart((prev) => {
+      const existing = prev.find((l) => l.variantId === v.id);
+      if (existing) {
+        if (existing.quantity >= available) return prev;
+        return prev.map((l) => (l.variantId === v.id ? { ...l, quantity: l.quantity + 1 } : l));
+      }
+      if (available <= 0) {
+        setError(`ما في مخزون كافي: ${v.sku ?? v.name_en}`);
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          variantId: v.id,
+          sku: v.sku,
+          nameEn: v.name_en,
+          size: v.size,
+          colorEn: v.color_en,
+          unitUsdCents:
+            v.price_usd_cents_override ?? Math.min(v.sale_price_usd_cents ?? v.price_usd_cents, v.price_usd_cents),
+          quantity: 1,
+          available,
+        },
+      ];
+    });
+    setQuery("");
+    setResults([]);
+    searchRef.current?.focus();
+  }, []);
+
+  // Local-first: the cached catalog answers every keystroke, online or not.
   async function runSearch(text: string, exact: boolean) {
     const q = text.trim();
     if (!q) return;
     setError("");
-    const select =
-      "id, sku, barcode, size, color_ar, color_en, price_usd_cents_override, products!inner(name_ar, name_en, price_usd_cents, sale_price_usd_cents), inventory_levels(branch_id, quantity, reserved)";
-    if (exact) {
-      const { data } = await supabase
-        .from("product_variants")
-        .select(select)
-        .or(`barcode.eq.${q},sku.eq.${q}`)
-        .eq("is_active", true)
-        .limit(1);
-      if (data?.length) {
-        addVariant(data[0] as unknown as VariantHit);
-        return;
-      }
+    let items = catalog;
+    if (!items.length) {
+      const blob = (await refreshCatalog(supabase, branchId)) ?? readCatalog(branchId);
+      items = blob?.items ?? [];
+      if (blob) setCatalog(blob.items);
     }
-    const { data: skuHits } = await supabase
-      .from("product_variants")
-      .select(select)
-      .eq("is_active", true)
-      .or(`sku.ilike.%${q}%,barcode.ilike.%${q}%`)
-      .limit(8);
-    const hits = [...((skuHits ?? []) as unknown as VariantHit[])];
-    if (hits.length < 8) {
-      const { data: prods } = await supabase
-        .from("products")
-        .select("id")
-        .or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`)
-        .limit(5);
-      if (prods?.length) {
-        const { data: nameHits } = await supabase
-          .from("product_variants")
-          .select(select)
-          .eq("is_active", true)
-          .in(
-            "product_id",
-            prods.map((p) => p.id),
-          )
-          .limit(8);
-        for (const h of (nameHits ?? []) as unknown as VariantHit[]) {
-          if (!hits.some((x) => x.id === h.id)) hits.push(h);
-        }
-      }
+    if (!items.length) {
+      setError("الكتالوج مش محمّل — تأكد من الاتصال أول مرة.");
+      return;
     }
-    setResults(hits.slice(0, 8));
+    const hits = searchCatalog(items, q, exact);
+    if (exact && hits.length === 1) {
+      addVariant(hits[0]!);
+      return;
+    }
+    setResults(hits);
     if (exact && !hits.length) setError("ما لقينا شي بهالرقم أو الاسم.");
   }
 
@@ -330,37 +346,10 @@ export function Cashier({
   const changeLbp = remainingCents < 0 ? Math.round((-remainingCents / 100) * rate) : 0;
   const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy;
 
-  async function checkout() {
-    if (!canCheckout) return;
-    setBusy(true);
-    setError("");
-    const payments: Array<{ currency: string; amount_minor: number }> = [];
-    if (paidUsdCents > 0) payments.push({ currency: "USD", amount_minor: paidUsdCents });
-    if (paidLbp > 0) payments.push({ currency: "LBP", amount_minor: paidLbp });
-    const { data, error: err } = await supabase.rpc("pos_checkout", {
-      p_branch_id: branchId,
-      p_items: cart.map((l) => ({
-        variant_id: l.variantId,
-        quantity: l.quantity,
-        line_discount_bp: Math.round((l.lineDiscountPct ?? 0) * 100),
-      })),
-      p_payments: payments,
-      p_discount_basis_points: manualBp,
-      p_customer_id: customer?.id ?? null,
-      p_apply_birthday: bdayApplied,
-      p_acting_cashier: acting.id !== currentUser.id ? acting.id : null,
-    });
-    setBusy(false);
-    if (err) {
-      setError(
-        err.message.includes("insufficient stock")
-          ? "المخزون ما بيكفي — حدّث الكمية."
-          : `ما مشي الحال: ${err.message}`,
-      );
-      return;
-    }
+  function finishSale(number: number | null, offlineRef?: string) {
     setReceipt({
-      number: data![0].order_number,
+      number,
+      offlineRef,
       lines: cart,
       subtotal,
       discount,
@@ -378,6 +367,89 @@ export function Cashier({
     detachCustomer();
   }
 
+  async function checkout() {
+    if (!canCheckout) return;
+    setBusy(true);
+    setError("");
+    const payments: Array<{ currency: string; amount_minor: number }> = [];
+    if (paidUsdCents > 0) payments.push({ currency: "USD", amount_minor: paidUsdCents });
+    if (paidLbp > 0) payments.push({ currency: "LBP", amount_minor: paidLbp });
+    const items = cart.map((l) => ({
+      variant_id: l.variantId,
+      quantity: l.quantity,
+      line_discount_bp: Math.round((l.lineDiscountPct ?? 0) * 100),
+    }));
+    const clientRef = crypto.randomUUID();
+    const actingCashier = acting.id !== currentUser.id ? acting.id : null;
+
+    const queueOffline = () => {
+      // Customer/birthday need the server — offline sales are anonymous.
+      enqueueSale({
+        clientRef,
+        at: new Date().toISOString(),
+        branchId,
+        items,
+        payments,
+        discountBp: manualBp,
+        actingCashier,
+        totalUsdCents: total,
+        status: "pending",
+      });
+      decrementCatalog(branchId, cart.map((l) => ({ variantId: l.variantId, quantity: l.quantity })));
+      const cached = readCatalog(branchId);
+      if (cached) setCatalog(cached.items);
+      setQueueCount(readQueue().length);
+      setOnline(false);
+      finishSale(null, clientRef.slice(0, 8).toUpperCase());
+    };
+
+    if (!navigator.onLine) {
+      setBusy(false);
+      if (customer || bdayApplied) {
+        setError("النت مقطوع — شيل الزبون/خصم عيد الميلاد وسجّل البيع أوفلاين.");
+        return;
+      }
+      queueOffline();
+      return;
+    }
+
+    let data, err;
+    try {
+      ({ data, error: err } = await supabase.rpc("pos_checkout", {
+        p_branch_id: branchId,
+        p_items: items,
+        p_payments: payments,
+        p_discount_basis_points: manualBp,
+        p_customer_id: customer?.id ?? null,
+        p_apply_birthday: bdayApplied,
+        p_acting_cashier: actingCashier,
+        p_client_ref: clientRef,
+      }));
+    } catch {
+      err = { message: "Failed to fetch" } as { message: string };
+    }
+    setBusy(false);
+    if (err) {
+      const isNetwork = /fetch|network|load failed/i.test(err.message ?? "");
+      if (isNetwork) {
+        if (customer || bdayApplied) {
+          setError("النت مقطوع — شيل الزبون/خصم عيد الميلاد وسجّل البيع أوفلاين.");
+          return;
+        }
+        queueOffline();
+        return;
+      }
+      setError(
+        err.message.includes("insufficient stock")
+          ? "المخزون ما بيكفي — حدّث الكمية."
+          : `ما مشي الحال: ${err.message}`,
+      );
+      return;
+    }
+    void refreshCatalog(supabase, branchId).then((b) => b && setCatalog(b.items));
+    finishSale(data![0].order_number);
+  }
+
   if (receipt) {
     return (
       <div className="mx-auto max-w-md space-y-4 p-6 print:p-0">
@@ -385,7 +457,11 @@ export function Cashier({
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-widest">BACH WEARS</h2>
             <p className="text-sm text-muted-foreground">{branchName}</p>
-            <p className="mt-2 font-mono text-lg">Invoice #{receipt.number}</p>
+            {receipt.number != null ? (
+              <p className="mt-2 font-mono text-lg">Invoice #{receipt.number}</p>
+            ) : (
+              <p className="mt-2 font-mono text-lg">OFFLINE-{receipt.offlineRef}</p>
+            )}
             <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-GB")}</p>
           </div>
           <div className="my-4 border-t border-dashed" />
@@ -417,6 +493,11 @@ export function Cashier({
               Exchange rate: LBP {receipt.rate.toLocaleString("en-US")} / $
             </p>
           </div>
+          {receipt.number == null && (
+            <p className="mt-3 text-center text-xs text-muted-foreground" dir="rtl">
+              رقم مؤقت — الفاتورة الرسمية بتنسجّل تلقائيًا لما يرجع النت.
+            </p>
+          )}
           <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us 🖤</p>
         </div>
         <div className="flex gap-3 print:hidden">
@@ -432,7 +513,22 @@ export function Cashier({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <div className="space-y-4">
+      {!online && (
+        <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm">
+          📡 النت مقطوع — البيع شغّال، والمبيعات بتتسجّل محليًا وبتتزامن لحالها لما يرجع الاتصال.
+        </p>
+      )}
+      {queueCount > 0 && (
+        <p className="flex items-center justify-between rounded-md border px-4 py-2 text-sm">
+          <span>🕐 {queueCount} مبيعات بانتظار المزامنة</span>
+          <Button size="sm" variant="outline" onClick={() => void doSync()}>
+            زامن الآن
+          </Button>
+        </p>
+      )}
+      {syncMsg && <p className="rounded-md border px-4 py-2 text-sm text-green-600 dark:text-green-400">{syncMsg}</p>}
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       {/* Search + cart */}
       <section className="space-y-4">
         <div className="relative">
@@ -456,8 +552,10 @@ export function Cashier({
           {results.length > 0 && (
             <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
               {results.map((v) => {
-                const level = v.inventory_levels.find((l) => l.branch_id === branchId);
-                const avail = level ? level.quantity - level.reserved : 0;
+                const avail = v.available;
+                const unit =
+                  v.price_usd_cents_override ??
+                  Math.min(v.sale_price_usd_cents ?? v.price_usd_cents, v.price_usd_cents);
                 return (
                   <button
                     key={v.id}
@@ -467,13 +565,13 @@ export function Cashier({
                     onClick={() => addVariant(v)}
                   >
                     <span>
-                      {v.products.name_en} — {v.size} {v.color_en}
+                      {v.name_en} — {v.size} {v.color_en}
                       <span className="block text-xs text-muted-foreground" dir="ltr">
                         {v.sku}
                       </span>
                     </span>
                     <span className="text-sm">
-                      <span className="font-mono">{usd(unitPrice(v))}</span>
+                      <span className="font-mono">{usd(unit)}</span>
                       <span className={`block text-xs ${avail > 0 ? "text-muted-foreground" : "text-destructive"}`}>
                         {avail > 0 ? `متوفر: ${avail}` : "خالص"}
                       </span>
@@ -771,6 +869,7 @@ export function Cashier({
           </Button>
         </div>
       </aside>
+      </div>
     </div>
   );
 }

@@ -48,6 +48,17 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [pendingOffline, setPendingOffline] = useState(0);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("bach-pos-queue");
+      const q = raw ? (JSON.parse(raw) as unknown[]) : [];
+      setPendingOffline(Array.isArray(q) ? q.length : 0);
+    } catch {
+      setPendingOffline(0);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setError("");
@@ -163,6 +174,12 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
 
   return (
     <div className="space-y-5">
+      {pendingOffline > 0 && (
+        <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm print:hidden">
+          ⚠️ في {pendingOffline} مبيعات أوفلاين لسا ما تزامنت — ارجع عشاشة الكاشير وزامنها قبل ما تسكّر اليوم،
+          وإلا أرقام اليوم بتطلع ناقصة.
+        </p>
+      )}
       <div className="flex items-center gap-3 print:hidden">
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" dir="ltr" />
         {closed && (
