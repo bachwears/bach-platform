@@ -5,9 +5,12 @@ import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { t } from "@bach/i18n";
 
+import { lhref, useLocale } from "../../../lib/locale-client";
 
 export default function NewAccountPage() {
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -51,8 +54,8 @@ export default function NewAccountPage() {
     if (err) {
       setError(
         err.message.includes("already registered")
-          ? "This email already has an account."
-          : `Could not create your account: ${err.message}`,
+          ? t(locale, "sf.new.exists")
+          : t(locale, "sf.new.failed", { m: err.message }),
       );
       return;
     }
@@ -64,14 +67,19 @@ export default function NewAccountPage() {
       <div className="min-h-dvh bg-background">
         <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Almost there</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">Check your inbox.</h1>
-            <p className="mt-4 leading-relaxed text-muted-foreground">
-              We sent a confirmation link to <span className="font-medium text-foreground">{email.trim()}</span>.
-              Click it to activate your BACH account — your orders will be linked automatically.
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              {t(locale, "sf.new.doneEyebrow")}
             </p>
-            <Link href="/shop" className="mt-8 inline-block underline underline-offset-4">
-              Continue shopping
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t(locale, "sf.new.doneTitle")}</h1>
+            <p className="mt-4 leading-relaxed text-muted-foreground">
+              {t(locale, "sf.new.doneBody1")}{" "}
+              <span className="font-medium text-foreground" dir="ltr">
+                {email.trim()}
+              </span>
+              . {t(locale, "sf.new.doneBody2")}
+            </p>
+            <Link href={lhref(locale, "/shop")} className="mt-8 inline-block underline underline-offset-4">
+              {t(locale, "sf.confirmed.continue")}
             </Link>
           </div>
         </main>
@@ -82,33 +90,31 @@ export default function NewAccountPage() {
   return (
     <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track orders, faster checkout, and member perks to come.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.new.title")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.new.sub")}</p>
 
         <div className="mt-8 space-y-4">
-          <Field label="Full name">
+          <Field label={t(locale, "sf.new.name")}>
             <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </Field>
-          <Field label="Phone">
+          <Field label={t(locale, "sf.new.phone")}>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" dir="ltr" />
           </Field>
-          <Field label="Email">
+          <Field label={t(locale, "sf.new.email")}>
             <Input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" autoComplete="email" dir="ltr" />
           </Field>
-          <Field label="Password (8+ characters)">
+          <Field label={t(locale, "sf.new.password")}>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           </Field>
-          <Field label="Confirm password">
+          <Field label={t(locale, "sf.new.confirm")}>
             <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
           </Field>
           {password && confirm && password !== confirm && (
-            <p className="text-sm text-destructive">Passwords don&apos;t match.</p>
+            <p className="text-sm text-destructive">{t(locale, "sf.new.noMatch")}</p>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button className="h-12 w-full text-base" disabled={!canCreate} onClick={() => void create()}>
-            {busy ? "Creating…" : "Create account"}
+            {busy ? t(locale, "sf.new.creating") : t(locale, "sf.new.create")}
           </Button>
         </div>
       </main>

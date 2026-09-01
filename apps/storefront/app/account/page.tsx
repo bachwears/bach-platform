@@ -7,20 +7,9 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { t, type Locale } from "@bach/i18n";
 
-
-const STATUS_EN: Record<string, string> = {
-  pending: "Placed",
-  confirmed: "Confirmed",
-  picking: "Being prepared",
-  packed: "Ready",
-  shipped: "On its way",
-  delivered: "Delivered",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  returned: "Returned",
-  exchanged: "Exchanged",
-};
+import { lhref, useLocale } from "../../lib/locale-client";
 
 interface MyOrder {
   id: string;
@@ -36,7 +25,22 @@ function usd(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function tenure(sinceIso: string): string {
+// Arabic uses singular / dual / plural forms; English just pluralizes.
+function unit(locale: Locale, n: number, kind: "year" | "month" | "day"): string {
+  if (locale === "ar") {
+    const [one, two, many] = {
+      year: ["سنة", "سنتين", "سنين"] as const,
+      month: ["شهر", "شهرين", "أشهر"] as const,
+      day: ["يوم", "يومين", "أيام"] as const,
+    }[kind];
+    if (n === 1) return one;
+    if (n === 2) return two;
+    return `${n} ${many}`;
+  }
+  return `${n} ${kind}${n > 1 ? "s" : ""}`;
+}
+
+function tenure(locale: Locale, sinceIso: string): string {
   const since = new Date(sinceIso);
   const now = new Date();
   let years = now.getFullYear() - since.getFullYear();
@@ -51,14 +55,22 @@ function tenure(sinceIso: string): string {
     months += 12;
   }
   const parts: string[] = [];
-  if (years > 0) parts.push(`${years} year${years > 1 ? "s" : ""}`);
-  if (months > 0) parts.push(`${months} month${months > 1 ? "s" : ""}`);
-  if (years === 0 && days > 0) parts.push(`${days} day${days > 1 ? "s" : ""}`);
-  return parts.length ? parts.join(", ") : "your first day";
+  if (years > 0) parts.push(unit(locale, years, "year"));
+  if (months > 0) parts.push(unit(locale, months, "month"));
+  if (years === 0 && days > 0) parts.push(unit(locale, days, "day"));
+  if (!parts.length) return t(locale, "sf.acct.firstDay");
+  return parts.join(locale === "ar" ? " و" : ", ");
+}
+
+function statusLabel(locale: Locale, status: string) {
+  const label = t(locale, `sf.ostatus.${status}`);
+  return label === `sf.ostatus.${status}` ? status : label;
 }
 
 export default function AccountPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const dateLocale = locale === "ar" ? "ar-LB" : "en-GB";
   const [customer, setCustomer] = useState<{
     id?: string;
     full_name: string | null;
@@ -69,7 +81,7 @@ export default function AccountPage() {
   const [bdayInput, setBdayInput] = useState("");
   const [bdayMsg, setBdayMsg] = useState("");
   const [orders, setOrders] = useState<MyOrder[]>([]);
-  const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
+  const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -79,7 +91,7 @@ export default function AccountPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        router.replace("/account/login");
+        router.replace(lhref(locale, "/account/login"));
         return;
       }
       const { data: cust } = await supabase
@@ -98,7 +110,7 @@ export default function AccountPage() {
             .limit(50),
           supabase
             .from("wishlists")
-            .select("product_id, products(slug, name_en, price_usd_cents, sale_price_usd_cents)")
+            .select("product_id, products(slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents)")
             .eq("customer_id", cust.id)
             .order("created_at", { ascending: false }),
         ]);
@@ -108,11 +120,11 @@ export default function AccountPage() {
       setLoaded(true);
     }
     void load();
-  }, [router]);
+  }, [router, locale]);
 
   async function signOut() {
     await supabaseBrowser().auth.signOut();
-    router.replace("/");
+    router.replace(lhref(locale, "/"));
   }
 
   if (!loaded) {
@@ -127,40 +139,42 @@ export default function AccountPage() {
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">My account</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              {t(locale, "sf.acct.eyebrow")}
+            </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-              {customer?.full_name ?? "Welcome"}
+              {customer?.full_name ?? t(locale, "sf.acct.welcome")}
             </h1>
             {customer && (
               <p className="mt-1 text-sm text-muted-foreground">
-                Customer since{" "}
-                {new Date(customer.created_at).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}{" "}
-                — {tenure(customer.created_at)} with us
+                {t(locale, "sf.acct.since", {
+                  d: new Date(customer.created_at).toLocaleDateString(dateLocale, {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }),
+                  t: tenure(locale, customer.created_at),
+                })}
               </p>
             )}
           </div>
           <Button variant="outline" size="sm" onClick={() => void signOut()}>
-            Sign out
+            {t(locale, "sf.acct.signOut")}
           </Button>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-md border p-4 text-sm">
-            <p className="font-medium">Birthday</p>
+            <p className="font-medium">{t(locale, "sf.acct.birthday")}</p>
             {customer?.birthday ? (
               <p className="mt-1 text-muted-foreground">
-                {new Date(customer.birthday).toLocaleDateString("en-GB", { day: "numeric", month: "long" })} — your
-                birthday treat arrives every year. 🎂
+                {t(locale, "sf.acct.birthdayHas", {
+                  d: new Date(customer.birthday).toLocaleDateString(dateLocale, { day: "numeric", month: "long" }),
+                })}
               </p>
             ) : customer?.id ? (
               <div className="mt-2 space-y-2">
-                <p className="text-muted-foreground">
-                  Tell us once and get a gift code every year. (Set once — contact care to correct.)
-                </p>
+                <p className="text-muted-foreground">{t(locale, "sf.acct.birthdayAsk")}</p>
                 <div className="flex gap-2">
                   <Input type="date" value={bdayInput} onChange={(e) => setBdayInput(e.target.value)} dir="ltr" />
                   <Button
@@ -171,24 +185,24 @@ export default function AccountPage() {
                         .from("customers")
                         .update({ birthday: bdayInput })
                         .eq("id", customer!.id!);
-                      if (error) setBdayMsg("Could not save — try again.");
+                      if (error) setBdayMsg(t(locale, "sf.acct.saveFailed"));
                       else {
                         setCustomer({ ...customer!, birthday: bdayInput });
                         setBdayMsg("");
                       }
                     }}
                   >
-                    Save
+                    {t(locale, "sf.acct.save")}
                   </Button>
                 </div>
                 {bdayMsg && <p className="text-destructive">{bdayMsg}</p>}
               </div>
             ) : (
-              <p className="mt-1 text-muted-foreground">Place your first order to unlock birthday treats.</p>
+              <p className="mt-1 text-muted-foreground">{t(locale, "sf.acct.birthdayUnlock")}</p>
             )}
           </div>
           <div className="rounded-md border p-4 text-sm">
-            <p className="font-medium">Offers &amp; updates</p>
+            <p className="font-medium">{t(locale, "sf.acct.offers")}</p>
             <label className="mt-2 flex cursor-pointer items-center gap-2 text-muted-foreground">
               <input
                 type="checkbox"
@@ -200,19 +214,19 @@ export default function AccountPage() {
                   await supabaseBrowser().from("customers").update({ marketing_consent: next }).eq("id", customer!.id!);
                 }}
               />
-              Send me birthday gifts and member offers (WhatsApp / email)
+              {t(locale, "sf.acct.offersLabel")}
             </label>
           </div>
         </div>
 
         {wishlist.length > 0 && (
           <>
-            <h2 className="mt-10 text-lg font-medium">Wishlist</h2>
+            <h2 className="mt-10 text-lg font-medium">{t(locale, "sf.acct.wishlist")}</h2>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
               {wishlist.map((w) => (
                 <li key={w.product_id} className="flex items-center justify-between gap-3 rounded-md border px-4 py-3 text-sm">
-                  <Link href={`/products/${w.products.slug}`} className="hover:underline">
-                    {w.products.name_en}
+                  <Link href={lhref(locale, `/products/${w.products.slug}`)} className="hover:underline">
+                    {locale === "ar" && w.products.name_ar ? w.products.name_ar : w.products.name_en}
                   </Link>
                   <span className="flex items-center gap-3">
                     <span className="font-mono">
@@ -237,12 +251,12 @@ export default function AccountPage() {
           </>
         )}
 
-        <h2 className="mt-10 text-lg font-medium">Orders</h2>
+        <h2 className="mt-10 text-lg font-medium">{t(locale, "sf.acct.orders")}</h2>
         {orders.length === 0 ? (
           <div className="mt-4 rounded-md border p-8 text-center text-muted-foreground">
-            <p>No orders on this account yet.</p>
-            <Link href="/shop" className="mt-2 inline-block text-sm underline underline-offset-4">
-              Browse the collection
+            <p>{t(locale, "sf.acct.noOrders")}</p>
+            <Link href={lhref(locale, "/shop")} className="mt-2 inline-block text-sm underline underline-offset-4">
+              {t(locale, "sf.acct.browse")}
             </Link>
           </div>
         ) : (
@@ -251,20 +265,20 @@ export default function AccountPage() {
               <li key={o.id} className="rounded-md border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono font-medium">#{o.number}</span>
+                    <span className="font-mono font-medium" dir="ltr">#{o.number}</span>
                     <Badge variant={["cancelled", "returned"].includes(o.status) ? "secondary" : "default"}>
-                      {STATUS_EN[o.status] ?? o.status}
+                      {statusLabel(locale, o.status)}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      {new Date(o.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                      {o.channel === "pos" ? " · in store" : ""}
+                      {new Date(o.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}
+                      {o.channel === "pos" ? t(locale, "sf.acct.inStore") : ""}
                     </span>
                   </div>
                   <span className="font-mono">{usd(o.total_usd_cents)}</span>
                 </div>
                 <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                   {o.order_items.map((i, idx) => (
-                    <li key={idx}>
+                    <li key={idx} dir="ltr" className={locale === "ar" ? "text-end" : undefined}>
                       {i.name_en} — {i.size} {i.color_en} × {i.quantity}
                     </li>
                   ))}
