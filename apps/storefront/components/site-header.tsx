@@ -17,6 +17,9 @@ export function SiteHeader() {
           <Link href="/help" className="text-muted-foreground hover:text-foreground">
             Help
           </Link>
+          <Link href="/support" className="text-muted-foreground hover:text-foreground">
+            Support
+          </Link>
           <AccountLink />
           <CartLink />
         </nav>
