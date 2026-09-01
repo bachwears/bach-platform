@@ -243,5 +243,22 @@
   "sf.ret.status.rejected": "مرفوض",
   "sf.ret.status.completed": "مكتمل",
   "sf.ret.status.cancelled": "ملغى",
-  "sf.acct.requestReturn": "اطلب إرجاع أو تبديل"
+  "sf.acct.requestReturn": "اطلب إرجاع أو تبديل",
+  "sf.nl.heading": "خلّيك عالاطلاع",
+  "sf.nl.sub": "وصل جديد، تشكيلات الموسم، وعروض الأعضاء. بلا إزعاج.",
+  "sf.nl.placeholder": "your@email.com",
+  "sf.nl.cta": "اشترك",
+  "sf.nl.consent": "بالاشتراك بتوافق توصلك إيميلات BACH Wears. فيك تلغي الاشتراك بأي وقت.",
+  "sf.nl.done": "صرت عاللائحة — أهلا فيك.",
+  "sf.nl.invalid": "الإيميل مش مظبوط.",
+  "sf.nl.failed": "ما قدرنا نسجّل اشتراكك — جرّب مرة تانية.",
+  "sf.footer.shop": "تسوّق",
+  "sf.footer.help": "مركز المساعدة",
+  "sf.footer.support": "الدعم",
+  "sf.footer.returns": "الإرجاع والتبديل",
+  "sf.footer.contact": "care@bachwears.com · +961 71 566 296",
+  "sf.unsub.title": "إلغاء الاشتراك",
+  "sf.unsub.sub": "فوّت إيميلك ومنشيلك من لائحة النشرة.",
+  "sf.unsub.cta": "ألغِ الاشتراك",
+  "sf.unsub.done": "خلص — ما رح توصلك النشرة بعد هلق. غيّرت رأيك؟ اشترك متى ما بدك من أسفل الصفحة."
 }

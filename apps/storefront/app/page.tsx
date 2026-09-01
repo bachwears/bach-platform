@@ -94,11 +94,6 @@ export default async function Home() {
           </section>
         ) : null}
       </main>
-      <footer className="border-t">
-        <div className="mx-auto max-w-6xl px-4 py-10 text-center text-xs text-muted-foreground">
-          © BACH Wears — bachwears.com
-        </div>
-      </footer>
     </div>
   );
 }

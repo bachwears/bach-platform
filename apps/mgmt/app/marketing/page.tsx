@@ -2,6 +2,7 @@ import { supabaseServer } from "@bach/supabase/server";
 
 import { Marketing } from "../../components/marketing";
 import { Nav } from "../../components/nav";
+import { NewsletterCard } from "../../components/newsletter-card";
 
 const MARKETING_ROLES = new Set(["super_admin", "store_manager", "marketing_manager"]);
 
@@ -24,7 +25,10 @@ export default async function MarketingPage() {
           </p>
         </div>
         {allowed ? (
-          <Marketing />
+          <>
+            <Marketing />
+            <NewsletterCard />
+          </>
         ) : (
           <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة التسويق.</p>
         )}

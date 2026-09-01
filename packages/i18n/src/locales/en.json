@@ -243,5 +243,22 @@
   "sf.ret.status.rejected": "Declined",
   "sf.ret.status.completed": "Completed",
   "sf.ret.status.cancelled": "Cancelled",
-  "sf.acct.requestReturn": "Request a return or exchange"
+  "sf.acct.requestReturn": "Request a return or exchange",
+  "sf.nl.heading": "Stay in the loop",
+  "sf.nl.sub": "New drops, seasonal edits, and member offers. No noise.",
+  "sf.nl.placeholder": "your@email.com",
+  "sf.nl.cta": "Subscribe",
+  "sf.nl.consent": "By subscribing you agree to receive BACH Wears emails. Unsubscribe anytime.",
+  "sf.nl.done": "You're on the list — welcome.",
+  "sf.nl.invalid": "That email doesn't look right.",
+  "sf.nl.failed": "Could not subscribe — try again.",
+  "sf.footer.shop": "Shop",
+  "sf.footer.help": "Help Center",
+  "sf.footer.support": "Support",
+  "sf.footer.returns": "Returns & exchanges",
+  "sf.footer.contact": "care@bachwears.com · +961 71 566 296",
+  "sf.unsub.title": "Unsubscribe",
+  "sf.unsub.sub": "Enter your email and we'll take you off the newsletter list.",
+  "sf.unsub.cta": "Unsubscribe",
+  "sf.unsub.done": "Done — you won't hear from the newsletter again. Changed your mind? Subscribe again anytime from the footer."
 }

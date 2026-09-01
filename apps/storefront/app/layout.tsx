@@ -8,6 +8,7 @@ import "./globals.css";
 import { AssistantWidget } from "../components/assistant-widget";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
+import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import { getLocale } from "../lib/locale";
 
@@ -50,9 +51,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
-        <div className="min-h-dvh bg-background">
+        <div className="flex min-h-dvh flex-col bg-background">
           <SiteHeader />
-          {children}
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
         </div>
         <BirthdayPopup />
         <MarketingPopup />
