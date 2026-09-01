@@ -11,23 +11,35 @@ export const metadata: Metadata = {
 
 export default async function ShopPage() {
   const supabase = await supabaseServer();
-  const { data: products } = await supabase
-    .from("products")
-    .select("slug, name_en, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path)")
-    .eq("status", "published")
-    .order("created_at", { ascending: false });
+  const [{ data: products }, { data: merch }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("slug, name_en, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_seasons(season)")
+      .eq("status", "published")
+      .order("created_at", { ascending: false }),
+    supabase.from("merchandising_settings").select("active_season").maybeSingle(),
+  ]);
+  const activeSeason = merch?.active_season ?? "all_season";
 
-  const items: CardProduct[] = (products ?? []).map((p) => {
-    const media = (p.media_assets as unknown as Array<{ kind: string; storage_path: string }>) ?? [];
-    return {
-      slug: p.slug,
-      name_en: p.name_en,
-      price_usd_cents: p.price_usd_cents,
-      sale_price_usd_cents: p.sale_price_usd_cents,
-      front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-      back: media.find((m) => m.kind === "back")?.storage_path ?? null,
-    };
-  });
+  // Active-season pieces lead the grid (all_season shows the natural order).
+  const inSeason = (p: { product_seasons?: unknown }) => {
+    if (activeSeason === "all_season") return 0;
+    const seasons = ((p.product_seasons as Array<{ season: string }>) ?? []).map((x) => x.season);
+    return seasons.includes(activeSeason) || seasons.includes("all_season") || seasons.length === 0 ? 0 : 1;
+  };
+  const items: CardProduct[] = [...(products ?? [])]
+    .sort((a, b) => inSeason(a) - inSeason(b))
+    .map((p) => {
+      const media = (p.media_assets as unknown as Array<{ kind: string; storage_path: string }>) ?? [];
+      return {
+        slug: p.slug,
+        name_en: p.name_en,
+        price_usd_cents: p.price_usd_cents,
+        sale_price_usd_cents: p.sale_price_usd_cents,
+        front: media.find((m) => m.kind === "front")?.storage_path ?? null,
+        back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+      };
+    });
 
   return (
     <div className="min-h-dvh bg-background">

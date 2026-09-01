@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/inventory", label: "المخزون" },
   { href: "/product-health", label: "صحة البيانات" },
   { href: "/media-import", label: "الصور" },
+  { href: "/marketing", label: "التسويق" },
   { href: "/exchange-rate", label: "سعر الصرف" },
   { href: "/complaints", label: "الشكاوى" },
   { href: "/help", label: "مساعدة" },

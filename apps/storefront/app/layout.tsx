@@ -6,6 +6,7 @@ import "./globals.css";
 
 import { AssistantWidget } from "../components/assistant-widget";
 import { BirthdayPopup } from "../components/birthday-popup";
+import { MarketingPopup } from "../components/marketing-popup";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {children}
         <BirthdayPopup />
+        <MarketingPopup />
         <AssistantWidget />
       </body>
     </html>
