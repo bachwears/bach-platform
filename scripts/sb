@@ -1,0 +1,16 @@
+#!/bin/sh
+# Supabase CLI pinned to the BACH account — immune to global `supabase login`.
+# Reads the token from a dedicated keychain entry at run time, so switching
+# the global CLI login (e.g. to the AGMA account) never breaks this project.
+#
+# One-time setup (owner, in your own terminal — never paste tokens in chat):
+#   1. supabase.com dashboard (bach account) → Account → Access Tokens → generate
+#   2. security add-generic-password -U -s 'Supabase CLI (bach)' -a bach -w 'PASTE_TOKEN'
+#
+# Usage: ./scripts/sb <any supabase command>
+set -e
+TOKEN="$(security find-generic-password -s 'Supabase CLI (bach)' -w 2>/dev/null)" || {
+  echo "Keychain entry 'Supabase CLI (bach)' missing — see setup steps inside scripts/sb" >&2
+  exit 1
+}
+SUPABASE_ACCESS_TOKEN="$TOKEN" exec "$(dirname "$0")/../node_modules/.bin/supabase" "$@"
