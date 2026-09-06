@@ -69,7 +69,7 @@ export default function CartPage() {
           color_en: (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string,
           available: lvl ? lvl.quantity - lvl.reserved : 0,
           price: Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents),
-          name: locale === "ar" && p.name_ar ? p.name_ar : p.name_en,
+          name: p.name_en, // product names stay English in every locale
           slug: p.slug,
           image: p.media_assets?.find((m) => m.kind === "front")?.storage_path ?? null,
         };

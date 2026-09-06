@@ -48,7 +48,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const [product, locale] = await Promise.all([getProduct(slug), getLocale()]);
   if (!product) return { title: "BACH Wears" };
-  const name = pick(locale, product.name_en, product.name_ar);
+  const name = product.name_en; // product names stay English in every locale
   return {
     title: locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`,
     description:
@@ -79,7 +79,7 @@ export default async function ProductPage({
   );
   const onSale = product.sale_price_usd_cents != null;
   const category = product.categories as unknown as { code: string; name_en: string; name_ar: string } | null;
-  const displayName = pick(locale, product.name_en, product.name_ar);
+  const displayName = product.name_en; // product names stay English in every locale
   const displayDescription = pick(locale, product.description_en ?? "", product.description_ar) || null;
   const categoryName = category ? pick(locale, category.name_en, category.name_ar) : null;
   const collectionIds = ((product.product_collections as unknown as Array<{ collection_id: string }>) ?? []).map(

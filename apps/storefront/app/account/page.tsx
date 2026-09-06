@@ -226,7 +226,7 @@ export default function AccountPage() {
               {wishlist.map((w) => (
                 <li key={w.product_id} className="flex items-center justify-between gap-3 rounded-md border px-4 py-3 text-sm">
                   <Link href={lhref(locale, `/products/${w.products.slug}`)} className="hover:underline">
-                    {locale === "ar" && w.products.name_ar ? w.products.name_ar : w.products.name_en}
+                    {w.products.name_en}
                   </Link>
                   <span className="flex items-center gap-3">
                     <span className="font-mono">

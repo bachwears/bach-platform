@@ -65,7 +65,7 @@ export default function CheckoutPage() {
           if (!v) return [];
           const p = v.products as { name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null };
           const price = Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
-          const name = locale === "ar" && p.name_ar ? p.name_ar : p.name_en;
+          const name = p.name_en; // product names stay English in every locale
           const color = (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string;
           return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity }];
         }),

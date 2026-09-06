@@ -24,7 +24,8 @@ function usd(cents: number) {
  */
 export function ProductCard({ product, locale = "en" }: { product: CardProduct; locale?: Locale }) {
   const onSale = product.sale_price_usd_cents != null;
-  const name = locale === "ar" && product.name_ar ? product.name_ar : product.name_en;
+  // Product names stay English in every locale (founder decision 2026-09-07).
+  const name = product.name_en;
   const prefix = locale === "ar" ? "/ar" : "";
   return (
     <Link href={`${prefix}/products/${product.slug}`} className="group block">
