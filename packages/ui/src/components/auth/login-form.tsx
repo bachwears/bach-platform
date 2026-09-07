@@ -33,7 +33,9 @@ export function LoginForm({ appTitle }: { appTitle: string }) {
   return (
     <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">{appTitle}</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-bach.png" alt="BACH" className="mx-auto h-6 w-auto dark:invert" />
+        <h1 className="mt-3 text-lg font-semibold tracking-tight text-muted-foreground">{appTitle}</h1>
         <p className="text-sm text-muted-foreground">سجّل دخولك لتكمّل</p>
       </div>
       <div className="space-y-2">
