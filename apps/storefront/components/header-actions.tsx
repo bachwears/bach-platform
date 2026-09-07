@@ -56,8 +56,6 @@ export function HeaderActions({
 
   const links: Array<[string, string]> = [
     [lhref(locale, "/shop"), t(locale, "sf.nav.shop")],
-    [lhref(locale, "/help"), t(locale, "sf.nav.help")],
-    [lhref(locale, "/support"), t(locale, "sf.nav.support")],
     [lhref(locale, "/account"), t(locale, "sf.nav.account")],
   ];
 

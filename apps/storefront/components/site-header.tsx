@@ -162,12 +162,6 @@ export async function SiteHeader() {
               </div>
             </div>
           </div>
-          <Link href={lhref(locale, "/help")} className="text-muted-foreground hover:text-foreground">
-            {t(locale, "sf.nav.help")}
-          </Link>
-          <Link href={lhref(locale, "/support")} className="text-muted-foreground hover:text-foreground">
-            {t(locale, "sf.nav.support")}
-          </Link>
         </nav>
 
         {/* Icon cluster (BOSS-style): search · account · bag · menu */}
