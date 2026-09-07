@@ -1,5 +1,7 @@
 "use client";
 
+import { Printer } from "lucide-react";
+
 import { useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -145,7 +147,7 @@ export function LabelPrinting() {
           ))}
         </select>
         <Button disabled={!labels.length} onClick={() => window.print()}>
-          🖨 اطبع {labels.length > 0 ? `(${labels.length})` : ""}
+          <Printer className="me-1.5 inline h-4 w-4 align-[-2px]" aria-hidden /> اطبع {labels.length > 0 ? `(${labels.length})` : ""}
         </Button>
         {queue.length > 0 && (
           <Button variant="ghost" onClick={() => setQueue([])}>

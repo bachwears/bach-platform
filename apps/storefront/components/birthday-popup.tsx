@@ -1,5 +1,7 @@
 "use client";
 
+import { Cake } from "lucide-react";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -47,7 +49,7 @@ export function BirthdayPopup() {
         className="w-full max-w-sm rounded-lg border bg-background p-8 text-center shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-3xl">🎂</p>
+        <Cake className="mx-auto h-8 w-8" aria-hidden />
         <h2 className="mt-3 text-xl font-semibold tracking-tight">Happy birthday from BACH.</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Enjoy <span className="font-medium text-foreground">{offer.percent}% off everything</span> with

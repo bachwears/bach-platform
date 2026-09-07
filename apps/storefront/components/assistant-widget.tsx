@@ -1,5 +1,7 @@
 "use client";
 
+import { MessageCircle } from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
@@ -62,9 +64,7 @@ export function AssistantWidget() {
           onClick={() => setOpen(true)}
           aria-label="Chat with us"
           className="fixed bottom-5 right-5 z-40 grid h-13 w-13 place-items-center rounded-full bg-foreground p-4 text-background shadow-lg transition-transform hover:scale-105"
-        >
-          💬
-        </button>
+        ><MessageCircle className="h-5 w-5" aria-hidden /></button>
       )}
       {open && (
         <div className="fixed bottom-5 right-5 z-40 flex h-[28rem] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border bg-background shadow-xl">

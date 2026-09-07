@@ -124,7 +124,7 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
       {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {items.length === 0 ? (
-        <p className="p-10 text-center text-muted-foreground">ما في شكاوى هون. 🖤</p>
+        <p className="p-10 text-center text-muted-foreground">ما في شكاوى هون.</p>
       ) : (
         items.map((c) => (
           <div key={c.id} className="rounded-lg border p-4">

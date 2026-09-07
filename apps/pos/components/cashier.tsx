@@ -1,5 +1,7 @@
 "use client";
 
+import { Cake, Clock, Pause, User, WifiOff } from "lucide-react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -511,7 +513,7 @@ export function Cashier({
               رقم مؤقت — الفاتورة الرسمية بتنسجّل تلقائيًا لما يرجع النت.
             </p>
           )}
-          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us 🖤</p>
+          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us.</p>
         </div>
         <div className="flex gap-3 print:hidden">
           <Button className="flex-1" onClick={() => window.print()}>
@@ -529,12 +531,13 @@ export function Cashier({
     <div className="space-y-4">
       {!online && (
         <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm">
-          📡 النت مقطوع — البيع شغّال، والمبيعات بتتسجّل محليًا وبتتزامن لحالها لما يرجع الاتصال.
+          <WifiOff className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+          النت مقطوع — البيع شغّال، والمبيعات بتتسجّل محليًا وبتتزامن لحالها لما يرجع الاتصال.
         </p>
       )}
       {queueCount > 0 && (
         <p className="flex items-center justify-between rounded-md border px-4 py-2 text-sm">
-          <span>🕐 {queueCount} مبيعات بانتظار المزامنة</span>
+          <span><Clock className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />{queueCount} مبيعات بانتظار المزامنة</span>
           <Button size="sm" variant="outline" onClick={() => void doSync()}>
             زامن الآن
           </Button>
@@ -690,7 +693,7 @@ export function Cashier({
         </div>
         {cart.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => void parkSale()}>
-            ⏸ اركن البيع لبعدين
+            <Pause className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden /> اركن البيع لبعدين
           </Button>
         )}
       </section>
@@ -752,7 +755,7 @@ export function Cashier({
           {customer ? (
             <div className="flex items-center justify-between gap-2">
               <span>
-                👤 {customer.name}
+                <User className="me-1 inline h-4 w-4 align-[-2px]" aria-hidden />{customer.name}
                 {customer.phone && (
                   <span className="block text-xs text-muted-foreground" dir="ltr">{customer.phone}</span>
                 )}
@@ -807,12 +810,12 @@ export function Cashier({
               className="w-full"
               onClick={() => setBdayApplied(true)}
             >
-              🎂 عيد ميلادو — طبّق خصم {bday.percent}%
+              <Cake className="me-1 inline h-4 w-4 align-[-2px]" aria-hidden /> عيد ميلادو — طبّق خصم {bday.percent}%
             </Button>
           )}
           {bdayApplied && bday && (
             <p className="flex items-center justify-between text-xs text-green-600 dark:text-green-400">
-              🎂 خصم عيد الميلاد {bday.percent}% مُطبّق
+              <span><Cake className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />خصم عيد الميلاد {bday.percent}% مُطبّق</span>
               <Button size="sm" variant="ghost" onClick={() => setBdayApplied(false)}>تراجع</Button>
             </p>
           )}

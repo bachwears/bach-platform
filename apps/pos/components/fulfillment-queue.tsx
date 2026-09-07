@@ -83,7 +83,7 @@ export function FulfillmentQueue() {
     <div className="space-y-4">
       {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
       {orders.length === 0 ? (
-        <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر. 🖤</p>
+        <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر.</p>
       ) : (
         orders.map((o) => (
           <div key={o.id} className="space-y-3 rounded-lg border p-4">

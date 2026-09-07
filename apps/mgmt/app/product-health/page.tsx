@@ -93,7 +93,7 @@ export default async function ProductHealthPage({
 
         <div className="rounded-lg border">
           {sorted.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">ما في نواقص هون — عال العال. 🖤</p>
+            <p className="p-8 text-center text-muted-foreground">ما في نواقص هون — عال العال.</p>
           ) : (
             <table className="w-full text-sm">
               <thead>

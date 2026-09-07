@@ -1,5 +1,7 @@
 "use client";
 
+import { Heart } from "lucide-react";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -196,6 +198,7 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
           onClick={() => void toggleWishlist()}
           className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
+          <Heart className={"me-1 inline h-3.5 w-3.5 align-[-2px] " + (saved ? "fill-current" : "")} aria-hidden />
           {saved ? t(locale, "sf.pdp.wishSaved") : t(locale, "sf.pdp.wishSave")}
         </button>
       ) : (

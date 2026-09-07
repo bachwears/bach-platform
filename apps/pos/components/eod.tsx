@@ -1,5 +1,7 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
+
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -176,7 +178,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
     <div className="space-y-5">
       {pendingOffline > 0 && (
         <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm print:hidden">
-          ⚠️ في {pendingOffline} مبيعات أوفلاين لسا ما تزامنت — ارجع عشاشة الكاشير وزامنها قبل ما تسكّر اليوم،
+          <TriangleAlert className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+          في {pendingOffline} مبيعات أوفلاين لسا ما تزامنت — ارجع عشاشة الكاشير وزامنها قبل ما تسكّر اليوم،
           وإلا أرقام اليوم بتطلع ناقصة.
         </p>
       )}

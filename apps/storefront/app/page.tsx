@@ -71,7 +71,7 @@ export default async function Home() {
         {/* Campaign hero — the copy sits on the stone-wall negative space,
             which is physically LEFT in the art direction, so the text block
             stays pinned left in both locales. */}
-        <section className="relative">
+        <section className="relative -mt-[68px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/hero-campaign.jpg"

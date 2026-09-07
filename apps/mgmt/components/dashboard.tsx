@@ -133,7 +133,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
         <div>
           <p className="hidden text-lg font-bold tracking-[0.3em] print:block">BACH WEARS</p>
           <h1 className="text-2xl font-semibold tracking-tight">
-            مرحبا {name || "بشار"} 👋
+            مرحبا {name || "بشار"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             لوحة القيادة — آخر {days} يوم · سعر الصرف {rate.toLocaleString("en-US")} ل.ل/$
@@ -241,7 +241,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
           مخزون تحت الحد ({lowStock.length})
         </h2>
         {lowStock.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">كل المخزون فوق الحدود المطلوبة. 🖤</p>
+          <p className="mt-3 text-sm text-muted-foreground">كل المخزون فوق الحدود المطلوبة.</p>
         ) : (
           <table className="mt-3 w-full text-sm">
             <thead>

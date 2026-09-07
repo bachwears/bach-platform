@@ -151,7 +151,7 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
       {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
       {visible.length === 0 && (
         <p className="p-8 text-center text-muted-foreground">
-          {products.length === 0 ? "ما ضل ولا موديل بمقاس واحد 🎉" : "ما في نتائج بهالفلتر."}
+          {products.length === 0 ? "ما ضل ولا موديل بمقاس واحد — خلص الشغل." : "ما في نتائج بهالفلتر."}
         </p>
       )}
 

@@ -8,10 +8,10 @@ import { Input } from "@bach/ui/components/input";
 import { Select } from "@bach/ui/components/select";
 
 const SEASONS: Array<[string, string]> = [
-  ["winter", "شتوي ❄️"],
-  ["spring", "ربيعي 🌱"],
-  ["summer", "صيفي ☀️"],
-  ["autumn", "خريفي 🍂"],
+  ["winter", "شتوي"],
+  ["spring", "ربيعي"],
+  ["summer", "صيفي"],
+  ["autumn", "خريفي"],
   ["all_season", "كل المواسم"],
 ];
 

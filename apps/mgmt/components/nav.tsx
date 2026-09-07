@@ -22,7 +22,7 @@ const LINKS = [
 
 export function Nav() {
   return (
-    <header className="border-b bg-card">
+    <header className="glass-bar sticky top-0 z-40 border-b border-black/5">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">

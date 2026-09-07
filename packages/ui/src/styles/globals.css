@@ -93,3 +93,28 @@
     font-family: var(--font-sans);
   }
 }
+
+/*
+ * Translucent chrome (Apple-style materials, BOSS-calibrated opacity).
+ * Bars are the light material; panels are the heavier one (§ material
+ * weight encodes hierarchy). Falls back to solid surfaces when the user
+ * asks for reduced transparency or higher contrast.
+ */
+.glass-bar {
+  background: color-mix(in oklab, var(--background) 78%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+.glass-panel {
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass-bar,
+  .glass-panel {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

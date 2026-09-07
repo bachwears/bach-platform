@@ -35,8 +35,8 @@ export async function SiteHeader() {
   const catCols = [categories.slice(0, mid), categories.slice(mid)];
 
   return (
-    <header className="relative z-40 border-b">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
+      <div className="glass-bar relative mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-5 shadow-sm ring-1 ring-black/5 sm:px-6">
         <Link href={lhref(locale, "/")} className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-bach.png" alt="BACH Wears" className="h-4 w-auto dark:invert" />
@@ -46,13 +46,13 @@ export async function SiteHeader() {
           <div className="group static">
             <Link
               href={lhref(locale, "/shop")}
-              className="inline-flex h-16 items-center text-muted-foreground group-hover:text-foreground group-focus-within:text-foreground"
+              className="inline-flex h-14 items-center text-muted-foreground group-hover:text-foreground group-focus-within:text-foreground"
               aria-haspopup="true"
             >
               {t(locale, "sf.nav.shop")}
             </Link>
-            <div className="invisible absolute inset-x-0 top-full border-b bg-background opacity-0 shadow-sm transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-              <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-8 md:grid-cols-4">
+            <div className="glass-panel invisible absolute inset-x-0 top-full mt-2 rounded-2xl opacity-0 shadow-lg ring-1 ring-black/5 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none">
+              <div className="grid grid-cols-2 gap-8 px-6 py-8 md:grid-cols-4">
                 {catCols.map((column, i) => (
                   <div key={i}>
                     <MenuHeading>{i === 0 ? t(locale, "sf.nav.categories") : " "}</MenuHeading>

@@ -263,7 +263,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
               Exchange rate: LBP {slip.rate.toLocaleString("en-US")} / $
             </p>
           </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you 🖤</p>
+          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us.</p>
         </div>
         <div className="flex gap-3 print:hidden">
           <Button className="flex-1" onClick={() => window.print()}>
