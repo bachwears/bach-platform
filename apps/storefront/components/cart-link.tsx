@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ShoppingBag } from "lucide-react";
 import { t } from "@bach/i18n";
 
 import { cartCount, onCartChange } from "../lib/cart";
@@ -16,10 +17,14 @@ export function CartLink() {
   }, []);
 
   return (
-    <Link href={lhref(locale, "/cart")} className="relative text-muted-foreground hover:text-foreground">
-      {t(locale, "sf.nav.bag")}
+    <Link
+      href={lhref(locale, "/cart")}
+      aria-label={t(locale, "sf.nav.bag")}
+      className="relative grid h-9 w-9 place-items-center rounded-full text-foreground/80 transition-colors hover:bg-black/5 hover:text-foreground"
+    >
+      <ShoppingBag className="h-[18px] w-[18px]" aria-hidden />
       {count > 0 && (
-        <span className="absolute -top-1.5 start-auto -end-4 grid h-4 min-w-4 place-items-center rounded-full bg-foreground px-1 font-mono text-[10px] leading-none text-background">
+        <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-foreground px-1 font-mono text-[10px] leading-none text-background">
           {count}
         </span>
       )}

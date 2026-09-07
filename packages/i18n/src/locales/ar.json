@@ -267,5 +267,8 @@
   "sf.pdp.returnsBody": "الطلبات الأونلاين يلي وصلت فيك ترجّعها أو تبدّلها خلال ٣٠ يوم.",
   "sf.pdp.returnsLink": "ابدأ طلب إرجاع",
   "sf.pdp.recentlyViewed": "شفتها من شوي",
-  "sf.home.heroAlt": "رجلان بإطلالة من BACH Wears أمام واجهة حجرية"
+  "sf.home.heroAlt": "رجلان بإطلالة من BACH Wears أمام واجهة حجرية",
+  "sf.nav.menu": "القائمة",
+  "sf.nav.close": "إغلاق",
+  "sf.nav.searchOpen": "بحث"
 }

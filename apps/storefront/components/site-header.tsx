@@ -4,6 +4,7 @@ import { t } from "@bach/i18n";
 
 import { AccountLink } from "./account-link";
 import { CartLink } from "./cart-link";
+import { HeaderActions } from "./header-actions";
 import { LanguageSwitcher } from "./language-switcher";
 import { getLocale, lhref, pick } from "../lib/locale";
 
@@ -30,19 +31,19 @@ export async function SiteHeader() {
     (c) => ((c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0) > 0,
   );
   const collections = cols ?? [];
-  // Split categories into two balanced columns for the panel.
   const mid = Math.ceil(categories.length / 2);
   const catCols = [categories.slice(0, mid), categories.slice(mid)];
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
-      <div className="glass-bar relative mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-5 shadow-sm ring-1 ring-black/5 sm:px-6">
-        <Link href={lhref(locale, "/")} className="flex items-center">
+      <div className="glass-bar relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
+        <Link href={lhref(locale, "/")} className="flex shrink-0 items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-bach.png" alt="BACH Wears" className="h-4 w-auto dark:invert" />
         </Link>
-        <nav className="flex items-center gap-6 text-sm">
-          {/* Mega-menu: opens on hover and on keyboard focus (focus-within). */}
+
+        {/* Desktop text nav with the mega-menu; mobile nav lives in the hamburger. */}
+        <nav className="hidden items-center gap-6 text-sm md:flex">
           <div className="group static">
             <Link
               href={lhref(locale, "/shop")}
@@ -55,7 +56,7 @@ export async function SiteHeader() {
               <div className="grid grid-cols-2 gap-8 px-6 py-8 md:grid-cols-4">
                 {catCols.map((column, i) => (
                   <div key={i}>
-                    <MenuHeading>{i === 0 ? t(locale, "sf.nav.categories") : " "}</MenuHeading>
+                    <MenuHeading>{i === 0 ? t(locale, "sf.nav.categories") : " "}</MenuHeading>
                     <ul className="space-y-2">
                       {column.map((c) => (
                         <li key={c.code}>
@@ -104,14 +105,6 @@ export async function SiteHeader() {
                         {t(locale, "sf.nav.onSale")}
                       </Link>
                     </li>
-                    <li>
-                      <Link
-                        href={lhref(locale, "/shop")}
-                        className="text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        {t(locale, "sf.nav.viewAll")}
-                      </Link>
-                    </li>
                   </ul>
                 </div>
               </div>
@@ -123,10 +116,18 @@ export async function SiteHeader() {
           <Link href={lhref(locale, "/support")} className="text-muted-foreground hover:text-foreground">
             {t(locale, "sf.nav.support")}
           </Link>
-          <AccountLink />
-          <CartLink />
-          <LanguageSwitcher />
         </nav>
+
+        {/* Icon cluster (BOSS-style): search · account · bag · language · menu */}
+        <div className="flex items-center gap-0.5">
+          <HeaderActions>
+            <AccountLink className="hidden md:grid" />
+            <CartLink />
+            <span className="hidden ps-2 text-sm md:block">
+              <LanguageSwitcher />
+            </span>
+          </HeaderActions>
+        </div>
       </div>
     </header>
   );
