@@ -1,6 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
+import { HintDot } from "@bach/ui/components/hint-dot";
 import { Reports } from "../../components/reports";
 
 const REPORT_ROLES = new Set(["super_admin", "store_manager"]);
@@ -18,7 +19,16 @@ export default async function ReportsPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">التقارير</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">التقارير
+            <HintDot
+              hint={{
+                title: "التقارير",
+                what: "مبيعات وأرباح ومخزون بفترة بتختارها — مع تصدير CSV وطباعة A4 بهوية BACH.",
+                source: "الأرقام من نفس داتا الطلبات والمخزون الحية — مش نسخة.",
+                edit: "غيّر الفترة والفرع من الفلاتر فوق؛ زر الطباعة بيجهّز نسخة مرتبة للورق.",
+              }}
+            />
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             صدّر بياناتك CSV/Excel — للمحاسبة، للتحليل، أو للأرشيف.
           </p>

@@ -278,5 +278,9 @@
   "sf.shop.quickShop": "Quick Shop",
   "sf.shop.selectSize": "Select your size",
   "sf.shop.addedShort": "Added to bag",
-  "sf.nav.newInTile": "New In"
+  "sf.nav.newInTile": "New In",
+  "sf.acct.cancelOrder": "Cancel order",
+  "sf.acct.cancelConfirm": "Cancel this order? Reserved pieces go back on sale immediately.",
+  "sf.acct.cancelFailed": "This order can no longer be cancelled — contact us and we'll help.",
+  "sf.acct.cancelNote": "Need a change? Cancel and reorder while the order is still being prepared."
 }

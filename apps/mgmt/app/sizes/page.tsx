@@ -1,6 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
+import { HintDot } from "@bach/ui/components/hint-dot";
 import { SizeExpansion } from "../../components/size-expansion";
 
 const SIZE_ROLES = new Set(["super_admin", "store_manager", "inventory_manager"]);
@@ -20,7 +21,16 @@ export default async function SizesPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">المقاسات</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">المقاسات
+            <HintDot
+              hint={{
+                title: "توسيع المقاسات",
+                what: "المنتجات المستوردة إجت بمقاس واحد (OS) — هون بتحوّلها لمقاسات حقيقية (S/M/L…) دفعة وحدة.",
+                source: "كل مقاس جديد بياخد SKU وباركود خاص فيه تلقائيًا.",
+                edit: "اختار المنتج، حدد المقاسات الموجودة عندك فعليًا بالمحل، واكبس توسيع.",
+              }}
+            />
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             المنتجات المستوردة بمقاس واحد (OS) — وزّع مخزون كل موديل على مقاساته الحقيقية متل ما هي عالرف.
             الباركود القديم بيضل شغّال عالكاشير وبيفتح لائحة المقاسات.

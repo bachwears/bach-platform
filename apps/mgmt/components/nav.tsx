@@ -31,7 +31,13 @@ const ITEMS: PortalNavItem[] = [
       { href: "/returns", label: "الإرجاع" },
     ],
   },
-  { href: "/marketing", label: "التسويق" },
+  {
+    label: "التسويق",
+    links: [
+      { href: "/marketing", label: "الحملات والعروض" },
+      { href: "/site-content", label: "محتوى الموقع" },
+    ],
+  },
   {
     label: "الدعم",
     links: [

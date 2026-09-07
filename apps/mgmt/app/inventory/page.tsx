@@ -1,5 +1,6 @@
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
+import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { Nav } from "../../components/nav";
 import { MovementForm } from "../../components/movement-form";
@@ -75,7 +76,15 @@ export default async function InventoryPage() {
                         {b.name}
                       </th>
                     ))}
-                    <th className="p-3 text-start font-medium">محجوز</th>
+                    <th className="p-3 text-start font-medium"><span className="flex items-center gap-1.5">محجوز
+                      <HintDot
+                        hint={{
+                          title: "الكمية المحجوزة",
+                          what: "قطع مطلوبة أونلاين وبعدها ما طلعت من الرف — محسوبة برّا الكمية المتاحة للبيع.",
+                          source: "بتنحجز لحظة الطلب من الموقع، وبتتحرر إذا انلغى الطلب أو بتنخصم لما يوصل لـ«جاهز».",
+                          edit: "ما بتتعدل يدويًا — بتلحق حالة الطلب بطابور الـPOS.",
+                        }}
+                      /></span></th>
                   </tr>
                 </thead>
                 <tbody>

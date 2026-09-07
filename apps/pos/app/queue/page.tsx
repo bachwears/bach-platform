@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Button } from "@bach/ui/components/button";
+import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { FulfillmentQueue } from "../../components/fulfillment-queue";
 
@@ -24,7 +25,16 @@ export default async function QueuePage() {
             <img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" />
             <span className="text-sm font-semibold text-muted-foreground">POS</span>
           </Link>
-          <span className="text-sm text-muted-foreground">طلبات الأونلاين</span>
+          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">طلبات الأونلاين
+            <HintDot
+              hint={{
+                title: "مراحل الطلب",
+                what: "جديد ← مؤكّد ← قيد التجهيز ← جاهز ← بالشحن ← وصل ← مسكّر. عند «جاهز» بينخصم المخزون فعليًا؛ قبلها القطع محجوزة بس.",
+                source: "الطلبات من متجر bachwears.com مباشرة، والزبون بيشوف كل نقلة بحسابه.",
+                edit: "كبس زر المرحلة الجاية عند كل طلب. الإلغاء ممكن قبل «جاهز» — بيرجّع الحجز عالبيع.",
+              }}
+            />
+          </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <Link href="/" className="text-muted-foreground hover:text-foreground">

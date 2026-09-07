@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
+import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { Nav } from "../../components/nav";
 import { STATUS_LABELS } from "../../lib/order-status";
@@ -53,7 +54,16 @@ export default async function OrdersPage({
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">الطلبات</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">الطلبات
+            <HintDot
+              hint={{
+                title: "شاشة الطلبات",
+                what: "كل مبيعات المحل والأونلاين بمطرح واحد — الحالة بتتحرك من هون أو من طابور الـPOS، والنتيجة وحدة.",
+                source: "فواتير الكاشير بتجي مباشرة من الـPOS، وطلبات الموقع من الشيك-آوت.",
+                edit: "افتح أي طلب لتفاصيله وأزرار نقل الحالة أو الإلغاء.",
+              }}
+            />
+          </h1>
         </div>
 
         {/* اليوم — cash drawer expectation per currency */}

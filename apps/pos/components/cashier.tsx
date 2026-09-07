@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { CameraScanner } from "./camera-scanner";
 
@@ -704,7 +705,16 @@ export function Cashier({
       {/* Totals + payment */}
       <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4 lg:self-start">
         <div className="flex items-center justify-between border-b pb-2 text-sm">
-          <span className="text-muted-foreground">الكاشير: <span className="text-foreground">{acting.name}</span></span>
+          <span className="flex items-center gap-1.5 text-muted-foreground">الكاشير: <span className="text-foreground">{acting.name}</span>
+            <HintDot
+              hint={{
+                title: "تبديل الكاشير",
+                what: "كل بيع بينسجّل باسم الكاشير الظاهر هون — التبديل بيسمح لكذا موظف يشتغلوا على نفس الجهاز.",
+                source: "الأسماء من حسابات الموظفين، والتبديل محمي بـPIN.",
+                edit: "زر تبديل ← اختار الاسم ← دخّل الـPIN. الـPIN بينحدد من الإدارة.",
+              }}
+            />
+          </span>
           <Button size="sm" variant="ghost" onClick={() => void openSwitcher()}>
             تبديل
           </Button>
@@ -826,8 +836,16 @@ export function Cashier({
         <div className="space-y-2 text-sm">
           <Row label="المجموع" value={usd(subtotal)} />
           <div className="flex items-center justify-between gap-2">
-            <label className="text-muted-foreground" htmlFor="disc">
+            <label className="flex items-center gap-1.5 text-muted-foreground" htmlFor="disc">
               خصم %
+              <HintDot
+                hint={{
+                  title: "خصم عالفاتورة",
+                  what: "نسبة خصم على مجموع الفاتورة كلها — غير خصم القطعة الواحدة بالجدول.",
+                  source: "بينحسب من المجموع قبل الضريبة وبينسجّل مع الطلب.",
+                  edit: "بس المدراء بيقدروا يعطوا خصم — الكاشير بيحتاج تبديل بحساب مدير.",
+                }}
+              />
             </label>
             <Input
               id="disc"
@@ -863,8 +881,16 @@ export function Cashier({
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm" htmlFor="paid-lbp">
+            <label className="flex items-center gap-1.5 text-sm" htmlFor="paid-lbp">
               المدفوع ليرة (ل.ل)
+              <HintDot
+                hint={{
+                  title: "الدفع بالليرة",
+                  what: "الزبون فيه يدفع دولار وليرة سوا — البرنامج بيجمعن عالسعر المعتمد.",
+                  source: "سعر الصرف من شاشة سعر الصرف بالإدارة، وبينحفظ مع كل فاتورة.",
+                  edit: "لتغيير السعر: الإدارة ← المالية ← سعر الصرف.",
+                }}
+              />
             </label>
             <Input
               id="paid-lbp"

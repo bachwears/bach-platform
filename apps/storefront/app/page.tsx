@@ -6,9 +6,23 @@ import { t } from "@bach/i18n";
 import { ProductCard, type CardProduct } from "../components/product-card";
 import { getLocale, lhref } from "../lib/locale";
 
+interface HeroContent {
+  eyebrow?: string;
+  headline?: string;
+  sub?: string;
+  cta_label?: string;
+  cta_href?: string;
+  image_url?: string;
+  image_alt?: string;
+}
+
 export default async function Home() {
   const locale = await getLocale();
   const supabase = await supabaseServer();
+  // MGMT-editable hero copy; the shipped defaults stay as fallback so a
+  // missing row (or table) can never blank the homepage.
+  const { data: heroRow } = await supabase.from("site_content").select("value").eq("key", "home_hero").maybeSingle();
+  const hero: HeroContent = (heroRow?.value as HeroContent) ?? {};
   const { data: products } = await supabase
     .from("products")
     .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
@@ -74,10 +88,10 @@ export default async function Home() {
         <section className="relative -mt-[68px] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/hero-campaign.jpg"
-            srcSet="/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"
+            src={hero.image_url || "/hero-campaign.jpg"}
+            srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
             sizes="100vw"
-            alt={t(locale, "sf.home.heroAlt")}
+            alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
             fetchPriority="high"
             className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
           />
@@ -91,19 +105,19 @@ export default async function Home() {
                   className="anim-rise text-xs uppercase tracking-[0.35em] text-muted-foreground md:text-neutral-600"
                   style={{ ["--anim-delay" as string]: "0.1s" }}
                 >
-                  {t(locale, "sf.home.eyebrow")}
+                  {hero.eyebrow || t(locale, "sf.home.eyebrow")}
                 </p>
                 <h1
                   className="anim-rise mt-4 text-4xl font-semibold tracking-tight sm:text-5xl"
                   style={{ ["--anim-delay" as string]: "0.22s" }}
                 >
-                  {t(locale, "sf.home.headline")}
+                  {hero.headline || t(locale, "sf.home.headline")}
                 </h1>
                 <p
                   className="anim-rise mt-4 max-w-sm text-muted-foreground md:text-neutral-700"
                   style={{ ["--anim-delay" as string]: "0.34s" }}
                 >
-                  {t(locale, "sf.home.sub")}
+                  {hero.sub || t(locale, "sf.home.sub")}
                 </p>
                 <div className="anim-rise mt-8" style={{ ["--anim-delay" as string]: "0.48s" }}>
                   <Button
@@ -111,7 +125,7 @@ export default async function Home() {
                     size="lg"
                     className="md:bg-neutral-900 md:text-neutral-50 md:hover:bg-neutral-800"
                   >
-                    <Link href={lhref(locale, "/shop")}>{t(locale, "sf.home.cta")}</Link>
+                    <Link href={lhref(locale, hero.cta_href || "/shop")}>{hero.cta_label || t(locale, "sf.home.cta")}</Link>
                   </Button>
                 </div>
               </div>

@@ -291,6 +291,26 @@ export default function AccountPage() {
                     {t(locale, "sf.acct.requestReturn")}
                   </Link>
                 )}
+                {["pending", "confirmed", "picking"].includes(o.status) && o.channel === "online" && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                      onClick={async () => {
+                        if (!window.confirm(t(locale, "sf.acct.cancelConfirm"))) return;
+                        const { error } = await supabaseBrowser().rpc("customer_cancel_order", { p_order_id: o.id });
+                        if (error) {
+                          window.alert(t(locale, "sf.acct.cancelFailed"));
+                          return;
+                        }
+                        setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, status: "cancelled" } : x)));
+                      }}
+                    >
+                      {t(locale, "sf.acct.cancelOrder")}
+                    </button>
+                    <span className="text-xs text-muted-foreground">{t(locale, "sf.acct.cancelNote")}</span>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

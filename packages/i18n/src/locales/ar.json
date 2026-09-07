@@ -278,5 +278,9 @@
   "sf.shop.quickShop": "شراء سريع",
   "sf.shop.selectSize": "اختار قياسك",
   "sf.shop.addedShort": "انضاف عالشنطة",
-  "sf.nav.newInTile": "وصل حديثًا"
+  "sf.nav.newInTile": "وصل حديثًا",
+  "sf.acct.cancelOrder": "إلغاء الطلب",
+  "sf.acct.cancelConfirm": "بتأكد بدك تلغي الطلب؟ القطع المحجوزة بترجع عالبيع فورًا.",
+  "sf.acct.cancelFailed": "ما عاد فينا نلغي هالطلب — تواصل معنا ومنساعدك.",
+  "sf.acct.cancelNote": "بدك تعدّل؟ الغي واطلب من جديد طالما الطلب لسا عم يتجهز."
 }
