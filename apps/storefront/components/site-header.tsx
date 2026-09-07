@@ -37,8 +37,9 @@ export async function SiteHeader() {
   return (
     <header className="relative z-40 border-b">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href={lhref(locale, "/")} className="text-lg font-semibold tracking-[0.25em]">
-          BACH
+        <Link href={lhref(locale, "/")} className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-bach.png" alt="BACH Wears" className="h-4 w-auto dark:invert" />
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           {/* Mega-menu: opens on hover and on keyboard focus (focus-within). */}

@@ -13,7 +13,7 @@ export default async function HelpPage() {
   return (
     <div className="min-h-dvh bg-background">
       <header className="flex items-center justify-between border-b px-4 py-3">
-        <Link href="/" className="text-lg font-bold tracking-widest">BACH POS</Link>
+        <Link href="/" className="flex items-center gap-2"><img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" /><span className="text-sm font-semibold text-muted-foreground">POS</span></Link>
         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">← رجوع للكاشير</Link>
       </header>
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">

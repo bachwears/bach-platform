@@ -25,8 +25,10 @@ export function Nav() {
     <header className="border-b bg-card">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-semibold tracking-tight">
-            ‏BACH Management
+          <Link href="/" className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" />
+            <span className="text-sm font-semibold text-muted-foreground">Management</span>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             {LINKS.map((l) => (

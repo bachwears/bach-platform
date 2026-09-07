@@ -19,7 +19,7 @@ export default async function StocktakePage() {
     <div className="min-h-dvh bg-background">
       <header className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-baseline gap-3">
-          <span className="text-lg font-bold tracking-widest">BACH POS</span>
+          <span className="flex items-center gap-2"><img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" /><span className="text-sm font-semibold text-muted-foreground">POS</span></span>
           <span className="text-sm text-muted-foreground">الجرد — {branch?.name}</span>
         </div>
         <a href="/" className="text-sm text-muted-foreground hover:text-foreground">
