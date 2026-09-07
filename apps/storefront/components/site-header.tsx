@@ -5,7 +5,6 @@ import { t } from "@bach/i18n";
 import { AccountLink } from "./account-link";
 import { CartLink } from "./cart-link";
 import { HeaderActions } from "./header-actions";
-import { LanguageSwitcher } from "./language-switcher";
 import { getLocale, lhref, pick } from "../lib/locale";
 
 export async function SiteHeader() {
@@ -118,14 +117,11 @@ export async function SiteHeader() {
           </Link>
         </nav>
 
-        {/* Icon cluster (BOSS-style): search · account · bag · language · menu */}
+        {/* Icon cluster (BOSS-style): search · account · bag · menu */}
         <div className="flex items-center gap-0.5">
           <HeaderActions>
             <AccountLink className="hidden md:grid" />
             <CartLink />
-            <span className="hidden ps-2 text-sm md:block">
-              <LanguageSwitcher />
-            </span>
           </HeaderActions>
         </div>
       </div>

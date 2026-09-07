@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Transactional and private surfaces carry no search value.
-        disallow: ["/cart", "/checkout", "/confirmed", "/account", "/ar/cart", "/ar/checkout", "/ar/confirmed", "/ar/account"],
+        disallow: ["/cart", "/checkout", "/confirmed", "/account"],
       },
     ],
     sitemap: "https://bachwears.com/sitemap.xml",

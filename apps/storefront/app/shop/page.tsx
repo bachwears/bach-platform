@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
       locale === "ar"
         ? "مجموعة باخ ويرز الكاملة. أناقة رجالية من لبنان."
         : "The full BACH Wears collection. Considered menswear from Lebanon.",
-    alternates: { canonical: lhref(locale, "/shop"), languages: { en: "/shop", ar: "/ar/shop" } },
+    alternates: { canonical: lhref(locale, "/shop") },
   };
 }
 

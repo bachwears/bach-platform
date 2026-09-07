@@ -55,7 +55,6 @@ export async function generateMetadata({
       pick(locale, product.description_en ?? "", product.description_ar) || `${name} by BACH Wears.`,
     alternates: {
       canonical: lhref(locale, `/products/${slug}`),
-      languages: { en: `/products/${slug}`, ar: `/ar/products/${slug}` },
     },
   };
 }

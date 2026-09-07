@@ -1,16 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// /ar and /ar/* serve the same pages in Arabic: the URL keeps the prefix
-// (hreflang, shareability) while the app renders from the unprefixed route
-// with an x-locale header the layout and pages read.
+// Founder decision 2026-09-07: the storefront is English-only. Old /ar URLs
+// (indexed or shared) permanently redirect to their English twin instead of 404ing.
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname === "/ar" || pathname.startsWith("/ar/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.slice(3) || "/";
-    const headers = new Headers(request.headers);
-    headers.set("x-locale", "ar");
-    return NextResponse.rewrite(url, { request: { headers } });
+    return NextResponse.redirect(url, 301);
   }
   return NextResponse.next();
 }

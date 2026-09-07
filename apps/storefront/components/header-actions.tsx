@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, Search, X } from "lucide-react";
 import { t } from "@bach/i18n";
 
-import { LanguageSwitcher } from "./language-switcher";
 import { lhref, useLocale } from "../lib/locale-client";
 
 const iconBtn =
@@ -124,9 +123,6 @@ export function HeaderActions({ children }: { children?: React.ReactNode }) {
                 </Link>
               </li>
             ))}
-            <li className="px-4 py-3 text-sm">
-              <LanguageSwitcher />
-            </li>
           </ul>
         </nav>
       )}

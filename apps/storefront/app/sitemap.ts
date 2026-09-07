@@ -14,12 +14,6 @@ function entry(
     lastModified,
     changeFrequency,
     priority,
-    alternates: {
-      languages: {
-        en: `${BASE}${path}`,
-        ar: `${BASE}${path === "/" ? "/ar" : `/ar${path}`}`,
-      },
-    },
   };
 }
 

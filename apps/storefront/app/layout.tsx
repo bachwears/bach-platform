@@ -29,12 +29,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://bachwears.com"),
   title: "BACH Wears",
   description: "Menswear, considered. BACH Wears — Lebanon.",
-  alternates: {
-    languages: { en: "/", ar: "/ar" },
-  },
 };
 
-// EN/LTR default; /ar serves the same routes RTL in Arabic (middleware rewrite).
+// Storefront is English-only (founder decision 2026-09-07); /ar redirects here.
 // Latin renders in Archivo; Arabic glyphs fall through to IBM Plex Sans Arabic —
 // the stack order flips per locale so each script leads with its own face.
 export default async function RootLayout({ children }: { children: ReactNode }) {

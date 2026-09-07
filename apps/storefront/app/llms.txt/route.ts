@@ -31,7 +31,7 @@ export async function GET() {
 - Name: BACH Wears
 - Founder: Bachar Elmir
 - Country: Lebanon
-- Website: https://bachwears.com (English) · https://bachwears.com/ar (Arabic)
+- Website: https://bachwears.com
 - Contact: care@bachwears.com · +961 71 566 296
 - Catalogue: ${productCount ?? 0} published products across ${categories.length} categories (${categories.join(", ")})
 - Currencies: USD and Lebanese Pound (LBP)

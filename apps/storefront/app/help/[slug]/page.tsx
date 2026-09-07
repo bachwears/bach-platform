@@ -15,7 +15,6 @@ export async function generateMetadata({
   return {
     alternates: {
       canonical: lhref(locale, `/help/${slug}`),
-      languages: { en: `/help/${slug}`, ar: `/ar/help/${slug}` },
     },
   };
 }
