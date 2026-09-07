@@ -11,8 +11,20 @@ import { lhref, useLocale } from "../lib/locale-client";
 const iconBtn =
   "grid h-9 w-9 place-items-center rounded-full text-foreground/80 transition-colors hover:bg-black/5 hover:text-foreground";
 
+export interface NavGroup {
+  code: string | null;
+  label: string;
+  items: Array<{ code: string; label: string }>;
+}
+
 /** Search toggle + hamburger menu (BOSS-style mobile chrome). Panels are glass. */
-export function HeaderActions({ children }: { children?: React.ReactNode }) {
+export function HeaderActions({
+  groups = [],
+  children,
+}: {
+  groups?: NavGroup[];
+  children?: React.ReactNode;
+}) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -113,8 +125,36 @@ export function HeaderActions({ children }: { children?: React.ReactNode }) {
       {menuOpen && (
         <nav
           aria-label={t(locale, "sf.nav.menu")}
-          className="glass-panel absolute inset-x-0 top-full mt-2 rounded-2xl p-2 shadow-lg ring-1 ring-black/5 md:hidden"
+          className="glass-panel absolute inset-x-0 top-full mt-2 max-h-[75vh] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg ring-1 ring-black/5 md:hidden"
         >
+          {groups.map((g) => (
+            <div key={g.code ?? g.label} className="border-b border-black/5 px-4 py-3">
+              {g.code ? (
+                <Link
+                  href={lhref(locale, `/shop?cat=${g.code}`)}
+                  className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {g.label}
+                </Link>
+              ) : (
+                <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{g.label}</p>
+              )}
+              <ul className="grid grid-cols-2 gap-x-4">
+                {g.items.map((c) => (
+                  <li key={c.code}>
+                    <Link
+                      href={lhref(locale, `/shop?cat=${c.code}`)}
+                      className="block py-1.5 text-sm"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {c.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
           <ul className="divide-y divide-black/5">
             {links.map(([href, label]) => (
               <li key={href}>

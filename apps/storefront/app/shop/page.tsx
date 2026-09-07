@@ -67,7 +67,7 @@ export default async function ShopPage({
 
   const locale = await getLocale();
   const supabase = await supabaseServer();
-  const [{ data }, { data: merch }] = await Promise.all([
+  const [{ data }, { data: merch }, { data: catTree }] = await Promise.all([
     supabase
       .from("products")
       .select(
@@ -76,8 +76,18 @@ export default async function ShopPage({
       .eq("status", "published")
       .order("created_at", { ascending: false }),
     supabase.from("merchandising_settings").select("active_season").maybeSingle(),
+    supabase.from("categories").select("id, code, parent_id"),
   ]);
   const all = (data ?? []) as unknown as ShopProduct[];
+  // A parent category code matches every child underneath it.
+  const catMatch = new Set<string>();
+  if (cat) {
+    catMatch.add(cat);
+    const parent = (catTree ?? []).find((c) => c.code === cat);
+    if (parent) {
+      for (const c of catTree ?? []) if (c.parent_id === parent.id) catMatch.add(c.code);
+    }
+  }
   const activeSeason = merch?.active_season ?? "all_season";
 
   // Facets come from live data so filters only ever offer values that exist.
@@ -104,7 +114,7 @@ export default async function ShopPage({
 
   let items = all.filter((p) => {
     if (q && !p.name_en.toLowerCase().includes(q) && !(p.name_ar ?? "").includes((params.q ?? "").trim())) return false;
-    if (cat && p.categories?.code !== cat) return false;
+    if (cat && !catMatch.has(p.categories?.code ?? "")) return false;
     if (col && !p.product_collections.some((pc) => pc.collections?.slug === col)) return false;
     if (size && !p.product_variants.some((v) => v.is_active && v.size === size)) return false;
     if (color && !p.product_variants.some((v) => v.is_active && v.color_en === color)) return false;
