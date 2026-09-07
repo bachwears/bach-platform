@@ -16,7 +16,8 @@ export default async function QueuePage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="flex items-center justify-between border-b px-4 py-3">
+      <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
+        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
         <div className="flex items-baseline gap-3">
           <Link href="/" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -35,6 +36,7 @@ export default async function QueuePage() {
             </Button>
           </form>
         </div>
+      </div>
       </header>
       <main className="mx-auto max-w-3xl p-4 py-6">
         {allowed ? (

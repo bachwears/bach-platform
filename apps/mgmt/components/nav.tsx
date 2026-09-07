@@ -22,8 +22,8 @@ const LINKS = [
 
 export function Nav() {
   return (
-    <header className="glass-bar sticky top-0 z-40 border-b border-black/5">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+    <header className="sticky top-0 z-40 px-3 pt-3 print:hidden sm:px-5">
+      <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
