@@ -144,6 +144,19 @@ export async function SiteHeader() {
                         </Link>
                       </li>
                     </ul>
+                    <Link href={lhref(locale, "/shop")} className="group/tile mt-5 block">
+                      <span className="block overflow-hidden rounded-xl">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/hero-campaign-mobile.jpg"
+                          alt=""
+                          className="aspect-[4/3] w-full object-cover object-[70%_center] transition-transform duration-300 group-hover/tile:scale-[1.03] motion-reduce:transition-none"
+                        />
+                      </span>
+                      <span className="mt-2 block text-xs uppercase tracking-wider text-muted-foreground transition-colors group-hover/tile:text-foreground">
+                        {t(locale, "sf.nav.newInTile")}
+                      </span>
+                    </Link>
                   </div>
                 </div>
               </div>

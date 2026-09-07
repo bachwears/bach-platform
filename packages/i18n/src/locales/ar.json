@@ -270,5 +270,13 @@
   "sf.home.heroAlt": "رجلان بإطلالة من BACH Wears أمام واجهة حجرية",
   "sf.nav.menu": "القائمة",
   "sf.nav.close": "إغلاق",
-  "sf.nav.searchOpen": "بحث"
+  "sf.nav.searchOpen": "بحث",
+  "sf.shop.filter": "فلترة",
+  "sf.shop.showResults": "عرض {n} نتيجة",
+  "sf.shop.allProducts": "كل المنتجات",
+  "sf.shop.home": "الرئيسية",
+  "sf.shop.quickShop": "شراء سريع",
+  "sf.shop.selectSize": "اختار قياسك",
+  "sf.shop.addedShort": "انضاف عالشنطة",
+  "sf.nav.newInTile": "وصل حديثًا"
 }

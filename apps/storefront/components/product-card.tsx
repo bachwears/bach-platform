@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Locale } from "@bach/i18n";
 
 import { colorHex } from "../lib/colors";
+import { QuickShop, type QuickShopSize } from "./quick-shop";
 
 export interface CardProduct {
   slug: string;
@@ -12,6 +13,7 @@ export interface CardProduct {
   front?: string | null;
   back?: string | null;
   colors?: string[];
+  sizes?: QuickShopSize[];
 }
 
 function usd(cents: number) {
@@ -54,6 +56,7 @@ export function ProductCard({ product, locale = "en" }: { product: CardProduct; 
             </span>
           </div>
         )}
+        {product.sizes?.length ? <QuickShop sizes={product.sizes} /> : null}
       </div>
       <div className="mt-3 space-y-1">
         <h3 className="text-sm font-medium">{name}</h3>

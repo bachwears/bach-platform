@@ -270,5 +270,13 @@
   "sf.home.heroAlt": "Two men in considered BACH Wears tailoring against a stone facade",
   "sf.nav.menu": "Menu",
   "sf.nav.close": "Close",
-  "sf.nav.searchOpen": "Search"
+  "sf.nav.searchOpen": "Search",
+  "sf.shop.filter": "Filter",
+  "sf.shop.showResults": "Show {n} results",
+  "sf.shop.allProducts": "Shop All",
+  "sf.shop.home": "Home",
+  "sf.shop.quickShop": "Quick Shop",
+  "sf.shop.selectSize": "Select your size",
+  "sf.shop.addedShort": "Added to bag",
+  "sf.nav.newInTile": "New In"
 }

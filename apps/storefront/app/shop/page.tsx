@@ -3,8 +3,10 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
+import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { SearchBox } from "../../components/search-box";
+import { colorHex } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,7 +32,7 @@ interface ShopProduct {
   categories: { code: string; name_en: string; name_ar: string } | null;
   media_assets: Array<{ kind: string; storage_path: string }>;
   product_seasons: Array<{ season: string }>;
-  product_variants: Array<{ size: string; color_en: string; color_ar: string | null; is_active: boolean }>;
+  product_variants: Array<{ id: string; size: string; color_en: string; color_ar: string | null; is_active: boolean }>;
   product_collections: Array<{ collections: { slug: string; name_en: string } | null }>;
 }
 
@@ -71,36 +73,36 @@ export default async function ShopPage({
     supabase
       .from("products")
       .select(
-        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path), product_seasons(season), product_variants(size, color_en, color_ar, is_active), product_collections(collections(slug, name_en))",
+        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path), product_seasons(season), product_variants(id, size, color_en, color_ar, is_active), product_collections(collections(slug, name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),
     supabase.from("merchandising_settings").select("active_season").maybeSingle(),
-    supabase.from("categories").select("id, code, parent_id"),
+    supabase.from("categories").select("id, code, name_en, name_ar, sort, parent_id"),
   ]);
   const all = (data ?? []) as unknown as ShopProduct[];
+  const tree = catTree ?? [];
   // A parent category code matches every child underneath it.
-  const catMatch = new Set<string>();
-  if (cat) {
-    catMatch.add(cat);
-    const parent = (catTree ?? []).find((c) => c.code === cat);
-    if (parent) {
-      for (const c of catTree ?? []) if (c.parent_id === parent.id) catMatch.add(c.code);
-    }
-  }
+  const catCodes = (code: string) => {
+    const set = new Set([code]);
+    const node = tree.find((c) => c.code === code);
+    if (node) for (const c of tree) if (c.parent_id === node.id) set.add(c.code);
+    return set;
+  };
+  const catMatch = cat ? catCodes(cat) : new Set<string>();
   const activeSeason = merch?.active_season ?? "all_season";
 
+  const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+  const sizeRank = (s: string) => {
+    const i = SIZE_ORDER.indexOf(s.toUpperCase());
+    if (i >= 0) return i;
+    const n = Number(s);
+    return Number.isFinite(n) ? 100 + n : 999;
+  };
   // Facets come from live data so filters only ever offer values that exist.
-  const catFacets = [
-    ...new Map(
-      all
-        .filter((p) => p.categories)
-        .map((p) => [p.categories!.code, pick(locale, p.categories!.name_en, p.categories!.name_ar)] as const),
-    ).entries(),
-  ].sort((a, b) => a[1].localeCompare(b[1]));
   const sizeFacets = [
     ...new Set(all.flatMap((p) => p.product_variants.filter((v) => v.is_active).map((v) => v.size))),
-  ].sort();
+  ].sort((a, b) => sizeRank(a) - sizeRank(b));
   // Value stays color_en (stable URLs); label localizes via color_ar.
   const colorFacets = [
     ...new Map(
@@ -112,19 +114,30 @@ export default async function ShopPage({
     .filter(([c]) => c && c !== "Standard")
     .sort((a, b) => a[1].localeCompare(b[1]));
 
-  let items = all.filter((p) => {
+  interface Filters {
+    cat: string;
+    col: string;
+    size: string;
+    color: string;
+    band: string;
+    sale: boolean;
+  }
+  const current: Filters = { cat, col, size, color, band, sale };
+  const matches = (p: ShopProduct, f: Filters) => {
     if (q && !p.name_en.toLowerCase().includes(q) && !(p.name_ar ?? "").includes((params.q ?? "").trim())) return false;
-    if (cat && !catMatch.has(p.categories?.code ?? "")) return false;
-    if (col && !p.product_collections.some((pc) => pc.collections?.slug === col)) return false;
-    if (size && !p.product_variants.some((v) => v.is_active && v.size === size)) return false;
-    if (color && !p.product_variants.some((v) => v.is_active && v.color_en === color)) return false;
-    if (sale && p.sale_price_usd_cents == null) return false;
-    if (band) {
-      const b = PRICE_BANDS.find(([k]) => k === band);
+    if (f.cat && !(f.cat === cat ? catMatch : catCodes(f.cat)).has(p.categories?.code ?? "")) return false;
+    if (f.col && !p.product_collections.some((pc) => pc.collections?.slug === f.col)) return false;
+    if (f.size && !p.product_variants.some((v) => v.is_active && v.size === f.size)) return false;
+    if (f.color && !p.product_variants.some((v) => v.is_active && v.color_en === f.color)) return false;
+    if (f.sale && p.sale_price_usd_cents == null) return false;
+    if (f.band) {
+      const b = PRICE_BANDS.find(([k]) => k === f.band);
       if (b && (price(p) < b[2] || price(p) > b[3])) return false;
     }
     return true;
-  });
+  };
+  const countWith = (patch: Partial<Filters>) => all.filter((p) => matches(p, { ...current, ...patch })).length;
+  let items = all.filter((p) => matches(p, current));
 
   const inSeason = (p: ShopProduct) => {
     if (activeSeason === "all_season") return 0;
@@ -139,6 +152,11 @@ export default async function ShopPage({
 
   const cards: CardProduct[] = items.map((p) => {
     const media = p.media_assets ?? [];
+    const seen = new Set<string>();
+    const sizes = p.product_variants
+      .filter((v) => v.is_active && !seen.has(v.size) && seen.add(v.size))
+      .sort((a, b) => sizeRank(a.size) - sizeRank(b.size))
+      .map((v) => ({ variantId: v.id, size: v.size }));
     return {
       slug: p.slug,
       name_en: p.name_en,
@@ -148,6 +166,7 @@ export default async function ShopPage({
       front: media.find((m) => m.kind === "front")?.storage_path ?? null,
       back: media.find((m) => m.kind === "back")?.storage_path ?? null,
       colors: p.product_variants.filter((v) => v.is_active).map((v) => v.color_en),
+      sizes,
     };
   });
 
@@ -169,22 +188,123 @@ export default async function ShopPage({
     const s = next.toString();
     return lhref(locale, s ? `/shop?${s}` : "/shop");
   };
-  const activeFilters = [cat, col, size, color, band, sale ? "sale" : ""].filter(Boolean).length + (q ? 1 : 0);
+  const activeFilters = [col, size, color, band, sale ? "sale" : ""].filter(Boolean).length + (q ? 1 : 0);
   const colName = col
     ? all.flatMap((p) => p.product_collections).find((pc) => pc.collections?.slug === col)?.collections?.name_en ?? col
     : null;
 
+  // Category context: node, its parent, and the tab strip of siblings.
+  const catNode = cat ? tree.find((c) => c.code === cat) : null;
+  const parentNode = catNode?.parent_id ? tree.find((c) => c.id === catNode.parent_id) : catNode && !catNode.parent_id ? catNode : null;
+  const codesWithProducts = new Set(all.map((p) => p.categories?.code).filter(Boolean));
+  const byRow = (a: { sort: number; name_en: string }, b: { sort: number; name_en: string }) =>
+    a.sort - b.sort || a.name_en.localeCompare(b.name_en);
+  const tabs: Array<{ code: string; label: string; active: boolean }> = parentNode
+    ? [
+        { code: parentNode.code, label: `${t(locale, "sf.shop.allProducts")} — ${pick(locale, parentNode.name_en, parentNode.name_ar)}`, active: cat === parentNode.code },
+        ...tree
+          .filter((c) => c.parent_id === parentNode.id && codesWithProducts.has(c.code))
+          .sort(byRow)
+          .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar), active: cat === c.code })),
+      ]
+    : [
+        { code: "", label: t(locale, "sf.shop.allProducts"), active: !cat },
+        ...tree
+          .filter((c) => !c.parent_id && [...catCodes(c.code)].some((k) => codesWithProducts.has(k)))
+          .sort(byRow)
+          .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar), active: false })),
+      ];
+
+  const title = q
+    ? t(locale, "sf.shop.search", { q: params.q ?? "" })
+    : colName ?? (catNode ? pick(locale, catNode.name_en, catNode.name_ar) : t(locale, "sf.shop.allProducts"));
+
+  const sections: FilterSection[] = [];
+  if (sizeFacets.length > 1) {
+    sections.push({
+      label: t(locale, "sf.shop.size"),
+      options: sizeFacets.map((s) => ({
+        label: s,
+        href: href({ size: size === s ? undefined : s }),
+        active: size === s,
+        count: countWith({ size: s }),
+      })),
+    });
+  }
+  if (colorFacets.length > 1) {
+    sections.push({
+      label: t(locale, "sf.shop.color"),
+      kind: "swatch",
+      options: colorFacets.map(([value, label]) => ({
+        label,
+        href: href({ color: color === value ? undefined : value }),
+        active: color === value,
+        count: countWith({ color: value }),
+        swatch: colorHex(value),
+      })),
+    });
+  }
+  sections.push({
+    label: t(locale, "sf.shop.price"),
+    options: [
+      ...PRICE_BANDS.map(([k, labelKey]) => ({
+        label: t(locale, labelKey),
+        href: href({ price: band === k ? undefined : k }),
+        active: band === k,
+        count: countWith({ band: k }),
+      })),
+      {
+        label: t(locale, "sf.shop.onSale"),
+        href: href({ sale: sale ? undefined : "1" }),
+        active: sale,
+        count: countWith({ sale: true }),
+      },
+    ],
+  });
+
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-6xl px-4 py-12">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li>
+              <Link href={lhref(locale, "/")} className="hover:text-foreground">
+                {t(locale, "sf.shop.home")}
+              </Link>
+            </li>
+            <li aria-hidden>/</li>
+            <li>
+              <Link href={lhref(locale, "/shop")} className="hover:text-foreground">
+                {t(locale, "sf.shop.title")}
+              </Link>
+            </li>
+            {parentNode && (
+              <>
+                <li aria-hidden>/</li>
+                <li>
+                  <Link href={href({ cat: parentNode.code })} className="hover:text-foreground">
+                    {pick(locale, parentNode.name_en, parentNode.name_ar)}
+                  </Link>
+                </li>
+              </>
+            )}
+            {catNode && catNode.parent_id && (
+              <>
+                <li aria-hidden>/</li>
+                <li className="text-foreground">{pick(locale, catNode.name_en, catNode.name_ar)}</li>
+              </>
+            )}
+          </ol>
+        </nav>
+
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {q ? t(locale, "sf.shop.search", { q: params.q ?? "" }) : colName ?? t(locale, "sf.shop.title")}
+            <h1 className="text-3xl font-bold uppercase tracking-tight" style={{ textWrap: "balance" }}>
+              {title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {cards.length} {cards.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
-              {activeFilters > 0 && (
+              {(activeFilters > 0 || cat) && (
                 <>
                   {" · "}
                   <Link href={lhref(locale, "/shop")} className="underline underline-offset-4">
@@ -197,49 +317,32 @@ export default async function ShopPage({
           <SearchBox initial={params.q ?? ""} />
         </div>
 
-        <div className="mt-6 space-y-3 border-y py-4 text-sm">
-          <FacetRow label={t(locale, "sf.shop.category")}>
-            {catFacets.map(([code, name]) => (
-              <Chip key={code} href={href({ cat: cat === code ? undefined : code })} active={cat === code}>
-                {name}
-              </Chip>
+        <div className="mt-6 overflow-x-auto border-b">
+          <div className="flex gap-6 whitespace-nowrap text-sm">
+            {tabs.map((tab) => (
+              <Link
+                key={tab.code || "all"}
+                href={href({ cat: tab.code || undefined })}
+                className={`border-b-2 pb-2.5 transition-colors ${
+                  tab.active
+                    ? "border-foreground font-medium text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </Link>
             ))}
-          </FacetRow>
-          {sizeFacets.length > 1 && (
-            <FacetRow label={t(locale, "sf.shop.size")}>
-              {sizeFacets.map((s) => (
-                <Chip key={s} href={href({ size: size === s ? undefined : s })} active={size === s}>
-                  {s}
-                </Chip>
-              ))}
-            </FacetRow>
-          )}
-          {colorFacets.length > 1 && (
-            <FacetRow label={t(locale, "sf.shop.color")}>
-              {colorFacets.map(([value, label]) => (
-                <Chip key={value} href={href({ color: color === value ? undefined : value })} active={color === value}>
-                  {label}
-                </Chip>
-              ))}
-            </FacetRow>
-          )}
-          <FacetRow label={t(locale, "sf.shop.price")}>
-            {PRICE_BANDS.map(([k, labelKey]) => (
-              <Chip key={k} href={href({ price: band === k ? undefined : k })} active={band === k}>
-                {t(locale, labelKey)}
-              </Chip>
-            ))}
-            <Chip href={href({ sale: sale ? undefined : "1" })} active={sale}>
-              {t(locale, "sf.shop.onSale")}
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
+          <FilterDrawer sections={sections} activeCount={activeFilters} resultCount={cards.length} />
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+          {SORTS.map(([k, labelKey]) => (
+            <Chip key={k} href={href({ sort: k === "new" ? undefined : k })} active={sort === k}>
+              {t(locale, labelKey)}
             </Chip>
-          </FacetRow>
-          <FacetRow label={t(locale, "sf.shop.sort")}>
-            {SORTS.map(([k, labelKey]) => (
-              <Chip key={k} href={href({ sort: k === "new" ? undefined : k })} active={sort === k}>
-                {t(locale, labelKey)}
-              </Chip>
-            ))}
-          </FacetRow>
+          ))}
         </div>
 
         {cards.length ? (
@@ -257,15 +360,6 @@ export default async function ShopPage({
           </div>
         )}
       </main>
-    </div>
-  );
-}
-
-function FacetRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-2">
-      <span className="w-16 shrink-0 text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
-      {children}
     </div>
   );
 }
