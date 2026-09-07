@@ -28,6 +28,7 @@ ENV NODE_ENV=production \
 
 COPY --from=build /app/apps/${APP}/.next/standalone ./
 COPY --from=build /app/apps/${APP}/.next/static ./apps/${APP}/.next/static
+COPY --from=build /app/apps/${APP}/public ./apps/${APP}/public
 
 USER node
 EXPOSE 3000
