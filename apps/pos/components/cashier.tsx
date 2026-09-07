@@ -7,6 +7,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
+import { CameraScanner } from "./camera-scanner";
+
 import {
   type BarcodeAlias,
   type CatalogItem,
@@ -547,7 +549,7 @@ export function Cashier({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       {/* Search + cart */}
       <section className="space-y-4">
-        <div className="relative">
+        <div className="relative flex gap-2">
           <Input
             ref={searchRef}
             value={query}
@@ -565,6 +567,7 @@ export function Cashier({
               }
             }}
           />
+          <CameraScanner onDetect={(code) => void runSearch(code, true)} />
           {results.length > 0 && (
             <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
               {results.map((v) => {
