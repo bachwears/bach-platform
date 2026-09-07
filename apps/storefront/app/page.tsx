@@ -21,8 +21,17 @@ export default async function Home() {
   const supabase = await supabaseServer();
   // MGMT-editable hero copy; the shipped defaults stay as fallback so a
   // missing row (or table) can never blank the homepage.
-  const { data: heroRow } = await supabase.from("site_content").select("value").eq("key", "home_hero").maybeSingle();
-  const hero: HeroContent = (heroRow?.value as HeroContent) ?? {};
+  const { data: contentRows } = await supabase
+    .from("site_content")
+    .select("key, value")
+    .in("key", ["home_hero", "home_banner"]);
+  const hero: HeroContent = (contentRows?.find((r) => r.key === "home_hero")?.value as HeroContent) ?? {};
+  const banner = (contentRows?.find((r) => r.key === "home_banner")?.value ?? {}) as {
+    enabled?: boolean;
+    text?: string;
+    cta_label?: string;
+    cta_href?: string;
+  };
   const { data: products } = await supabase
     .from("products")
     .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
@@ -132,6 +141,22 @@ export default async function Home() {
             </div>
           </div>
         </section>
+
+        {banner.enabled && banner.text ? (
+          <aside className="border-b bg-foreground text-background" data-reveal>
+            <p className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-3 text-center text-sm tracking-wide">
+              <span>{banner.text}</span>
+              {banner.cta_label ? (
+                <Link
+                  href={lhref(locale, banner.cta_href || "/shop")}
+                  className="underline underline-offset-4 hover:opacity-80"
+                >
+                  {banner.cta_label}
+                </Link>
+              ) : null}
+            </p>
+          </aside>
+        ) : null}
 
         {featured.length ? (
           <section className="mx-auto max-w-6xl px-4 py-20">

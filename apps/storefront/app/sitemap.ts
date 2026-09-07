@@ -34,6 +34,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/", now, "daily", 1),
     entry("/shop", now, "daily", 0.9),
     entry("/help", now, "weekly", 0.5),
+    entry("/shipping", now, "monthly", 0.4),
+    entry("/returns-policy", now, "monthly", 0.4),
     entry("/support", now, "monthly", 0.4),
     ...(products ?? []).map((p) =>
       entry(`/products/${p.slug}`, p.updated_at ? new Date(p.updated_at) : now, "weekly", 0.8),

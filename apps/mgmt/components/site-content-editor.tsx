@@ -28,10 +28,28 @@ const EMPTY: Hero = {
   image_alt: "",
 };
 
+interface Banner {
+  enabled: boolean;
+  text: string;
+  cta_label: string;
+  cta_href: string;
+}
+
+interface PolicyDoc {
+  title: string;
+  body: string;
+}
+
+const EMPTY_BANNER: Banner = { enabled: false, text: "", cta_label: "", cta_href: "/shop" };
+const EMPTY_POLICY: PolicyDoc = { title: "", body: "" };
+
 /** MGMT editor for the storefront homepage hero — copy + campaign image. */
 export function SiteContentEditor() {
   const supabase = supabaseBrowser();
   const [hero, setHero] = useState<Hero>(EMPTY);
+  const [banner, setBanner] = useState<Banner>(EMPTY_BANNER);
+  const [shipping, setShipping] = useState<PolicyDoc>(EMPTY_POLICY);
+  const [returnsPg, setReturnsPg] = useState<PolicyDoc>(EMPTY_POLICY);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -40,11 +58,16 @@ export function SiteContentEditor() {
   useEffect(() => {
     void supabase
       .from("site_content")
-      .select("value")
-      .eq("key", "home_hero")
-      .maybeSingle()
+      .select("key, value")
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns"])
       .then(({ data }) => {
-        if (data?.value) setHero({ ...EMPTY, ...(data.value as Partial<Hero>) });
+        for (const row of data ?? []) {
+          const v = row.value as Record<string, unknown>;
+          if (row.key === "home_hero") setHero({ ...EMPTY, ...(v as Partial<Hero>) });
+          if (row.key === "home_banner") setBanner({ ...EMPTY_BANNER, ...(v as Partial<Banner>) });
+          if (row.key === "page_shipping") setShipping({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
+          if (row.key === "page_returns") setReturnsPg({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
+        }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -73,9 +96,13 @@ export function SiteContentEditor() {
     setBusy(true);
     setMsg("");
     setErr("");
-    const { error } = await supabase
-      .from("site_content")
-      .upsert({ key: "home_hero", value: hero, updated_at: new Date().toISOString() });
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("site_content").upsert([
+      { key: "home_hero", value: hero, updated_at: now },
+      { key: "home_banner", value: banner, updated_at: now },
+      { key: "page_shipping", value: shipping, updated_at: now },
+      { key: "page_returns", value: returnsPg, updated_at: now },
+    ]);
     setBusy(false);
     if (error) {
       setErr(`ما مشي الحفظ: ${error.message}`);
@@ -174,6 +201,89 @@ export function SiteContentEditor() {
         <div className="grid gap-1.5">
           <Label htmlFor="sc-alt">وصف الصورة (لمحركات البحث وقارئات الشاشة، بالإنكليزي)</Label>
           <Input id="sc-alt" dir="ltr" value={hero.image_alt} onChange={(e) => set("image_alt", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          بانر العروض تحت الواجهة
+          <HintDot
+            hint={{
+              title: "بانر العروض",
+              what: "شريط أسود رفيع بيظهر تحت واجهة الرئيسية مباشرة — للعروض والإعلانات القصيرة.",
+              source: "من جدول site_content (مفتاح home_banner).",
+              edit: "فعّله واكتب النص واكبس حفظ. طفّيه بأي وقت والموقع بيرجع بلا بانر.",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={banner.enabled}
+            onChange={(e) => setBanner((b) => ({ ...b, enabled: e.target.checked }))}
+            className="h-4 w-4"
+          />
+          البانر مفعّل عالموقع
+        </label>
+        <div className="grid gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="bn-text">نص البانر (بالإنكليزي)</Label>
+            <Input id="bn-text" dir="ltr" value={banner.text} onChange={(e) => setBanner((b) => ({ ...b, text: e.target.value }))} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="bn-cta">نص الرابط (اختياري)</Label>
+              <Input id="bn-cta" dir="ltr" value={banner.cta_label} onChange={(e) => setBanner((b) => ({ ...b, cta_label: e.target.value }))} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="bn-href">وين بيودّي</Label>
+              <Input id="bn-href" dir="ltr" value={banner.cta_href} onChange={(e) => setBanner((b) => ({ ...b, cta_href: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          صفحة التوصيل والشحن
+          <HintDot
+            hint={{
+              title: "صفحة الشحن",
+              what: "الصفحة اللي بيقراها الزبون على bachwears.com/shipping — سياسة التوصيل كاملة.",
+              source: "من جدول site_content (مفتاح page_shipping)، ورابطها بالفوتر.",
+              edit: "سطر فاضي بين الفقرات = فقرة جديدة عالموقع.",
+            }}
+          />
+        </h2>
+        <div className="grid gap-1.5">
+          <Label htmlFor="sh-title">العنوان</Label>
+          <Input id="sh-title" dir="ltr" value={shipping.title} onChange={(e) => setShipping((x) => ({ ...x, title: e.target.value }))} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="sh-body">النص (بالإنكليزي)</Label>
+          <Textarea id="sh-body" dir="ltr" rows={8} value={shipping.body} onChange={(e) => setShipping((x) => ({ ...x, body: e.target.value }))} />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          صفحة الإرجاع والتبديل
+          <HintDot
+            hint={{
+              title: "صفحة الإرجاع",
+              what: "سياسة الإرجاع على bachwears.com/returns-policy — مع زر «Start a return» جاهز آخرها.",
+              source: "من جدول site_content (مفتاح page_returns)، ورابطها بالفوتر.",
+              edit: "سطر فاضي بين الفقرات = فقرة جديدة عالموقع.",
+            }}
+          />
+        </h2>
+        <div className="grid gap-1.5">
+          <Label htmlFor="rt-title">العنوان</Label>
+          <Input id="rt-title" dir="ltr" value={returnsPg.title} onChange={(e) => setReturnsPg((x) => ({ ...x, title: e.target.value }))} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="rt-body">النص (بالإنكليزي)</Label>
+          <Textarea id="rt-body" dir="ltr" rows={8} value={returnsPg.body} onChange={(e) => setReturnsPg((x) => ({ ...x, body: e.target.value }))} />
         </div>
       </div>
 

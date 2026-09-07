@@ -8,6 +8,8 @@ export async function SiteFooter() {
   const locale = await getLocale();
   const links: Array<[string, string]> = [
     ["/shop", t(locale, "sf.footer.shop")],
+    ["/shipping", t(locale, "sf.footer.shipping")],
+    ["/returns-policy", t(locale, "sf.footer.returnsPolicy")],
     ["/help", t(locale, "sf.footer.help")],
     ["/support", t(locale, "sf.footer.support")],
     ["/returns", t(locale, "sf.footer.returns")],
