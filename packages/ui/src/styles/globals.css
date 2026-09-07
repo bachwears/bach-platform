@@ -118,3 +118,63 @@
     backdrop-filter: none;
   }
 }
+
+/*
+ * Motion system (BOSS restraint, Apple fluidity). CSS-first: transforms and
+ * opacity only, one soft ease everywhere, everything gated behind
+ * prefers-reduced-motion so reduced users get instant state, never blankness.
+ * Scroll reveals hide content ONLY under html.js-anim (added by JS), so the
+ * page is fully readable without JavaScript.
+ */
+:root {
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes anim-rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes anim-materialize {
+    from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes anim-slide-in-end {
+    from { transform: translateX(var(--slide-from, 100%)); }
+    to { transform: none; }
+  }
+  @keyframes anim-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes anim-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  @keyframes anim-hero-settle {
+    from { transform: scale(1.045); }
+    to { transform: none; }
+  }
+
+  .anim-rise { animation: anim-rise 0.6s var(--ease-out-soft) both; animation-delay: var(--anim-delay, 0s); }
+  .anim-materialize { transform-origin: top center; animation: anim-materialize 0.22s var(--ease-out-soft) both; }
+  .anim-slide-in-end { animation: anim-slide-in-end 0.3s var(--ease-out-soft) both; }
+  [dir="rtl"] .anim-slide-in-end { --slide-from: -100%; }
+  .anim-fade { animation: anim-fade 0.25s ease-out both; }
+  .anim-pop { animation: anim-pop 0.35s var(--ease-out-soft); }
+  .anim-hero-settle { animation: anim-hero-settle 1.4s var(--ease-out-soft) both; }
+
+  .js-anim [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.6s var(--ease-out-soft),
+      transform 0.6s var(--ease-out-soft);
+    transition-delay: var(--anim-delay, 0s);
+  }
+  .js-anim [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -85,10 +85,10 @@ export function FilterDrawer({
           <button
             type="button"
             aria-label={t(locale, "sf.nav.close")}
-            className="absolute inset-0 bg-black/30"
+            className="anim-fade absolute inset-0 bg-black/30"
             onClick={() => setOpen(false)}
           />
-          <div className="glass-panel absolute inset-y-0 end-0 flex w-full max-w-sm flex-col shadow-xl">
+          <div className="glass-panel anim-slide-in-end absolute inset-y-0 end-0 flex w-full max-w-sm flex-col shadow-xl">
             <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
               <p className="text-sm font-semibold uppercase tracking-wider">{t(locale, "sf.shop.filter")}</p>
               <button

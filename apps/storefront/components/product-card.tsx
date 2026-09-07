@@ -24,13 +24,29 @@ function usd(cents: number) {
  * Listing card. Front photo shown, back photo swaps in on hover (§4).
  * Until media lands, an elegant typographic placeholder holds the frame.
  */
-export function ProductCard({ product, locale = "en" }: { product: CardProduct; locale?: Locale }) {
+export function ProductCard({
+  product,
+  locale = "en",
+  revealDelay,
+}: {
+  product: CardProduct;
+  locale?: Locale;
+  revealDelay?: number;
+}) {
   const onSale = product.sale_price_usd_cents != null;
   // Product names stay English in every locale (founder decision 2026-09-07).
   const name = product.name_en;
   const prefix = locale === "ar" ? "/ar" : "";
+  const zoom =
+    "transition-[opacity,transform] duration-700 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100";
   return (
-    <Link href={`${prefix}/products/${product.slug}`} className="group block">
+    <Link
+      href={`${prefix}/products/${product.slug}`}
+      className="group block"
+      {...(revealDelay != null
+        ? { "data-reveal": "", style: { ["--anim-delay" as string]: `${revealDelay}ms` } }
+        : {})}
+    >
       <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
         {product.front ? (
           <>
@@ -38,14 +54,14 @@ export function ProductCard({ product, locale = "en" }: { product: CardProduct; 
             <img
               src={product.front}
               alt={name}
-              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+              className={`absolute inset-0 h-full w-full object-cover group-hover:opacity-0 ${zoom}`}
             />
             {product.back ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.back}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                className={`absolute inset-0 h-full w-full object-cover opacity-0 group-hover:opacity-100 ${zoom}`}
               />
             ) : null}
           </>

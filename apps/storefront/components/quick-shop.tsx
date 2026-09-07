@@ -30,7 +30,7 @@ export function QuickShop({ sizes }: { sizes: QuickShopSize[] }) {
 
   return (
     <div
-      className="glass-panel invisible absolute inset-x-0 bottom-0 z-10 hidden px-3 pb-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:block"
+      className="glass-panel invisible absolute inset-x-0 bottom-0 z-10 hidden translate-y-1.5 px-3 pb-3 pt-2 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none motion-reduce:transform-none [@media(hover:hover)]:block"
       onClick={(e) => e.preventDefault()}
     >
       {added ? (

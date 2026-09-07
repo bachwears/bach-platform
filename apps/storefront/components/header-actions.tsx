@@ -92,7 +92,7 @@ export function HeaderActions({
       </button>
 
       {searchOpen && (
-        <div className="glass-panel absolute inset-x-0 top-full mt-2 rounded-2xl p-4 shadow-lg ring-1 ring-black/5">
+        <div className="glass-panel anim-materialize absolute inset-x-0 top-full mt-2 rounded-2xl p-4 shadow-lg ring-1 ring-black/5">
           <form
             role="search"
             className="flex items-center gap-2"
@@ -125,7 +125,7 @@ export function HeaderActions({
       {menuOpen && (
         <nav
           aria-label={t(locale, "sf.nav.menu")}
-          className="glass-panel absolute inset-x-0 top-full mt-2 max-h-[75vh] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg ring-1 ring-black/5 md:hidden"
+          className="glass-panel anim-materialize absolute inset-x-0 top-full mt-2 max-h-[75vh] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg ring-1 ring-black/5 md:hidden"
         >
           {groups.map((g) => (
             <div key={g.code ?? g.label} className="border-b border-black/5 px-4 py-3">

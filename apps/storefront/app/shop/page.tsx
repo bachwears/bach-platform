@@ -347,8 +347,8 @@ export default async function ShopPage({
 
         {cards.length ? (
           <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-            {cards.map((p) => (
-              <ProductCard key={p.slug} product={p} locale={locale} />
+            {cards.map((p, i) => (
+              <ProductCard key={p.slug} product={p} locale={locale} revealDelay={(i % 4) * 60} />
             ))}
           </div>
         ) : (

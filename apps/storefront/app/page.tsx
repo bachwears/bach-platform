@@ -71,7 +71,7 @@ export default async function Home() {
         {/* Campaign hero — the copy sits on the stone-wall negative space,
             which is physically LEFT in the art direction, so the text block
             stays pinned left in both locales. */}
-        <section className="relative -mt-[68px]">
+        <section className="relative -mt-[68px] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/hero-campaign.jpg"
@@ -79,7 +79,7 @@ export default async function Home() {
             sizes="100vw"
             alt={t(locale, "sf.home.heroAlt")}
             fetchPriority="high"
-            className="h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
+            className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
           />
           <div className="pointer-events-none md:absolute md:inset-0">
             <div className="mx-auto h-full max-w-6xl px-4">
@@ -87,16 +87,25 @@ export default async function Home() {
                 dir={locale === "ar" ? "rtl" : "ltr"}
                 className="pointer-events-auto ml-0 mr-auto flex h-full max-w-md flex-col justify-center py-10 text-foreground md:py-0 md:text-neutral-900"
               >
-                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground md:text-neutral-600">
+                <p
+                  className="anim-rise text-xs uppercase tracking-[0.35em] text-muted-foreground md:text-neutral-600"
+                  style={{ ["--anim-delay" as string]: "0.1s" }}
+                >
                   {t(locale, "sf.home.eyebrow")}
                 </p>
-                <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+                <h1
+                  className="anim-rise mt-4 text-4xl font-semibold tracking-tight sm:text-5xl"
+                  style={{ ["--anim-delay" as string]: "0.22s" }}
+                >
                   {t(locale, "sf.home.headline")}
                 </h1>
-                <p className="mt-4 max-w-sm text-muted-foreground md:text-neutral-700">
+                <p
+                  className="anim-rise mt-4 max-w-sm text-muted-foreground md:text-neutral-700"
+                  style={{ ["--anim-delay" as string]: "0.34s" }}
+                >
                   {t(locale, "sf.home.sub")}
                 </p>
-                <div className="mt-8">
+                <div className="anim-rise mt-8" style={{ ["--anim-delay" as string]: "0.48s" }}>
                   <Button
                     asChild
                     size="lg"
@@ -112,15 +121,15 @@ export default async function Home() {
 
         {featured.length ? (
           <section className="mx-auto max-w-6xl px-4 py-20">
-            <div className="mb-8 flex items-end justify-between">
+            <div className="mb-8 flex items-end justify-between" data-reveal>
               <h2 className="text-xl font-semibold tracking-tight">{t(locale, "sf.nav.newIn")}</h2>
               <Link href={lhref(locale, "/shop")} className="text-sm text-muted-foreground hover:text-foreground">
                 {t(locale, "sf.nav.viewAll")}
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-4">
-              {featured.map((p) => (
-                <ProductCard key={p.slug} product={p} locale={locale} />
+              {featured.map((p, i) => (
+                <ProductCard key={p.slug} product={p} locale={locale} revealDelay={i * 70} />
               ))}
             </div>
           </section>

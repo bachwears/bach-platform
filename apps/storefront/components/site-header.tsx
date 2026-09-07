@@ -83,7 +83,7 @@ export async function SiteHeader() {
             >
               {t(locale, "sf.nav.shop")}
             </Link>
-            <div className="glass-panel invisible absolute inset-x-0 top-full mt-2 rounded-2xl opacity-0 shadow-lg ring-1 ring-black/5 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none">
+            <div className="glass-panel invisible absolute inset-x-0 top-full mt-2 origin-top -translate-y-1.5 scale-[0.99] rounded-2xl opacity-0 shadow-lg ring-1 ring-black/5 transition-[opacity,transform] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 motion-reduce:transition-none motion-reduce:transform-none">
               <div className="grid grid-cols-2 gap-8 px-6 py-8 md:grid-cols-4">
                 {columns.map((column, i) => (
                   <div key={i} className="space-y-8">

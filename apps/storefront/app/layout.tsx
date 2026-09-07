@@ -6,6 +6,7 @@ import { dir } from "@bach/i18n";
 import "./globals.css";
 
 import { AssistantWidget } from "../components/assistant-widget";
+import { ScrollReveal } from "../components/scroll-reveal";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
 import { SiteFooter } from "../components/site-footer";
@@ -53,6 +54,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <div className="flex-1">{children}</div>
           <SiteFooter />
         </div>
+        <ScrollReveal />
         <BirthdayPopup />
         <MarketingPopup />
         <AssistantWidget />
