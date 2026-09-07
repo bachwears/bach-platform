@@ -79,7 +79,7 @@ export default async function Home() {
             sizes="100vw"
             alt={t(locale, "sf.home.heroAlt")}
             fetchPriority="high"
-            className="h-[46vh] w-full object-cover object-[72%_center] sm:h-[60vh] md:h-[78vh]"
+            className="h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
           />
           <div className="pointer-events-none md:absolute md:inset-0">
             <div className="mx-auto h-full max-w-6xl px-4">
