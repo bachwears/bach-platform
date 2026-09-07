@@ -3,8 +3,26 @@
 import { MessageCircle } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
+import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+
+const WA = "https://wa.me/96171566296";
+
+function renderContent(text: string) {
+  const parts = text.split(WA);
+  if (parts.length === 1) return text;
+  return parts.flatMap((p, i) =>
+    i === 0
+      ? [p]
+      : [
+          <a key={i} href={WA} target="_blank" rel="noreferrer" className="underline underline-offset-2" dir="ltr">
+            WhatsApp
+          </a>,
+          p,
+        ],
+  );
+}
 
 interface Msg {
   role: "user" | "assistant";
@@ -34,15 +52,22 @@ export function AssistantWidget() {
     const next: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
     setBusy(true);
+    const ctrl = new AbortController();
+    const late = setTimeout(() => ctrl.abort(), 12000);
     try {
+      // Signed-in customers get their own live order data — the function
+      // reads identity from the JWT, so send the session token when we have one.
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const token = sess.session?.access_token ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/assistant`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ message: text, history: next.slice(-10) }),
+        signal: ctrl.signal,
       });
       const data = await res.json();
       if (!res.ok || !data.reply) throw new Error("assistant unavailable");
@@ -50,9 +75,10 @@ export function AssistantWidget() {
     } catch {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "I couldn't reach the shop — WhatsApp us on +961 71 566 296." },
+        { role: "assistant", content: `That's taking too long — chat with a human right now on WhatsApp: ${WA}` },
       ]);
     }
+    clearTimeout(late);
     setBusy(false);
   }
 
@@ -85,7 +111,7 @@ export function AssistantWidget() {
                     m.role === "user" ? "bg-foreground text-background" : "bg-muted"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" ? renderContent(m.content) : m.content}
                 </p>
               </div>
             ))}

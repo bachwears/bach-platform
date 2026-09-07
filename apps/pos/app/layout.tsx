@@ -24,6 +24,8 @@ export const metadata: Metadata = {
 };
 
 // Arabic-first UI (Lebanese half-formal tone), RTL end-to-end.
+import { StaffAssistant } from "@bach/ui/components/staff-assistant";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
@@ -35,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ["--font-app-mono" as string]: "var(--font-plex-mono), ui-monospace, monospace",
       }}
     >
-      <body>{children}</body>
+      <body>{children}<StaffAssistant /></body>
     </html>
   );
 }
