@@ -34,10 +34,18 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
     [variants, locale],
   );
   const [color, setColor] = useState(colors.length === 1 ? colors[0]![0] : "");
-  const sizes = useMemo(
-    () => variants.filter((v) => !color || v.color_code === color),
-    [variants, color],
-  );
+  const sizes = useMemo(() => {
+    const ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+    const rank = (s: string) => {
+      const i = ORDER.indexOf(s.toUpperCase());
+      if (i >= 0) return i;
+      const n = Number(s);
+      return Number.isFinite(n) ? 100 + n : 999;
+    };
+    return variants
+      .filter((v) => !color || v.color_code === color)
+      .sort((a, b) => rank(a.size) - rank(b.size));
+  }, [variants, color]);
   const [variantId, setVariantId] = useState(sizes.length === 1 ? sizes[0]!.id : "");
   const chosen = variants.find((v) => v.id === variantId);
   const [added, setAdded] = useState(false);
