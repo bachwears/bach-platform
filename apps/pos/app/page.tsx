@@ -1,5 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
-import { Button } from "@bach/ui/components/button";
+import { PortalNav } from "@bach/ui/components/portal-nav";
 
 import { Cashier } from "../components/cashier";
 
@@ -36,29 +36,18 @@ export default async function Home() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5 print:hidden">
-        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
-        <div className="flex items-baseline gap-3">
-          <span className="flex items-center gap-2"><img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" /><span className="text-sm font-semibold text-muted-foreground">POS</span></span>
-          <span className="text-sm text-muted-foreground">{branch?.name}</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <a href="/queue" className="hover:text-foreground">طلبات الأونلاين</a>
-          <a href="/eod" className="hover:text-foreground">تسكير اليوم</a>
-          <a href="/help" className="hover:text-foreground">مساعدة</a>
-          <a href="/returns" className="hover:text-foreground">مرتجع / تبديل</a>
-          <a href="/stocktake" className="hover:text-foreground">جرد</a>
-          <span>
-            {profile?.full_name ?? user?.email} · {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}
-          </span>
-          <form action="/logout" method="post">
-            <Button type="submit" variant="ghost" size="sm">
-              خروج
-            </Button>
-          </form>
-        </div>
-      </div>
-      </header>
+      <PortalNav
+        title="POS"
+        subtitle={branch?.name ?? undefined}
+        items={[
+          { href: "/queue", label: "طلبات الأونلاين" },
+          { href: "/returns", label: "مرتجع / تبديل" },
+          { href: "/eod", label: "تسكير اليوم" },
+          { href: "/stocktake", label: "جرد" },
+          { href: "/help", label: "مساعدة" },
+        ]}
+        meta={`${profile?.full_name ?? user?.email} · ${ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}`}
+      />
 
       <main className="mx-auto max-w-6xl p-4 py-6">
         {!canSell ? (
