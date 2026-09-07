@@ -26,6 +26,13 @@ export function BirthdayPopup() {
       const { data } = await supabase.rpc("my_birthday_offer");
       const o = data?.[0];
       if (o?.in_window && !o.already_used) {
+        // Mark seen on show, not on dismiss — otherwise navigating away
+        // without closing re-triggers the popup on every page.
+        try {
+          localStorage.setItem("bach-bday-popup", today);
+        } catch {
+          /* fine */
+        }
         setOffer({ code: String(o.code).toUpperCase(), percent: o.percent });
       }
     }
