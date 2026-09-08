@@ -14,7 +14,6 @@ export interface CatalogItem {
   color_ar: string;
   price_usd_cents_override: number | null;
   name_en: string;
-  name_ar: string;
   price_usd_cents: number;
   sale_price_usd_cents: number | null;
   available: number;
@@ -53,7 +52,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
     supabase
       .from("product_variants")
       .select(
-        "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
+        "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
       )
       .eq("is_active", true)
       .eq("products.status", "published"),
@@ -67,7 +66,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
   ]);
   if (error || !data) return readCatalog(branchId);
   const items: CatalogItem[] = (data as unknown as Array<Record<string, unknown>>).map((v) => {
-    const p = v.products as { name_en: string; name_ar: string; price_usd_cents: number; sale_price_usd_cents: number | null };
+    const p = v.products as { name_en: string; price_usd_cents: number; sale_price_usd_cents: number | null };
     const level = ((v.inventory_levels as Array<{ branch_id: string; quantity: number; reserved: number }>) ?? []).find(
       (l) => l.branch_id === branchId,
     );
@@ -80,7 +79,6 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
       color_ar: v.color_ar as string,
       price_usd_cents_override: v.price_usd_cents_override as number | null,
       name_en: p.name_en,
-      name_ar: p.name_ar,
       price_usd_cents: p.price_usd_cents,
       sale_price_usd_cents: p.sale_price_usd_cents,
       available: level ? level.quantity - level.reserved : 0,
@@ -122,7 +120,7 @@ export function searchCatalog(
         i.sku?.toLowerCase().includes(q) ||
         i.barcode?.toLowerCase().includes(q) ||
         i.name_en.toLowerCase().includes(q) ||
-        i.name_ar.includes(query.trim()),
+        false,
     )
     .slice(0, 8);
 }

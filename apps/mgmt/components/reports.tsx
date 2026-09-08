@@ -159,21 +159,21 @@ export function Reports() {
   async function exportInventory(): Promise<number> {
     const { data, error: err } = await supabase
       .from("product_variants")
-      .select("sku, barcode, size, color_en, is_active, products!inner(name_en, name_ar, status, price_usd_cents, sale_price_usd_cents, cost_usd_cents, categories(name_en)), inventory_levels(quantity, reserved, reorder_threshold)")
+      .select("sku, barcode, size, color_en, is_active, products!inner(name_en, status, price_usd_cents, sale_price_usd_cents, cost_usd_cents, categories(name_en)), inventory_levels(quantity, reserved, reorder_threshold)")
       .order("sku");
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((v) => {
-      const p = v.products as unknown as { name_en: string; name_ar: string; status: string; price_usd_cents: number; sale_price_usd_cents: number | null; cost_usd_cents: number | null; categories: { name_en: string } | null };
+      const p = v.products as unknown as { name_en: string; status: string; price_usd_cents: number; sale_price_usd_cents: number | null; cost_usd_cents: number | null; categories: { name_en: string } | null };
       const lvl = (v.inventory_levels as Array<{ quantity: number; reserved: number; reorder_threshold: number }>)[0];
       return [
-        v.sku ?? "", v.barcode ?? "", p.name_en, p.name_ar, p.categories?.name_en ?? "", v.size, v.color_en,
+        v.sku ?? "", v.barcode ?? "", p.name_en, p.categories?.name_en ?? "", v.size, v.color_en,
         p.status, v.is_active ? "yes" : "no",
         lvl?.quantity ?? 0, lvl?.reserved ?? 0, lvl?.reorder_threshold ?? 0,
         usdNum(p.cost_usd_cents), usdNum(p.price_usd_cents), p.sale_price_usd_cents != null ? usdNum(p.sale_price_usd_cents) : "",
       ];
     });
     downloadCsv(`bach-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["SKU", "Barcode", "Product EN", "Product AR", "Category", "Size", "Color", "Status", "Active", "Stock", "Reserved", "Min Qty", "Cost USD", "Price USD", "Sale USD"],
+      ["SKU", "Barcode", "Product", "Category", "Size", "Color", "Status", "Active", "Stock", "Reserved", "Min Qty", "Cost USD", "Price USD", "Sale USD"],
       rows);
     return rows.length;
   }

@@ -124,7 +124,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
       .limit(6);
     let hits = (skuHits ?? []) as unknown as SearchHit[];
     if (!hits.length) {
-      const { data: prods } = await supabase.from("products").select("id").or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`).limit(4);
+      const { data: prods } = await supabase.from("products").select("id").ilike("name_en", `%${q}%`).limit(4);
       if (prods?.length) {
         const { data: nameHits } = await supabase
           .from("product_variants")

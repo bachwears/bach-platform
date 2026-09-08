@@ -48,19 +48,6 @@ export const ISSUES: IssueDef[] = [
     test: (p) => p.product_variants.length === 0,
   },
   {
-    key: "no-desc-ar",
-    label: "بلا وصف عربي",
-    severity: "critical",
-    test: (p) => !p.description_ar?.trim(),
-  },
-  {
-    key: "weak-name-ar",
-    label: "اسم عربي للمراجعة",
-    severity: "info",
-    test: (p) =>
-      p.name_ar === p.name_en || GARMENT_WORDS.filter((w) => p.name_ar.includes(w)).length > 1,
-  },
-  {
     key: "misc-category",
     label: "فئة متنوّع",
     severity: "critical",
@@ -100,11 +87,7 @@ export const ISSUES: IssueDef[] = [
     key: "no-seo",
     label: "بلا SEO",
     severity: "info",
-    test: (p) =>
-      !p.meta_title_en?.trim() ||
-      !p.meta_description_en?.trim() ||
-      !p.meta_title_ar?.trim() ||
-      !p.meta_description_ar?.trim(),
+    test: (p) => !p.meta_title_en?.trim() || !p.meta_description_en?.trim(),
   },
 ];
 

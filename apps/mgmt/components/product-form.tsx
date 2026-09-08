@@ -89,14 +89,14 @@ export function ProductForm({
     const supabase = supabaseBrowser();
     const row = {
       name_en: values.name_en,
-      name_ar: values.name_ar,
+      name_ar: values.name_en,
       slug: values.slug,
       category_id: values.category_id,
       price_usd_cents: priceCents,
       sale_price_usd_cents: saleCents,
       status: values.status,
       description_en: values.description_en || null,
-      description_ar: values.description_ar || null,
+      description_ar: null,
       fit: values.fit || null,
     };
 
@@ -137,12 +137,8 @@ export function ProductForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="name_ar">الاسم بالعربي</Label>
-          <Input id="name_ar" required value={values.name_ar} onChange={(e) => set("name_ar", e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="name_en">الاسم بالإنكليزي</Label>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="name_en">اسم المنتج (بالإنكليزي — قرار العلامة: الأسماء إنكليزي فقط)</Label>
           <Input id="name_en" dir="ltr" required value={values.name_en} onChange={(e) => set("name_en", e.target.value)} />
         </div>
       </div>
@@ -185,12 +181,8 @@ export function ProductForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="desc_ar">الوصف بالعربي</Label>
-          <Textarea id="desc_ar" value={values.description_ar} onChange={(e) => set("description_ar", e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="desc_en">الوصف بالإنكليزي</Label>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="desc_en">الوصف (بالإنكليزي)</Label>
           <Textarea id="desc_en" dir="ltr" value={values.description_en} onChange={(e) => set("description_en", e.target.value)} />
         </div>
       </div>

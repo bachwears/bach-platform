@@ -110,7 +110,7 @@ export default async function ProductHealthPage({
                       <Link href={`/products/${p.id}`} className="underline-offset-2 hover:underline">
                         {p.name_en}
                       </Link>
-                      <span className="block text-xs text-muted-foreground">{p.name_ar}</span>
+                      
                     </td>
                     <td className="p-3">
                       <Badge variant={p.status === "published" ? "default" : "secondary"}>

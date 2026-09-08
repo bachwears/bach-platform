@@ -30,7 +30,7 @@ export default async function EditProductPage({
       <Nav />
       <main className="mx-auto max-w-3xl space-y-10 p-4 py-8">
         <div className="space-y-6">
-          <h1 className="text-2xl font-semibold tracking-tight">{product.name_ar}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" dir="ltr">{product.name_en}</h1>
           <ProductForm
             categories={categories ?? []}
             initial={{

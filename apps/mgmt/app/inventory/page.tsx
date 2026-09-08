@@ -30,7 +30,7 @@ export default async function InventoryPage() {
     supabase
       .from("product_variants")
       .select(
-        "id, sku, size, color_ar, is_active, products(name_ar), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
+        "id, sku, size, color_ar, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
       )
       .order("sku"),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at"),
@@ -54,7 +54,7 @@ export default async function InventoryPage() {
           <MovementForm
             variants={(variants ?? []).map((v) => ({
               id: v.id,
-              label: `${(v.products as unknown as { name_ar: string })?.name_ar ?? ""} — ${v.size} ${v.color_ar} (${v.sku})`,
+              label: `${(v.products as unknown as { name_en: string })?.name_en ?? ""} — ${v.size} ${v.color_ar} (${v.sku})`,
             }))}
             branches={branchList}
           />
@@ -95,7 +95,7 @@ export default async function InventoryPage() {
                     return (
                       <tr key={v.id} className="border-b last:border-0">
                         <td className="p-3">
-                          {(v.products as unknown as { name_ar: string })?.name_ar}
+                          <span dir="ltr">{(v.products as unknown as { name_en: string })?.name_en}</span>
                           <span className="ms-2 text-xs text-muted-foreground">
                             {v.size} {v.color_ar}
                           </span>

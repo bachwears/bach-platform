@@ -15,7 +15,7 @@ export default async function ProductsPage() {
   const supabase = await supabaseServer();
   const { data: products } = await supabase
     .from("products")
-    .select("id, name_ar, name_en, price_usd_cents, sale_price_usd_cents, status, categories(name_ar), product_variants(count)")
+    .select("id, name_en, price_usd_cents, sale_price_usd_cents, status, categories(name_ar), product_variants(count)")
     .order("created_at", { ascending: false });
 
   return (
@@ -54,12 +54,9 @@ export default async function ProductsPage() {
                   return (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">
-                        <Link href={`/products/${p.id}`} className="font-medium hover:underline">
-                          {p.name_ar}
-                        </Link>
-                        <div className="text-xs text-muted-foreground" dir="ltr">
+                        <Link href={`/products/${p.id}`} className="font-medium hover:underline" dir="ltr">
                           {p.name_en}
-                        </div>
+                        </Link>
                       </td>
                       <td className="p-3">{category?.name_ar ?? "—"}</td>
                       <td className="p-3" dir="ltr">
