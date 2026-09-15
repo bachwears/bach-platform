@@ -43,6 +43,14 @@ interface PolicyDoc {
 const EMPTY_BANNER: Banner = { enabled: false, text: "", cta_label: "", cta_href: "/shop" };
 const EMPTY_POLICY: PolicyDoc = { title: "", body: "" };
 
+interface Wheel {
+  enabled: boolean;
+  title: string;
+  sub: string;
+}
+
+const EMPTY_WHEEL: Wheel = { enabled: false, title: "Spin & win", sub: "One spin per email — win up to 15% off your first order." };
+
 /** MGMT editor for the storefront homepage hero — copy + campaign image. */
 export function SiteContentEditor() {
   const supabase = supabaseBrowser();
@@ -50,6 +58,7 @@ export function SiteContentEditor() {
   const [banner, setBanner] = useState<Banner>(EMPTY_BANNER);
   const [shipping, setShipping] = useState<PolicyDoc>(EMPTY_POLICY);
   const [returnsPg, setReturnsPg] = useState<PolicyDoc>(EMPTY_POLICY);
+  const [wheel, setWheel] = useState<Wheel>(EMPTY_WHEEL);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -59,7 +68,7 @@ export function SiteContentEditor() {
     void supabase
       .from("site_content")
       .select("key, value")
-      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns"])
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel"])
       .then(({ data }) => {
         for (const row of data ?? []) {
           const v = row.value as Record<string, unknown>;
@@ -67,6 +76,7 @@ export function SiteContentEditor() {
           if (row.key === "home_banner") setBanner({ ...EMPTY_BANNER, ...(v as Partial<Banner>) });
           if (row.key === "page_shipping") setShipping({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
           if (row.key === "page_returns") setReturnsPg({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
+          if (row.key === "wheel") setWheel({ ...EMPTY_WHEEL, ...(v as Partial<Wheel>) });
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +112,7 @@ export function SiteContentEditor() {
       { key: "home_banner", value: banner, updated_at: now },
       { key: "page_shipping", value: shipping, updated_at: now },
       { key: "page_returns", value: returnsPg, updated_at: now },
+      { key: "wheel", value: wheel, updated_at: now },
     ]);
     setBusy(false);
     if (error) {
@@ -284,6 +295,39 @@ export function SiteContentEditor() {
         <div className="grid gap-1.5">
           <Label htmlFor="rt-body">النص (بالإنكليزي)</Label>
           <Textarea id="rt-body" dir="ltr" rows={8} value={returnsPg.body} onChange={(e) => setReturnsPg((x) => ({ ...x, body: e.target.value }))} />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          عجلة الحظ (Spin the wheel)
+          <HintDot
+            hint={{
+              title: "عجلة الحظ",
+              what: "لعبة خصومات بتطلع للزوار: بيدخلوا إيميلن وبيبرموا العجلة — الجايزة بينحسمها السيرفر (5% أو 10% أو 15% أو حظ أوفر) وبياخدوا بروموكود حقيقي لمرة وحدة صالح 7 أيام.",
+              source: "دورة وحدة لكل إيميل (جدول wheel_spins)، والكود بينضاف على نظام البروموكودات وبيشتغل بالشيك-آوت. كل لاعب بينضم للنشرة تلقائياً.",
+              edit: "فعّلها وقت العروض وطفّيها بأي وقت — التغيير فوري عالموقع.",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={wheel.enabled}
+            onChange={(e) => setWheel((w) => ({ ...w, enabled: e.target.checked }))}
+            className="h-4 w-4"
+          />
+          العجلة مفعّلة عالموقع
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="wh-title">العنوان</Label>
+            <Input id="wh-title" dir="ltr" value={wheel.title} onChange={(e) => setWheel((w) => ({ ...w, title: e.target.value }))} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="wh-sub">السطر التحتاني</Label>
+            <Input id="wh-sub" dir="ltr" value={wheel.sub} onChange={(e) => setWheel((w) => ({ ...w, sub: e.target.value }))} />
+          </div>
         </div>
       </div>
 

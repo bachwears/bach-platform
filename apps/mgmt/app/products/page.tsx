@@ -11,12 +11,33 @@ const STATUS_LABELS: Record<string, { label: string; variant: "success" | "secon
   archived: { label: "مؤرشف", variant: "outline" },
 };
 
-export default async function ProductsPage() {
+const FILTERS: Array<{ key: string; label: string }> = [
+  { key: "all", label: "الكل" },
+  { key: "no-photos", label: "بلا صور" },
+  { key: "draft", label: "مسودات" },
+  { key: "published", label: "منشور" },
+];
+
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  const { f } = await searchParams;
+  const filter = FILTERS.some((x) => x.key === f) ? f! : "all";
   const supabase = await supabaseServer();
-  const { data: products } = await supabase
+  const { data: all } = await supabase
     .from("products")
-    .select("id, name_en, price_usd_cents, sale_price_usd_cents, status, categories(name_ar), product_variants(count)")
+    .select("id, name_en, price_usd_cents, sale_price_usd_cents, status, categories(name_ar), product_variants(count), media_assets(count)")
     .order("created_at", { ascending: false });
+
+  const withMedia = (all ?? []).map((p) => ({
+    ...p,
+    photoCount: (p.media_assets as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
+  }));
+  const products =
+    filter === "no-photos"
+      ? withMedia.filter((p) => p.photoCount === 0)
+      : filter === "all"
+        ? withMedia
+        : withMedia.filter((p) => p.status === filter);
+  const noPhotoCount = withMedia.filter((p) => p.photoCount === 0).length;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -27,6 +48,24 @@ export default async function ProductsPage() {
           <Button asChild>
             <Link href="/products/new">+ منتج جديد</Link>
           </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((x) => (
+            <Link
+              key={x.key}
+              href={x.key === "all" ? "/products" : `/products?f=${x.key}`}
+              className={
+                (filter === x.key
+                  ? "bg-foreground text-background "
+                  : "text-muted-foreground hover:text-foreground ") +
+                "rounded-full border px-4 py-1.5 text-sm transition-colors"
+              }
+            >
+              {x.label}
+              {x.key === "no-photos" ? ` (${noPhotoCount})` : ""}
+            </Link>
+          ))}
         </div>
 
         {!products?.length ? (

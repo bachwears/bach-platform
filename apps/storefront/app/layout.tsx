@@ -6,6 +6,8 @@ import { dir } from "@bach/i18n";
 import "./globals.css";
 
 import { AssistantWidget } from "../components/assistant-widget";
+import { SpinWheel } from "../components/spin-wheel";
+import { supabaseServer } from "@bach/supabase/server";
 import { ScrollReveal } from "../components/scroll-reveal";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
@@ -36,6 +38,9 @@ export const metadata: Metadata = {
 // Latin renders in Archivo; Arabic glyphs fall through to IBM Plex Sans Arabic —
 // the stack order flips per locale so each script leads with its own face.
 export default async function RootLayout({ children }: { children: ReactNode }) {
+  const supabase = await supabaseServer();
+  const { data: wheelRow } = await supabase.from("site_content").select("value").eq("key", "wheel").maybeSingle();
+  const wheel = (wheelRow?.value ?? {}) as { enabled?: boolean; title?: string; sub?: string };
   const locale = await getLocale();
   const stack =
     locale === "ar"
@@ -58,6 +63,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <BirthdayPopup />
         <MarketingPopup />
         <AssistantWidget />
+        {wheel.enabled ? <SpinWheel title={wheel.title || "Spin & win"} sub={wheel.sub || "One spin per email — win up to 15% off."} /> : null}
       </body>
     </html>
   );
