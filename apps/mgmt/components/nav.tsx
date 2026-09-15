@@ -4,6 +4,7 @@ import { PortalNav, type PortalNavItem } from "@bach/ui/components/portal-nav";
 // role-shaped dropdown groups. Orders stays inline: it's the daily door.
 const ITEMS: PortalNavItem[] = [
   { href: "/orders", label: "الطلبات" },
+  { href: "/customers", label: "العملاء" },
   {
     label: "الكتالوج",
     links: [

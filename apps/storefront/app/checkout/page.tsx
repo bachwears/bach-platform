@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [signedIn, setSignedIn] = useState(false);
   const [methods, setMethods] = useState<string[]>(["cod"]);
   const [payMethod, setPayMethod] = useState("cod");
+  const [walletBalance, setWalletBalance] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,6 +75,11 @@ export default function CheckoutPage() {
       const { data: sess } = await supabase.auth.getSession();
       setSignedIn(!!sess.session);
       const { data: pm } = await supabase.from("payment_methods").select("kind").eq("is_enabled", true).in("kind", ["cod", "stripe"]);
+      void supabase.auth.getUser().then(async ({ data: u }) => {
+        if (!u.user) return;
+        const { data: c } = await supabase.from("customers").select("balance_usd_cents").eq("auth_user_id", u.user.id).maybeSingle();
+        setWalletBalance(c?.balance_usd_cents ?? 0);
+      });
       const kinds = (pm ?? []).map((x) => x.kind);
       if (kinds.length) setMethods(kinds.sort());
     }
@@ -105,14 +111,17 @@ export default function CheckoutPage() {
       p_note: note.trim() || null,
       p_email: email.trim() || null,
       p_promocode: promoState.status === "ok" ? promo.trim() : null,
-      p_payment_method: payMethod,
+      p_payment_method: payMethod === "wallet" ? "cod" : payMethod,
+      p_use_wallet: payMethod === "wallet",
     });
     setBusy(false);
     if (err) {
       setError(
         err.message.includes("insufficient stock")
           ? t(locale, "sf.co.soldOut")
-          : t(locale, "sf.co.failed"),
+          : err.message.includes("wallet")
+            ? "Your wallet balance no longer covers this order."
+            : t(locale, "sf.co.failed"),
       );
       return;
     }
@@ -194,6 +203,18 @@ export default function CheckoutPage() {
               <div className="space-y-2">
                 <p className="text-sm font-medium">{t(locale, "sf.co.payment")}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
+                  {walletBalance >= Math.round(total * 0.9) && walletBalance > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod("wallet")}
+                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "wallet" ? "border-foreground" : "hover:border-foreground/50"}`}
+                    >
+                      <span className="font-medium">Pay from wallet — 10% off</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground" dir="ltr">
+                        Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${((Math.round(total * 0.9)) / 100).toFixed(2)}
+                      </span>
+                    </button>
+                  )}
                   {methods.includes("cod") && (
                     <button
                       type="button"

@@ -71,6 +71,11 @@ export default function AccountPage() {
   const router = useRouter();
   const locale = useLocale();
   const dateLocale = locale === "ar" ? "ar-LB" : "en-GB";
+  const [topups, setTopups] = useState<Array<{ id: string; amount_usd_cents: number; receipt_no: string; status: string; created_at: string }>>([]);
+  const [tuAmount, setTuAmount] = useState("");
+  const [tuReceipt, setTuReceipt] = useState("");
+  const [tuBusy, setTuBusy] = useState(false);
+  const [tuMsg, setTuMsg] = useState("");
   const [customer, setCustomer] = useState<{
     id?: string;
     full_name: string | null;
@@ -96,11 +101,17 @@ export default function AccountPage() {
       }
       const { data: cust } = await supabase
         .from("customers")
-        .select("id, full_name, created_at, birthday, marketing_consent")
+        .select("id, full_name, created_at, birthday, marketing_consent, balance_usd_cents")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       setCustomer(cust ?? { full_name: user.email ?? null, created_at: user.created_at });
       if (cust) {
+        void supabase
+          .from("wallet_topups")
+          .select("id, amount_usd_cents, receipt_no, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10)
+          .then(({ data: t2 }) => setTopups(t2 ?? []));
         const [{ data }, { data: wl }] = await Promise.all([
           supabase
             .from("orders")
@@ -250,6 +261,80 @@ export default function AccountPage() {
             </ul>
           </>
         )}
+
+        <h2 className="mt-10 text-lg font-medium">Wallet</h2>
+        <div className="mt-4 rounded-md border p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Store credit balance</p>
+              <p className="mt-1 font-mono text-2xl font-semibold">
+                ${(((customer as { balance_usd_cents?: number })?.balance_usd_cents ?? 0) / 100).toFixed(2)}
+              </p>
+            </div>
+            <p className="max-w-xs text-xs text-muted-foreground">
+              Pay any order fully from your wallet and get 10% off — the Whish prepay reward.
+            </p>
+          </div>
+
+          <div className="mt-5 border-t pt-4">
+            <p className="text-sm font-medium">Add funds via Whish</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Send the amount to BACH on Whish Money, then enter it here with the receipt number. We confirm within 6 hours max — taking longer?{" "}
+              <a href="https://wa.me/96171566296" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                WhatsApp us
+              </a>
+              .
+            </p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="grid gap-1">
+                <label htmlFor="tu-amt" className="text-xs text-muted-foreground">Amount (USD)</label>
+                <Input id="tu-amt" dir="ltr" type="number" min="1" step="1" className="w-28" value={tuAmount} onChange={(e) => setTuAmount(e.target.value)} />
+              </div>
+              <div className="grid gap-1">
+                <label htmlFor="tu-rcpt" className="text-xs text-muted-foreground">Whish receipt no.</label>
+                <Input id="tu-rcpt" dir="ltr" className="w-44" value={tuReceipt} onChange={(e) => setTuReceipt(e.target.value)} />
+              </div>
+              <Button
+                disabled={tuBusy || !Number(tuAmount) || tuReceipt.trim().length < 3}
+                onClick={async () => {
+                  setTuBusy(true);
+                  setTuMsg("");
+                  const { error } = await supabaseBrowser().rpc("request_wallet_topup", {
+                    p_amount_usd: Number(tuAmount),
+                    p_receipt: tuReceipt.trim(),
+                  });
+                  setTuBusy(false);
+                  if (error) {
+                    setTuMsg(error.message.includes("pending") ? "You already have pending top-ups — wait for confirmation first." : "Something went wrong — try again or WhatsApp us.");
+                    return;
+                  }
+                  setTuMsg("Received — we'll confirm within 6 hours max.");
+                  setTuAmount("");
+                  setTuReceipt("");
+                  const { data: t2 } = await supabaseBrowser().from("wallet_topups").select("id, amount_usd_cents, receipt_no, status, created_at").order("created_at", { ascending: false }).limit(10);
+                  setTopups(t2 ?? []);
+                }}
+              >
+                {tuBusy ? "Sending…" : "Submit"}
+              </Button>
+            </div>
+            {tuMsg && <p className="mt-2 text-sm text-muted-foreground">{tuMsg}</p>}
+          </div>
+
+          {topups.length > 0 && (
+            <ul className="mt-4 space-y-1 border-t pt-3 text-sm">
+              {topups.map((tp) => (
+                <li key={tp.id} className="flex items-center justify-between gap-2">
+                  <span className="font-mono">${(tp.amount_usd_cents / 100).toFixed(2)}</span>
+                  <span className="text-xs text-muted-foreground" dir="ltr">#{tp.receipt_no}</span>
+                  <span className={tp.status === "confirmed" ? "text-xs text-green-600 dark:text-green-400" : tp.status === "rejected" ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+                    {tp.status === "pending" ? "awaiting confirmation" : tp.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <h2 className="mt-10 text-lg font-medium">{t(locale, "sf.acct.orders")}</h2>
         {orders.length === 0 ? (

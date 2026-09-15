@@ -25,6 +25,8 @@ interface LoadedOrder {
   subtotal_usd_cents: number;
   total_usd_cents: number;
   created_at: string;
+  customer_id: string | null;
+  customerName: string | null;
   items: OrderItem[];
 }
 
@@ -49,6 +51,7 @@ interface Slip {
   cashInLbp: number;
   refundUsd: number;
   refundLbp: number;
+  walletCredit?: number;
   rate: number;
 }
 
@@ -75,6 +78,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
   // settlement inputs
   const [payUsd, setPayUsd] = useState("");
   const [payLbp, setPayLbp] = useState("");
+  const [toWallet, setToWallet] = useState(false);
 
   async function loadOrder() {
     setError("");
@@ -85,7 +89,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     if (!num) return;
     const { data: o } = await supabase
       .from("orders")
-      .select("id, number, status, subtotal_usd_cents, total_usd_cents, created_at, order_items(*)")
+      .select("id, number, status, subtotal_usd_cents, total_usd_cents, created_at, customer_id, customers(full_name), order_items(*)")
       .eq("number", num)
       .maybeSingle();
     if (!o) {
@@ -110,6 +114,11 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
       subtotal_usd_cents: o.subtotal_usd_cents,
       total_usd_cents: o.total_usd_cents,
       created_at: o.created_at,
+      customer_id: (o as { customer_id?: string | null }).customer_id ?? null,
+      customerName: (() => {
+        const c = (o as unknown as { customers?: { full_name: string | null } | Array<{ full_name: string | null }> }).customers;
+        return (Array.isArray(c) ? c[0]?.full_name : c?.full_name) ?? null;
+      })(),
       items: (o.order_items as unknown as Omit<OrderItem, "returned">[]).map((i) => ({
         ...i,
         returned: returnedBy[i.id] ?? 0,
@@ -132,7 +141,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
   const payLbpAmt = Math.round(parseFloat(payLbp.replace(/,/g, "")) || 0);
   const paidEquiv = payUsdCents + Math.round((payLbpAmt / rate) * 100);
   const settled =
-    net > 5 ? paidEquiv >= net - 5 : net < -5 ? Math.abs(paidEquiv + net) <= 5 : payUsdCents === 0 && payLbpAmt === 0;
+    net > 5 ? paidEquiv >= net - 5 : net < -5 ? (toWallet ? payUsdCents === 0 && payLbpAmt === 0 : Math.abs(paidEquiv + net) <= 5) : payUsdCents === 0 && payLbpAmt === 0;
   const anyReturn = credit > 0;
   const canSubmit = !busy && anyReturn && settled && (mode === "return" || newCart.length > 0);
 
@@ -184,11 +193,27 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     if (payLbpAmt > 0) cash.push({ currency: "LBP", amount_minor: payLbpAmt });
 
     if (mode === "return") {
-      const { error: err } = await supabase.rpc("pos_return", {
+      const useWallet = toWallet && !!order.customer_id;
+      const { data: ret, error: err } = await supabase.rpc("pos_return", {
         p_order_id: order.id,
         p_items: retItems,
-        p_refunds: cash,
+        p_refunds: useWallet ? [] : cash,
       });
+      if (!err && useWallet) {
+        const amount = (ret as Array<{ credit_usd_cents: number }>)?.[0]?.credit_usd_cents ?? credit;
+        const { error: werr } = await supabase.rpc("credit_wallet", {
+          p_customer_id: order.customer_id,
+          p_amount_usd_cents: amount,
+          p_kind: "return_credit",
+          p_note: `مرتجع فاتورة #${order.number}`,
+          p_reference: order.id,
+        });
+        if (werr) {
+          setBusy(false);
+          setError(`المرتجع انسجل بس ما قدرنا نضيف الرصيد: ${werr.message} — ضيفه يدوياً من الإدارة.`);
+          return;
+        }
+      }
       setBusy(false);
       if (err) {
         setError(`ما مشي الحال: ${err.message}`);
@@ -200,18 +225,34 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
         credit,
         cashInUsd: 0,
         cashInLbp: 0,
-        refundUsd: payUsdCents,
-        refundLbp: payLbpAmt,
+        refundUsd: useWallet ? 0 : payUsdCents,
+        refundLbp: useWallet ? 0 : payLbpAmt,
+        walletCredit: useWallet ? credit : 0,
         rate,
       });
     } else {
+      const useWallet = toWallet && !!order.customer_id && net < -5;
       const { data, error: err } = await supabase.rpc("pos_exchange", {
         p_order_id: order.id,
         p_return_items: retItems,
         p_new_items: newCart.map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
         p_payments: net > 5 ? cash : [],
-        p_refunds: net < -5 ? cash : [],
+        p_refunds: net < -5 && !useWallet ? cash : [],
       });
+      if (!err && useWallet) {
+        const { error: werr } = await supabase.rpc("credit_wallet", {
+          p_customer_id: order.customer_id,
+          p_amount_usd_cents: Math.abs(net),
+          p_kind: "return_credit",
+          p_note: `فرق تبديل فاتورة #${order.number}`,
+          p_reference: order.id,
+        });
+        if (werr) {
+          setBusy(false);
+          setError(`التبديل انسجل بس ما قدرنا نضيف الرصيد: ${werr.message} — ضيفه يدوياً من الإدارة.`);
+          return;
+        }
+      }
       setBusy(false);
       if (err) {
         setError(`ما مشي الحال: ${err.message}`);
@@ -225,8 +266,9 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
         newTotal,
         cashInUsd: net > 5 ? payUsdCents : 0,
         cashInLbp: net > 5 ? payLbpAmt : 0,
-        refundUsd: net < -5 ? payUsdCents : 0,
-        refundLbp: net < -5 ? payLbpAmt : 0,
+        refundUsd: net < -5 && !useWallet ? payUsdCents : 0,
+        refundLbp: net < -5 && !useWallet ? payLbpAmt : 0,
+        walletCredit: useWallet ? Math.abs(net) : 0,
         rate,
       });
     }
@@ -259,6 +301,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
             {slip.cashInLbp > 0 && <Row label="Paid LBP" value={`LBP ${slip.cashInLbp.toLocaleString("en-US")}`} />}
             {slip.refundUsd > 0 && <Row label="Refund USD" value={usd(slip.refundUsd)} />}
             {slip.refundLbp > 0 && <Row label="Refund LBP" value={`LBP ${slip.refundLbp.toLocaleString("en-US")}`} />}
+            {(slip.walletCredit ?? 0) > 0 && <Row label="Wallet credit" value={usd(slip.walletCredit!)} />}
             <p className="pt-2 text-center text-xs text-muted-foreground">
               Exchange rate: LBP {slip.rate.toLocaleString("en-US")} / $
             </p>
@@ -360,6 +403,17 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
               تبديل بقطع تانية
             </Button>
           </div>
+
+          {order.customer_id ? (
+            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+              <input type="checkbox" className="h-4 w-4" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
+              <span>
+                رجّع المبلغ <span className="font-medium">رصيد على محفظة الزبون</span>
+                {order.customerName ? <span className="text-muted-foreground"> ({order.customerName})</span> : null} بدل الكاش
+                <span className="block text-xs text-muted-foreground">بيستعمله أونلاين — وإذا عبّى محفظته بـWhish بياخد 10% خصم عالطلبات المدفوعة منها.</span>
+              </span>
+            </label>
+          ) : null}
 
           {mode === "exchange" && (
             <div className="space-y-3 rounded-lg border p-4">

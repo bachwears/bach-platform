@@ -41,6 +41,7 @@ export default async function Home() {
         subtitle={branch?.name ?? undefined}
         items={[
           { href: "/queue", label: "طلبات الأونلاين" },
+          { href: "/invoices", label: "الفواتير والزبائن" },
           { href: "/returns", label: "مرتجع / تبديل" },
           { href: "/eod", label: "تسكير اليوم" },
           { href: "/stocktake", label: "جرد" },
