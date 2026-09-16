@@ -194,32 +194,68 @@ export default async function Home() {
 
         {collections.length ? (
           <section className="mx-auto max-w-6xl px-4 pt-20">
-            <h2 className="text-xl font-semibold tracking-tight" data-reveal>Collections</h2>
-            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-              {collections.slice(0, 8).map((c, i) => (
-                <Link
-                  key={c.slug}
-                  href={lhref(locale, `/shop?col=${c.slug}`)}
-                  className="group block overflow-hidden rounded-md"
-                  data-reveal
-                  style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}
-                >
-                  <div className="aspect-[3/4] overflow-hidden bg-muted">
+            <h2 className="text-center text-sm font-semibold uppercase tracking-[0.3em]" data-reveal>
+              Collections
+            </h2>
+            {/* BOSS-style editorial mosaic: one tall feature in the center,
+                smaller tiles flanking it, two wide tiles below. */}
+            <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+              {collections.slice(0, 5).map((c, i) => {
+                const pos = [
+                  "col-span-2 md:col-start-2 md:col-span-2 md:row-start-1 md:row-span-2", // feature
+                  "md:col-start-1 md:row-start-1",
+                  "md:col-start-1 md:row-start-2",
+                  "md:col-start-4 md:row-start-1",
+                  "md:col-start-4 md:row-start-2",
+                ][i];
+                return (
+                  <Link
+                    key={c.slug}
+                    href={lhref(locale, `/shop?col=${c.slug}`)}
+                    className={`group relative block overflow-hidden rounded-md bg-muted ${pos} ${i === 0 ? "aspect-[3/4] md:aspect-auto" : "aspect-[4/5] md:aspect-auto md:min-h-0"}`}
+                    data-reveal
+                    style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={c.cover_url!}
                       alt={c.name_en}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
                     />
-                  </div>
-                  <p className="mt-3 text-sm font-medium tracking-tight">{c.name_en}</p>
-                  {c.description_en ? (
-                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{c.description_en}</p>
-                  ) : null}
-                </Link>
-              ))}
+                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-4 pt-10">
+                      <span className={`block font-medium tracking-tight text-white ${i === 0 ? "text-lg" : "text-sm"}`}>
+                        {c.name_en}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
+            {collections.length > 5 ? (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-4 md:gap-4">
+                {collections.slice(5, 7).map((c, i) => (
+                  <Link
+                    key={c.slug}
+                    href={lhref(locale, `/shop?col=${c.slug}`)}
+                    className="group relative block aspect-[16/7] overflow-hidden rounded-md bg-muted"
+                    data-reveal
+                    style={{ ["--reveal-delay" as string]: `${(i + 5) * 60}ms` }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.cover_url!}
+                      alt={c.name_en}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover object-[center_30%] transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+                    />
+                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-4 pt-10">
+                      <span className="block text-sm font-medium tracking-tight text-white">{c.name_en}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </section>
         ) : null}
 
