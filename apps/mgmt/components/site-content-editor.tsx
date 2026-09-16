@@ -16,6 +16,7 @@ interface Hero {
   cta_href: string;
   image_url: string;
   image_alt: string;
+  video_url: string;
 }
 
 const EMPTY: Hero = {
@@ -26,6 +27,7 @@ const EMPTY: Hero = {
   cta_href: "/shop",
   image_url: "",
   image_alt: "",
+  video_url: "",
 };
 
 interface Banner {
@@ -208,6 +210,20 @@ export function SiteContentEditor() {
               رجّع الصورة الأصلية
             </Button>
           )}
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="sc-video" className="flex items-center gap-2">
+            رابط فيديو الواجهة (اختياري)
+            <HintDot
+              hint={{
+                title: "فيديو الهيرو",
+                what: "فيديو صامت بيلف مكان صورة الواجهة — متل مواقع BOSS. الصورة بتضل بوستر ريثما يحمّل وبديل لمفعّلي تقليل الحركة.",
+                source: "ملف mp4 مرفوع على التخزين (product-media/site).",
+                edit: "فضّي الخانة ليرجع الموقع للصورة الثابتة.",
+              }}
+            />
+          </Label>
+          <Input id="sc-video" dir="ltr" value={hero.video_url} onChange={(e) => set("video_url", e.target.value)} />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="sc-alt">وصف الصورة (لمحركات البحث وقارئات الشاشة، بالإنكليزي)</Label>

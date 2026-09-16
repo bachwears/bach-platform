@@ -14,6 +14,7 @@ interface HeroContent {
   cta_href?: string;
   image_url?: string;
   image_alt?: string;
+  video_url?: string;
 }
 
 export default async function Home() {
@@ -102,15 +103,41 @@ export default async function Home() {
             which is physically LEFT in the art direction, so the text block
             stays pinned left in both locales. */}
         <section className="relative -mt-[68px] overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={hero.image_url || "/hero-campaign.jpg"}
-            srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
-            sizes="100vw"
-            alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
-            fetchPriority="high"
-            className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
-          />
+          {hero.video_url ? (
+            <>
+              {/* Muted looping campaign film; the still stays as the poster,
+                  the LCP image for slow connections, and the whole hero for
+                  reduced-motion users. */}
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster={hero.image_url || "/hero-campaign.jpg"}
+                aria-label={hero.image_alt || t(locale, "sf.home.heroAlt")}
+                className="anim-hero-settle hidden h-[46vh] w-full object-cover object-[70%_center] motion-safe:block sm:h-[60vh] md:h-[78vh]"
+              >
+                <source src={hero.video_url} type="video/mp4" />
+              </video>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={hero.image_url || "/hero-campaign.jpg"}
+                alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
+                className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] motion-safe:hidden sm:h-[60vh] md:h-[78vh]"
+              />
+            </>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hero.image_url || "/hero-campaign.jpg"}
+              srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
+              sizes="100vw"
+              alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
+              fetchPriority="high"
+              className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
+            />
+          )}
           <div className="pointer-events-none md:absolute md:inset-0">
             <div className="mx-auto h-full max-w-6xl px-4">
               <div
