@@ -78,7 +78,7 @@ export default async function ShopPage({
       .eq("status", "published")
       .order("created_at", { ascending: false }),
     supabase.from("merchandising_settings").select("active_season").maybeSingle(),
-    supabase.from("categories").select("id, code, name_en, name_ar, sort, parent_id"),
+    supabase.from("categories").select("id, code, name_en, name_ar, sort, parent_id, banner_url"),
   ]);
   const all = (data ?? []) as unknown as ShopProduct[];
   const tree = catTree ?? [];
@@ -219,6 +219,16 @@ export default async function ShopPage({
     ? t(locale, "sf.shop.search", { q: params.q ?? "" })
     : colName ?? (catNode ? pick(locale, catNode.name_en, catNode.name_ar) : t(locale, "sf.shop.allProducts"));
 
+  // Editorial header imagery: the collection's cover when browsing a
+  // collection, else the parent category's banner.
+  let headerImage: { url: string; alt: string } | null = null;
+  if (col) {
+    const { data: colRow } = await supabase.from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
+    if (colRow?.cover_url) headerImage = { url: colRow.cover_url, alt: colRow.name_en };
+  } else if (parentNode && (parentNode as { banner_url?: string | null }).banner_url) {
+    headerImage = { url: (parentNode as { banner_url?: string | null }).banner_url!, alt: parentNode.name_en };
+  }
+
   const sections: FilterSection[] = [];
   if (sizeFacets.length > 1) {
     sections.push({
@@ -265,6 +275,16 @@ export default async function ShopPage({
   return (
     <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-6xl px-4 py-10">
+        {headerImage ? (
+          <div className="anim-fade mb-8 overflow-hidden rounded-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={headerImage.url}
+              alt={headerImage.alt}
+              className={col ? "max-h-72 w-full object-cover object-[center_30%]" : "max-h-56 w-full object-cover"}
+            />
+          </div>
+        ) : null}
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
           <ol className="flex flex-wrap items-center gap-1.5">
             <li>

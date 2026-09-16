@@ -32,6 +32,13 @@ export default async function Home() {
     cta_label?: string;
     cta_href?: string;
   };
+  const { data: collectionRows } = await supabase
+    .from("collections")
+    .select("slug, name_en, description_en, cover_url")
+    .eq("is_active", true)
+    .not("cover_url", "is", null)
+    .order("sort");
+  const collections = collectionRows ?? [];
   const { data: products } = await supabase
     .from("products")
     .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
@@ -156,6 +163,37 @@ export default async function Home() {
               ) : null}
             </p>
           </aside>
+        ) : null}
+
+        {collections.length ? (
+          <section className="mx-auto max-w-6xl px-4 pt-20">
+            <h2 className="text-xl font-semibold tracking-tight" data-reveal>Collections</h2>
+            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {collections.slice(0, 8).map((c, i) => (
+                <Link
+                  key={c.slug}
+                  href={lhref(locale, `/shop?col=${c.slug}`)}
+                  className="group block overflow-hidden rounded-md"
+                  data-reveal
+                  style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}
+                >
+                  <div className="aspect-[3/4] overflow-hidden bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.cover_url!}
+                      alt={c.name_en}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+                    />
+                  </div>
+                  <p className="mt-3 text-sm font-medium tracking-tight">{c.name_en}</p>
+                  {c.description_en ? (
+                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{c.description_en}</p>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
+          </section>
         ) : null}
 
         {featured.length ? (

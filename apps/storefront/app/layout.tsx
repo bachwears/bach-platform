@@ -32,6 +32,15 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://bachwears.com"),
   title: "BACH Wears",
   description: "Menswear, considered. BACH Wears — Lebanon.",
+  openGraph: {
+    title: "BACH Wears",
+    description: "Menswear, considered. BACH Wears — Lebanon.",
+    url: "https://bachwears.com",
+    siteName: "BACH Wears",
+    images: [{ url: "/og-image.jpg", width: 1024, height: 537 }],
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", images: ["/og-image.jpg"] },
 };
 
 // Storefront is English-only (founder decision 2026-09-07); /ar redirects here.
