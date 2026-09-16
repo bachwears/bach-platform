@@ -71,7 +71,7 @@ function TrackForm() {
           placeholder="+961 71 000 000"
           inputMode="tel"
           dir="ltr"
-          className="flex-1"
+          className="min-w-[200px] flex-1"
           onKeyDown={(e) => e.key === "Enter" && void track()}
         />
         <Button disabled={busy} onClick={() => void track()}>
