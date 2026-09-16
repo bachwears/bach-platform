@@ -102,7 +102,7 @@ export default async function Home() {
         {/* Campaign hero — the copy sits on the stone-wall negative space,
             which is physically LEFT in the art direction, so the text block
             stays pinned left in both locales. */}
-        <section className="relative -mt-[68px] overflow-hidden">
+        <section className="relative overflow-hidden md:-mt-[68px]">
           {hero.video_url ? (
             <>
               {/* Muted looping campaign film; the still stays as the poster,
