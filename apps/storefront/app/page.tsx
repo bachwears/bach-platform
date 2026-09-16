@@ -212,7 +212,7 @@ export default async function Home() {
                   <Link
                     key={c.slug}
                     href={lhref(locale, `/shop?col=${c.slug}`)}
-                    className={`group relative block overflow-hidden rounded-md bg-muted ${pos} ${i === 0 ? "aspect-[3/4] md:aspect-auto" : "aspect-[4/5] md:aspect-auto md:min-h-0"}`}
+                    className={`group relative block overflow-hidden rounded-md bg-muted ${pos} ${i === 0 ? "aspect-[3/4]" : "aspect-[4/5] md:aspect-auto md:min-h-0"}`}
                     data-reveal
                     style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}
                   >
