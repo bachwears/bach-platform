@@ -8,6 +8,10 @@
  * Swap values here only; components never hardcode color.
  */
 :root {
+  /* color-scheme keeps native UI (scrollbars, form controls) in step and
+     forces a full repaint on theme change — Chrome otherwise leaves the
+     sticky glass header compositing a stale light backdrop. */
+  color-scheme: light;
   --background: oklch(0.985 0.003 85);
   --foreground: oklch(0.21 0.008 60);
   --card: oklch(1 0 0);
@@ -32,6 +36,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.17 0.005 60);
   --foreground: oklch(0.96 0.004 85);
   --card: oklch(0.21 0.006 60);
@@ -110,12 +115,30 @@
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
 }
+/* Dark chrome sits on a near-black page, so the bar lifts to the card tone
+   and the hairline flips white — otherwise the pill melts into the page. */
+.dark .glass-bar,
+.dark .glass-panel {
+  --tw-ring-color: rgb(255 255 255 / 0.1);
+}
+.dark .glass-bar {
+  background: color-mix(in oklab, var(--secondary) 72%, transparent);
+}
+.dark .glass-panel {
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+}
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .glass-bar,
   .glass-panel {
     background: var(--background);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+  .dark .glass-bar {
+    background: var(--secondary);
+  }
+  .dark .glass-panel {
+    background: var(--card);
   }
 }
 
