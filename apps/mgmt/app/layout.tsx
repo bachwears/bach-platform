@@ -25,19 +25,21 @@ export const metadata: Metadata = {
 
 // Arabic-first UI (Lebanese half-formal tone), RTL end-to-end.
 import { StaffAssistant } from "@bach/ui/components/staff-assistant";
+import { ThemeScript } from "@bach/ui/components/theme-script";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="ar"
       dir="rtl"
+      suppressHydrationWarning
       className={`${plexArabic.variable} ${plexMono.variable}`}
       style={{
         ["--font-app-sans" as string]: "var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif",
         ["--font-app-mono" as string]: "var(--font-plex-mono), ui-monospace, monospace",
       }}
     >
-      <body>{children}<StaffAssistant /></body>
+      <body><ThemeScript />{children}<StaffAssistant /></body>
     </html>
   );
 }

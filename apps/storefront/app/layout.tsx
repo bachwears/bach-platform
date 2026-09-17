@@ -13,6 +13,7 @@ import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
+import { ThemeScript } from "@bach/ui/components/theme-script";
 import { getLocale } from "../lib/locale";
 
 const archivo = Archivo({
@@ -59,10 +60,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       dir={dir(locale)}
+      suppressHydrationWarning
       className={`${archivo.variable} ${plexArabic.variable}`}
       style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
+        <ThemeScript />
         <div className="flex min-h-dvh flex-col bg-background">
           <SiteHeader />
           <div className="flex-1">{children}</div>
