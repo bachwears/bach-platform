@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "./button";
+import { ThemeToggle } from "./theme-toggle";
 
 export interface PortalNavLink {
   href: string;
@@ -91,6 +92,7 @@ export function PortalNav({
 
         <div className="flex items-center gap-2">
           {meta ? <span className="hidden max-w-48 truncate text-sm text-muted-foreground xl:inline">{meta}</span> : null}
+          <ThemeToggle />
           <form action="/logout" method="post" className="hidden md:block">
             <Button type="submit" variant="ghost" size="sm">
               {logoutLabel}

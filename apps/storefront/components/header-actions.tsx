@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, Search, X } from "lucide-react";
+import { ThemeToggle } from "@bach/ui/components/theme-toggle";
 import { t } from "@bach/i18n";
 
 import { lhref, useLocale } from "../lib/locale-client";
@@ -61,6 +62,7 @@ export function HeaderActions({
 
   return (
     <>
+      <ThemeToggle labels={{ action: "Theme", system: "Auto", light: "Light", dark: "Dark" }} />
       <button
         type="button"
         aria-label={t(locale, "sf.nav.searchOpen")}
