@@ -70,11 +70,15 @@ jobs:
           EOS
           scp /tmp/f2b.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/f2b.sh
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo bash /tmp/f2b.sh && rm /tmp/f2b.sh"
-      - name: Ship compose + Caddyfile
+      - name: Ship compose + site config
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /srv/bach/caddy"
           scp deploy/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/bach/docker-compose.yml
-          scp deploy/Caddyfile ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/bach/caddy/Caddyfile
+          # Bach's sites are served by the shared edge proxy (/srv/edge); reload it without downtime.
+          scp deploy/Caddyfile ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/edge/sites/bach.caddy
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            docker compose -f /srv/edge/compose.yaml exec -T caddy caddy validate --config /etc/caddy/Caddyfile &&
+            docker compose -f /srv/edge/compose.yaml exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+          "
       - name: Pull and restart stack
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
@@ -90,5 +94,5 @@ jobs:
           sleep 5
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             docker compose -f /srv/bach/docker-compose.yml ps --format '{{.Name}}: {{.Status}}' &&
-            curl -sf -o /dev/null -w 'storefront via caddy: %{http_code}\n' http://localhost/
+            curl -sf -o /dev/null -w 'storefront via edge proxy: %{http_code}\n' http://localhost/
           "
