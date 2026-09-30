@@ -117,13 +117,13 @@ export default function CartPage() {
                           {d!.size} · {d!.color_en}
                         </p>
                       </div>
-                      <p className="font-mono">{usd(d!.price * line.quantity)}</p>
+                      <p className="tabular-nums">{usd(d!.price * line.quantity)}</p>
                     </div>
                     <div className="mt-auto flex items-center gap-2 pt-3">
                       <Button size="sm" variant="outline" onClick={() => setQuantity(line.variantId, line.quantity - 1)}>
                         −
                       </Button>
-                      <span className="w-6 text-center font-mono text-sm">{line.quantity}</span>
+                      <span className="w-6 text-center text-sm tabular-nums">{line.quantity}</span>
                       <Button
                         size="sm"
                         variant="outline"
@@ -147,12 +147,12 @@ export default function CartPage() {
             <aside className="h-fit space-y-3 border p-5 text-sm lg:sticky lg:top-8">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t(locale, "sf.cart.subtotal")}</span>
-                <span className="font-mono">{usd(subtotal)}</span>
+                <span className="tabular-nums">{usd(subtotal)}</span>
               </div>
               {rate && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>{t(locale, "sf.cart.inLbp")}</span>
-                  <span className="font-mono">{Math.round((subtotal / 100) * rate).toLocaleString("en-US")} LBP</span>
+                  <span className="tabular-nums">{Math.round((subtotal / 100) * rate).toLocaleString("en-US")} LBP</span>
                 </div>
               )}
               <p className="text-xs text-muted-foreground">{t(locale, "sf.cart.codNote")}</p>

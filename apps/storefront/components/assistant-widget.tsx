@@ -3,6 +3,7 @@
 import { MessageCircle } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
@@ -40,6 +41,8 @@ export function AssistantWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // on phones the launcher would sit on the bag / place-order buttons
+  const inPurchase = /\/(cart|checkout)(\/|$)/.test(usePathname() ?? "");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -89,7 +92,7 @@ export function AssistantWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with us"
-          className="fixed bottom-5 right-5 z-40 grid h-13 w-13 place-items-center rounded-full bg-foreground p-4 text-background shadow-lg transition-transform hover:scale-105"
+          className={`fixed bottom-5 right-5 z-40 grid h-13 w-13 place-items-center rounded-full bg-foreground p-4 text-background shadow-lg transition-transform hover:scale-105 ${inPurchase ? "max-lg:hidden" : ""}`}
         ><MessageCircle className="h-5 w-5" aria-hidden /></button>
       )}
       {open && (

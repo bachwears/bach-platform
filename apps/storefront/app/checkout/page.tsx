@@ -164,7 +164,7 @@ export default function CheckoutPage() {
         <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.co.sub")}</p>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-4">
+          <div className="space-y-4 [&_input]:h-11 lg:[&_input]:h-9">
             <Field label={t(locale, "sf.co.name")}>
               <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </Field>
@@ -289,27 +289,27 @@ export default function CheckoutPage() {
             </p>
           </div>
 
-          <aside className="h-fit space-y-3 border p-5 text-sm lg:sticky lg:top-8">
+          <aside className="order-first h-fit space-y-3 border p-5 text-sm lg:sticky lg:top-8 lg:order-none">
             {summary.map((l, i) => (
               <div key={i} className="flex justify-between gap-3">
                 <span>
                   {l.name} <span className="text-muted-foreground">· {l.size} {l.color} × {l.quantity}</span>
                 </span>
-                <span className="font-mono">{usd(l.lineTotal)}</span>
+                <span className="tabular-nums">{usd(l.lineTotal)}</span>
               </div>
             ))}
             {promoDiscount > 0 && (
               <div className="flex justify-between text-green-600 dark:text-green-400">
                 <span>{t(locale, "sf.co.promoDiscount")}</span>
-                <span className="font-mono">- {usd(promoDiscount)}</span>
+                <span className="tabular-nums">- {usd(promoDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between border-t pt-3 font-medium">
               <span>{t(locale, "sf.co.total")}</span>
-              <span className="font-mono">{usd(total)}</span>
+              <span className="tabular-nums">{usd(total)}</span>
             </div>
             {rate && (
-              <p className="text-left font-mono text-xs text-muted-foreground" dir="ltr">
+              <p className="text-left text-xs tabular-nums text-muted-foreground" dir="ltr">
                 ≈ {Math.round((total / 100) * rate).toLocaleString("en-US")} LBP
               </p>
             )}
