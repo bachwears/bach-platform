@@ -13,6 +13,7 @@ const ITEMS: PortalNavItem[] = [
       { href: "/collections", label: "الكولكشنات" },
       { href: "/sizes", label: "المقاسات" },
       { href: "/media-import", label: "الصور" },
+      { href: "/media-match", label: "مطابقة الصور" },
       { href: "/labels", label: "الليبلات" },
       { href: "/product-health", label: "صحة البيانات" },
     ],
