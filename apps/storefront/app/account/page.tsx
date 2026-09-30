@@ -240,12 +240,13 @@ export default function AccountPage() {
                     {w.products.name_en}
                   </Link>
                   <span className="flex items-center gap-3">
-                    <span className="font-mono">
+                    <span className="tabular-nums">
                       ${((w.products.sale_price_usd_cents ?? w.products.price_usd_cents) / 100).toFixed(2)}
                     </span>
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Remove ${w.products.name_en}`}
+                      className="-m-2 grid h-9 w-9 place-items-center text-muted-foreground hover:text-foreground"
                       onClick={async () => {
                         setWishlist(wishlist.filter((x) => x.product_id !== w.product_id));
                         if (customer?.id) {
@@ -267,7 +268,7 @@ export default function AccountPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm text-muted-foreground">Store credit balance</p>
-              <p className="mt-1 font-mono text-2xl font-semibold">
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
                 ${(((customer as { balance_usd_cents?: number })?.balance_usd_cents ?? 0) / 100).toFixed(2)}
               </p>
             </div>
@@ -325,7 +326,7 @@ export default function AccountPage() {
             <ul className="mt-4 space-y-1 border-t pt-3 text-sm">
               {topups.map((tp) => (
                 <li key={tp.id} className="flex items-center justify-between gap-2">
-                  <span className="font-mono">${(tp.amount_usd_cents / 100).toFixed(2)}</span>
+                  <span className="tabular-nums">${(tp.amount_usd_cents / 100).toFixed(2)}</span>
                   <span className="text-xs text-muted-foreground" dir="ltr">#{tp.receipt_no}</span>
                   <span className={tp.status === "confirmed" ? "text-xs text-green-600 dark:text-green-400" : tp.status === "rejected" ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
                     {tp.status === "pending" ? "awaiting confirmation" : tp.status}
@@ -349,8 +350,8 @@ export default function AccountPage() {
             {orders.map((o) => (
               <li key={o.id} className="rounded-md border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-medium" dir="ltr">#{o.number}</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-medium tabular-nums" dir="ltr">#{o.number}</span>
                     <Badge variant={["cancelled", "returned"].includes(o.status) ? "secondary" : "default"}>
                       {statusLabel(locale, o.status)}
                     </Badge>
@@ -359,7 +360,7 @@ export default function AccountPage() {
                       {o.channel === "pos" ? t(locale, "sf.acct.inStore") : ""}
                     </span>
                   </div>
-                  <span className="font-mono">{usd(o.total_usd_cents)}</span>
+                  <span className="tabular-nums">{usd(o.total_usd_cents)}</span>
                 </div>
                 <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                   {o.order_items.map((i, idx) => (

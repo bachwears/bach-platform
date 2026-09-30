@@ -48,7 +48,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.login.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.login.sub")}</p>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-4 [&_input]:h-11 lg:[&_input]:h-9">
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">{t(locale, "sf.login.email")}</span>
             <Input
@@ -70,13 +70,19 @@ export default function LoginPage() {
               onKeyDown={(e) => e.key === "Enter" && void signIn()}
             />
           </label>
+          <Link
+            href={lhref(locale, "/account/forgot")}
+            className="-my-1 inline-block py-1 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            {t(locale, "sf.login.forgot")}
+          </Link>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button className="h-12 w-full text-base" disabled={!canSubmit} onClick={() => void signIn()}>
             {busy ? t(locale, "sf.login.signingIn") : t(locale, "sf.login.signIn")}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             {t(locale, "sf.login.newTo")}{" "}
-            <Link href={lhref(locale, "/account/new")} className="underline underline-offset-4">
+            <Link href={lhref(locale, "/account/new")} className="inline-block py-2 underline underline-offset-4">
               {t(locale, "sf.login.create")}
             </Link>
           </p>

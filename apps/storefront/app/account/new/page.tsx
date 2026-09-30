@@ -93,7 +93,7 @@ export default function NewAccountPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.new.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.new.sub")}</p>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-4 [&_input]:h-11 lg:[&_input]:h-9">
           <Field label={t(locale, "sf.new.name")}>
             <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </Field>
@@ -116,6 +116,12 @@ export default function NewAccountPage() {
           <Button className="h-12 w-full text-base" disabled={!canCreate} onClick={() => void create()}>
             {busy ? t(locale, "sf.new.creating") : t(locale, "sf.new.create")}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            {t(locale, "sf.new.have")}{" "}
+            <Link href={lhref(locale, "/account/login")} className="inline-block py-2 underline underline-offset-4">
+              {t(locale, "sf.login.signIn")}
+            </Link>
+          </p>
         </div>
       </main>
     </div>
