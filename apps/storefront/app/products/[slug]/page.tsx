@@ -99,7 +99,7 @@ export default async function ProductPage({
         .eq("category_id", product.category_id)
         .neq("id", product.id)
         .order("created_at", { ascending: false })
-        .limit(4)
+        .limit(24)
     : Promise.resolve({ data: [] });
 
   // "Complete the look": products from other categories sharing a collection,
@@ -130,7 +130,7 @@ export default async function ProductPage({
         .eq("status", "published")
         .in("id", lookIds.slice(0, 60))
         .neq("category_id", product.category_id ?? "00000000-0000-0000-0000-000000000000")
-        .limit(4)
+        .limit(24)
     : { data: [] };
 
   const toCard = (p: {
@@ -151,8 +151,14 @@ export default async function ProductPage({
     back: (p.media_assets ?? []).find((m) => m.kind === "back")?.storage_path ?? null,
     colors: (p.product_variants ?? []).filter((v) => v.is_active).map((v) => v.color_en),
   });
-  const related = ((relatedRaw ?? []) as Parameters<typeof toCard>[0][]).map(toCard);
-  const look = ((lookRaw ?? []) as Parameters<typeof toCard>[0][]).map(toCard);
+  // photographed pieces first, then keep four
+  const firstFour = (rows: unknown) =>
+    ((rows ?? []) as Parameters<typeof toCard>[0][])
+      .map(toCard)
+      .sort((a, b) => Number(!a.front) - Number(!b.front))
+      .slice(0, 4);
+  const related = firstFour(relatedRaw);
+  const look = firstFour(lookRaw);
   const guideRaw = guideRow as {
     name_en: string;
     name_ar: string;

@@ -36,6 +36,8 @@
   "sf.shop.onSale": "On sale",
   "sf.shop.empty": "Nothing matches those filters.",
   "sf.shop.clear": "Clear filters",
+  "sf.shop.saleTitle": "Sale",
+  "sf.shop.saleEmpty": "No pieces are on sale right now.",
   "sf.shop.searchPlaceholder": "Search the collection",
   "sf.shop.searchButton": "Search",
   "sf.shop.preparing": "The collection is being prepared. Check back soon.",

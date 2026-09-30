@@ -144,7 +144,11 @@ export default async function ShopPage({
     const seasons = p.product_seasons.map((s) => s.season);
     return seasons.includes(activeSeason) || seasons.includes("all_season") || seasons.length === 0 ? 0 : 1;
   };
+  // pieces still waiting on photography never lead a grid, whatever the sort
+  const unshot = (p: ShopProduct) => ((p.media_assets ?? []).some((m) => m.kind === "front") ? 0 : 1);
   items = items.sort((a, b) => {
+    const photo = unshot(a) - unshot(b);
+    if (photo) return photo;
     if (sort === "price-asc") return price(a) - price(b);
     if (sort === "price-desc") return price(b) - price(a);
     return inSeason(a) - inSeason(b) || b.created_at.localeCompare(a.created_at);
@@ -189,6 +193,7 @@ export default async function ShopPage({
     return lhref(locale, s ? `/shop?${s}` : "/shop");
   };
   const activeFilters = [col, size, color, band, sale ? "sale" : ""].filter(Boolean).length + (q ? 1 : 0);
+  const saleOnly = sale && activeFilters === 1 && !cat;
   const colName = col
     ? all.flatMap((p) => p.product_collections).find((pc) => pc.collections?.slug === col)?.collections?.name_en ?? col
     : null;
@@ -217,7 +222,10 @@ export default async function ShopPage({
 
   const title = q
     ? t(locale, "sf.shop.search", { q: params.q ?? "" })
-    : colName ?? (catNode ? pick(locale, catNode.name_en, catNode.name_ar) : t(locale, "sf.shop.allProducts"));
+    : colName ??
+      (catNode
+        ? pick(locale, catNode.name_en, catNode.name_ar)
+        : t(locale, sale ? "sf.shop.saleTitle" : "sf.shop.allProducts"));
 
   // Editorial header imagery: the collection's cover when browsing a
   // collection, else the parent category's banner.
@@ -373,9 +381,9 @@ export default async function ShopPage({
           </div>
         ) : (
           <div className="mt-16 text-center text-muted-foreground">
-            <p>{t(locale, "sf.shop.empty")}</p>
+            <p>{t(locale, saleOnly ? "sf.shop.saleEmpty" : "sf.shop.empty")}</p>
             <Link href={lhref(locale, "/shop")} className="mt-2 inline-block underline underline-offset-4">
-              {t(locale, "sf.shop.clear")}
+              {t(locale, saleOnly ? "sf.shop.allProducts" : "sf.shop.clear")}
             </Link>
           </div>
         )}

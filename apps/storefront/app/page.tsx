@@ -45,7 +45,7 @@ export default async function Home() {
     .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
     .eq("status", "published")
     .order("created_at", { ascending: false })
-    .limit(4);
+    .limit(24);
 
   const featured: CardProduct[] = (products ?? []).map((p) => {
     const media = (p.media_assets as unknown as Array<{ kind: string; storage_path: string }>) ?? [];
@@ -61,7 +61,9 @@ export default async function Home() {
         .filter((v) => v.is_active)
         .map((v) => v.color_en),
     };
-  });
+  })
+    .sort((a, b) => Number(!a.front) - Number(!b.front))
+    .slice(0, 4);
 
   const orgLd = {
     "@context": "https://schema.org",

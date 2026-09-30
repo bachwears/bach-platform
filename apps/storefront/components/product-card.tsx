@@ -54,14 +54,19 @@ export function ProductCard({
             <img
               src={product.front}
               alt={name}
+              loading="lazy"
+              decoding="async"
               className={`absolute inset-0 h-full w-full object-cover group-hover:opacity-0 ${zoom}`}
             />
             {product.back ? (
+              // hidden on touch screens: a lazy display:none image is never fetched
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.back}
                 alt=""
-                className={`absolute inset-0 h-full w-full object-cover opacity-0 group-hover:opacity-100 ${zoom}`}
+                loading="lazy"
+                decoding="async"
+                className={`absolute inset-0 hidden h-full w-full object-cover opacity-0 group-hover:opacity-100 [@media(hover:hover)]:block ${zoom}`}
               />
             ) : null}
           </>

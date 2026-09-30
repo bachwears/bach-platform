@@ -10,7 +10,7 @@ import { getLocale, lhref, pick } from "../lib/locale";
 export async function SiteHeader() {
   const locale = await getLocale();
   const supabase = await supabaseServer();
-  const [{ data: cats }, { data: cols }] = await Promise.all([
+  const [{ data: cats }, { data: cols }, { count: saleCount }] = await Promise.all([
     supabase
       .from("categories")
       .select("id, code, name_en, name_ar, sort, parent_id, products(count)")
@@ -24,6 +24,11 @@ export async function SiteHeader() {
       .eq("is_active", true)
       .order("sort")
       .order("name_en"),
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .not("sale_price_usd_cents", "is", null),
   ]);
 
   // Parent categories are navigation headings; children with published
@@ -135,14 +140,16 @@ export async function SiteHeader() {
                           {t(locale, "sf.nav.newIn")}
                         </Link>
                       </li>
-                      <li>
-                        <Link
-                          href={lhref(locale, "/shop?sale=1")}
-                          className="text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {t(locale, "sf.nav.onSale")}
-                        </Link>
-                      </li>
+                      {saleCount ? (
+                        <li>
+                          <Link
+                            href={lhref(locale, "/shop?sale=1")}
+                            className="text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            {t(locale, "sf.nav.onSale")}
+                          </Link>
+                        </li>
+                      ) : null}
                     </ul>
                     <Link href={lhref(locale, "/shop")} className="group/tile mt-5 block">
                       <span className="block overflow-hidden rounded-xl">
