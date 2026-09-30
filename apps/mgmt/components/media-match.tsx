@@ -72,7 +72,18 @@ export function MediaMatch() {
       }
       if (!data || data.length < 100) break;
     }
-    setFiles(all);
+    // Self-heal: hide (and clean up) anything already linked to a product —
+    // a leftover from an assign whose unmatched-cleanup didn't go through.
+    const { data: linked } = await supabase
+      .from("media_assets")
+      .select("storage_path")
+      .like("storage_path", "%/products/%");
+    const linkedNames = new Set((linked ?? []).map((r) => r.storage_path.split("/").pop()));
+    const stale = all.filter((f) => linkedNames.has(f.name));
+    if (stale.length) {
+      void supabase.storage.from(BUCKET).remove(stale.map((f) => `unmatched/${f.name}`));
+    }
+    setFiles(all.filter((f) => !linkedNames.has(f.name)));
     setFilesLoading(false);
   }
   useEffect(() => {
@@ -141,10 +152,13 @@ export function MediaMatch() {
         sort,
       });
       if (insErr) throw new Error(insErr.message);
-      await supabase.storage.from(BUCKET).remove([from]);
+      const { error: rmErr } = await supabase.storage.from(BUCKET).remove([from]);
       setFiles((fs) => fs.filter((f) => f.name !== selected));
       setSelected(null);
-      setMsg(`انربطت بـ ${product.name_en} (${KIND_LABEL[kind]})`);
+      setMsg(
+        `انربطت بـ ${product.name_en} (${KIND_LABEL[kind]})` +
+          (rmErr ? " — التنضيف من unmatched بينعمل تلقائيًا عند فتح الصفحة" : ""),
+      );
       await openProduct(product);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "صار خطأ — جرّب مرة تانية");
