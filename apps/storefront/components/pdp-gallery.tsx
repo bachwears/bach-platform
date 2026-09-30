@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface GalleryImage {
   kind: string;
@@ -8,11 +8,27 @@ export interface GalleryImage {
 }
 
 /**
- * PDP gallery: cursor-tracked hover zoom on desktop, click opens a lightbox
- * (arrow keys / on-screen arrows to move, Esc or backdrop to close).
+ * PDP gallery: below lg a full-bleed swipe carousel so name, price and the bag
+ * button stay near the fold; from lg a stacked column with cursor-tracked hover
+ * zoom. Click opens a lightbox (arrow keys / on-screen arrows, Esc or backdrop).
  */
 export function PdpGallery({ images, name }: { images: GalleryImage[]; name: string }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [slide, setSlide] = useState(0);
+  const track = useRef<HTMLDivElement>(null);
+
+  const onScroll = useCallback(() => {
+    const el = track.current;
+    if (!el || !el.clientWidth) return;
+    setSlide(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
+  }, []);
+
+  const goTo = (i: number) => {
+    const el = track.current;
+    if (!el) return;
+    const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
+    el.scrollTo({ left: dir * i * el.clientWidth, behavior: "smooth" });
+  };
 
   const step = useCallback(
     (delta: number) => {
@@ -38,29 +54,51 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
 
   return (
     <>
-      <div className="space-y-4">
-        {images.map((m, i) => (
-          <button
-            key={m.kind}
-            type="button"
-            onClick={() => setOpen(i)}
-            className="group/zoom block w-full cursor-zoom-in overflow-hidden bg-secondary"
-            aria-label={`${name} — ${m.kind}`}
-            onMouseMove={(e) => {
-              const img = e.currentTarget.querySelector("img");
-              if (!img) return;
-              const r = e.currentTarget.getBoundingClientRect();
-              img.style.transformOrigin = `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}% ${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`;
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={m.url}
-              alt={`${name} — ${m.kind}`}
-              className="aspect-[3/4] w-full object-cover transition-transform duration-200 group-hover/zoom:scale-150 motion-reduce:transition-none motion-reduce:group-hover/zoom:scale-100"
-            />
-          </button>
-        ))}
+      <div className="relative -mx-4 lg:mx-0">
+        <div
+          ref={track}
+          onScroll={onScroll}
+          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:block lg:space-y-4 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+        >
+          {images.map((m, i) => (
+            <button
+              key={m.kind}
+              type="button"
+              onClick={() => setOpen(i)}
+              className="group/zoom block w-full shrink-0 snap-center cursor-zoom-in overflow-hidden bg-secondary"
+              aria-label={`${name} — ${m.kind}`}
+              onMouseMove={(e) => {
+                const img = e.currentTarget.querySelector("img");
+                if (!img) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                img.style.transformOrigin = `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}% ${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`;
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={m.url}
+                alt={`${name} — ${m.kind}`}
+                className="aspect-[3/4] w-full object-cover transition-transform duration-200 group-hover/zoom:scale-150 motion-reduce:transition-none motion-reduce:group-hover/zoom:scale-100"
+              />
+            </button>
+          ))}
+        </div>
+        {images.length > 1 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 lg:hidden">
+            {images.map((m, i) => (
+              <button
+                key={m.kind}
+                type="button"
+                aria-label={`${i + 1} / ${images.length}`}
+                aria-current={i === slide}
+                onClick={() => goTo(i)}
+                className={`pointer-events-auto h-1.5 rounded-full bg-neutral-900/70 transition-all duration-200 motion-reduce:transition-none ${
+                  i === slide ? "w-5" : "w-1.5 opacity-40"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {open != null && images[open] && (
