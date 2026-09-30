@@ -14,6 +14,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: "success" | "secon
 const FILTERS: Array<{ key: string; label: string }> = [
   { key: "all", label: "الكل" },
   { key: "no-photos", label: "بلا صور" },
+  { key: "branded", label: "شعار ماركة" },
   { key: "draft", label: "مسودات" },
   { key: "published", label: "منشور" },
 ];
@@ -24,20 +25,26 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const supabase = await supabaseServer();
   const { data: all } = await supabase
     .from("products")
-    .select("id, name_en, price_usd_cents, sale_price_usd_cents, status, categories(name_ar), product_variants(count), media_assets(count)")
+    .select("id, name_en, price_usd_cents, sale_price_usd_cents, status, tags, categories(name_ar), product_variants(count), media_assets(count)")
     .order("created_at", { ascending: false });
 
   const withMedia = (all ?? []).map((p) => ({
     ...p,
     photoCount: (p.media_assets as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
+    // Internal flag: the supplier piece carries a third-party brand logo.
+    // MGMT-only — the storefront never renders product tags.
+    branded: ((p.tags as unknown as string[] | null) ?? []).includes("branded-logo"),
   }));
   const products =
     filter === "no-photos"
       ? withMedia.filter((p) => p.photoCount === 0)
-      : filter === "all"
-        ? withMedia
-        : withMedia.filter((p) => p.status === filter);
+      : filter === "branded"
+        ? withMedia.filter((p) => p.branded)
+        : filter === "all"
+          ? withMedia
+          : withMedia.filter((p) => p.status === filter);
   const noPhotoCount = withMedia.filter((p) => p.photoCount === 0).length;
+  const brandedCount = withMedia.filter((p) => p.branded).length;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -63,7 +70,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               }
             >
               {x.label}
-              {x.key === "no-photos" ? ` (${noPhotoCount})` : ""}
+              {x.key === "no-photos" ? ` (${noPhotoCount})` : x.key === "branded" ? ` (${brandedCount})` : ""}
             </Link>
           ))}
         </div>
@@ -93,9 +100,16 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   return (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">
-                        <Link href={`/products/${p.id}`} className="font-medium hover:underline" dir="ltr">
-                          {p.name_en}
-                        </Link>
+                        <span className="inline-flex items-center gap-2">
+                          <Link href={`/products/${p.id}`} className="font-medium hover:underline" dir="ltr">
+                            {p.name_en}
+                          </Link>
+                          {p.branded && (
+                            <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
+                              شعار ماركة
+                            </Badge>
+                          )}
+                        </span>
                       </td>
                       <td className="p-3">{category?.name_ar ?? "—"}</td>
                       <td className="p-3" dir="ltr">
