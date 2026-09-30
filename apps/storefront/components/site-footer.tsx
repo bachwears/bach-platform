@@ -25,12 +25,12 @@ export async function SiteFooter() {
             <NewsletterForm />
           </div>
         </div>
-        <nav className="flex flex-col gap-2 text-sm" aria-label="Footer">
+        <nav className="flex flex-col text-sm" aria-label="Footer">
           {links.map(([href, label]) => (
             <Link
               key={href}
               href={lhref(locale, href)}
-              className="text-muted-foreground hover:text-foreground"
+              className="py-2 text-muted-foreground hover:text-foreground md:py-1"
             >
               {label}
             </Link>
