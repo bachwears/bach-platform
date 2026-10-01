@@ -11,12 +11,12 @@ export default async function ConfirmedPage({
   const [{ n }, locale] = await Promise.all([searchParams, getLocale()]);
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
+      <main className="form-underline mx-auto grid max-w-xl place-items-center px-4 pb-24 pt-16 text-center sm:pt-24">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          <p className="type-meta text-muted-foreground">
             {t(locale, "sf.confirmed.eyebrow")}
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+          <h1 className="type-display mt-4 text-4xl sm:text-5xl">
             {t(locale, "sf.confirmed.thanks")}
             {n ? ` — ${t(locale, "sf.confirmed.order", { n })}` : ""}.
           </h1>
@@ -24,7 +24,7 @@ export default async function ConfirmedPage({
           <div className="mt-8 space-y-4">
             <Link
               href={lhref(locale, "/account/new")}
-              className="inline-block rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background"
+              className="type-label inline-grid h-12 place-items-center bg-foreground px-10 text-background hover:opacity-90"
             >
               {t(locale, "sf.confirmed.createAccount")}
             </Link>

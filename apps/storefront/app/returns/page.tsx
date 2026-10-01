@@ -96,14 +96,14 @@ function ReturnsForm() {
 
   if (done) {
     return (
-      <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
+      <main className="form-underline mx-auto grid max-w-xl place-items-center px-4 pb-24 pt-16 text-center sm:pt-24">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          <p className="type-meta text-muted-foreground">
             {t(locale, "sf.ret.doneEyebrow")}
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t(locale, "sf.ret.doneTitle")}</h1>
+          <h1 className="type-display mt-4 text-4xl sm:text-5xl">{t(locale, "sf.ret.doneTitle")}</h1>
           <p className="mt-4 leading-relaxed text-muted-foreground">{t(locale, "sf.ret.doneBody")}</p>
-          <Link href={lhref(locale, "/shop")} className="mt-8 inline-block underline underline-offset-4">
+          <Link href={lhref(locale, "/shop")} className="type-label mt-8 inline-block underline underline-offset-4 hover:opacity-60">
             {t(locale, "sf.confirmed.continue")}
           </Link>
         </div>
@@ -112,8 +112,8 @@ function ReturnsForm() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.ret.title")}</h1>
+    <main className="form-underline mx-auto max-w-xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+      <h1 className="type-heading">{t(locale, "sf.ret.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.ret.sub")}</p>
 
       <div className="mt-8 flex flex-wrap gap-3">
@@ -154,7 +154,7 @@ function ReturnsForm() {
           </div>
 
           {order.requests.length > 0 && (
-            <div className="rounded-md border p-4 text-sm">
+            <div className="border p-4 text-sm">
               <p className="font-medium">{t(locale, "sf.ret.existing")}</p>
               <ul className="mt-2 space-y-1">
                 {order.requests.map((r, i) => (
@@ -170,20 +170,20 @@ function ReturnsForm() {
           )}
 
           {!order.eligible ? (
-            <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+            <p className="border border-dashed p-4 text-sm text-muted-foreground">
               {t(locale, `sf.ret.reason.${order.ineligible_reason}`)}
             </p>
           ) : (
             <>
               <div className="space-y-2">
-                <p className="text-sm font-medium">{t(locale, "sf.ret.kind")}</p>
+                <p className="type-meta text-muted-foreground">{t(locale, "sf.ret.kind")}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {(["return", "exchange"] as const).map((k) => (
                     <button
                       key={k}
                       type="button"
                       onClick={() => setKind(k)}
-                      className={`rounded-md border p-3 text-start text-sm transition-colors ${
+                      className={`border p-3 text-start text-sm transition-colors ${
                         kind === k ? "border-foreground" : "hover:border-foreground/50"
                       }`}
                     >
@@ -199,8 +199,8 @@ function ReturnsForm() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">{t(locale, "sf.ret.items")}</p>
-                <ul className="divide-y rounded-md border">
+                <p className="type-meta text-muted-foreground">{t(locale, "sf.ret.items")}</p>
+                <ul className="divide-y border">
                   {order.items.map((it) => {
                     const qty = selected[it.order_item_id] ?? 0;
                     return (
@@ -223,7 +223,7 @@ function ReturnsForm() {
                             <select
                               value={qty}
                               onChange={(e) => setSelected({ ...selected, [it.order_item_id]: Number(e.target.value) })}
-                              className="rounded-md border bg-transparent px-2 py-1"
+                              className="border bg-transparent px-2 py-1"
                             >
                               {Array.from({ length: it.quantity }, (_, i) => i + 1).map((n) => (
                                 <option key={n} value={n}>
@@ -239,8 +239,8 @@ function ReturnsForm() {
                 </ul>
               </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium">{t(locale, "sf.ret.reasonLabel")}</span>
+              <label className="block space-y-1">
+                <span className="type-meta text-muted-foreground">{t(locale, "sf.ret.reasonLabel")}</span>
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -250,8 +250,8 @@ function ReturnsForm() {
               </label>
 
               {kind === "exchange" && (
-                <label className="block space-y-1.5">
-                  <span className="text-sm font-medium">{t(locale, "sf.ret.exchangeNote")}</span>
+                <label className="block space-y-1">
+                  <span className="type-meta text-muted-foreground">{t(locale, "sf.ret.exchangeNote")}</span>
                   <Input
                     value={exchangeNote}
                     onChange={(e) => setExchangeNote(e.target.value)}
@@ -261,7 +261,7 @@ function ReturnsForm() {
               )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button className="h-12 w-full text-base" disabled={!canSubmit} onClick={() => void submit()}>
+              <Button className="type-label h-12 w-full" disabled={!canSubmit} onClick={() => void submit()}>
                 {busy ? t(locale, "sf.ret.submitting") : t(locale, "sf.ret.submit")}
               </Button>
             </>

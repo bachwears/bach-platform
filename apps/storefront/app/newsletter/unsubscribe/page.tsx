@@ -24,8 +24,8 @@ function UnsubscribeForm() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.unsub.title")}</h1>
+    <main className="form-underline mx-auto max-w-md px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+      <h1 className="type-heading">{t(locale, "sf.unsub.title")}</h1>
       {state === "done" ? (
         <p className="mt-4 leading-relaxed text-muted-foreground">{t(locale, "sf.unsub.done")}</p>
       ) : (

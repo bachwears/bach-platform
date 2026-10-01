@@ -52,8 +52,8 @@ function TrackForm() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.track.title")}</h1>
+    <main className="form-underline mx-auto max-w-xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+      <h1 className="type-heading">{t(locale, "sf.track.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.track.sub")}</p>
 
       <div className="mt-8 flex flex-wrap gap-3">
@@ -81,7 +81,7 @@ function TrackForm() {
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
       {result && (
-        <div className="mt-8 rounded-md border p-5">
+        <div className="mt-8 border p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-medium">{result.subject}</p>
             <Badge variant={["resolved", "closed"].includes(result.status) ? "default" : "secondary"}>

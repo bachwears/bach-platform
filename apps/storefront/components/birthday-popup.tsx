@@ -5,7 +5,6 @@ import { Cake } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
 
 export function BirthdayPopup() {
   const [offer, setOffer] = useState<{ code: string; percent: number } | null>(null);
@@ -53,23 +52,27 @@ export function BirthdayPopup() {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={dismiss}>
       <div
-        className="w-full max-w-sm rounded-lg border bg-background p-8 text-center shadow-xl"
+        className="w-full max-w-sm border bg-background p-8 text-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <Cake className="mx-auto h-8 w-8" aria-hidden />
-        <h2 className="mt-3 text-xl font-semibold tracking-tight">Happy birthday from BACH.</h2>
+        <Cake className="mx-auto h-7 w-7" strokeWidth={1} aria-hidden />
+        <h2 className="type-display mt-4 text-3xl">Happy birthday from BACH.</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Enjoy <span className="font-medium text-foreground">{offer.percent}% off everything</span> with
           code <span className="font-mono font-medium text-foreground">{offer.code}</span> — our gift,
           valid for a few days around your day.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <Link href="/shop" onClick={dismiss}>
-            <Button className="w-full">Shop the collection</Button>
+          <Link
+            href="/shop"
+            onClick={dismiss}
+            className="type-label grid h-12 w-full place-items-center bg-foreground text-background hover:opacity-90"
+          >
+            Shop the collection
           </Link>
-          <Button variant="ghost" size="sm" onClick={dismiss}>
+          <button type="button" className="type-meta h-10 underline underline-offset-4 hover:opacity-60" onClick={dismiss}>
             Maybe later
-          </Button>
+          </button>
         </div>
       </div>
     </div>

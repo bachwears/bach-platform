@@ -45,6 +45,12 @@ interface PolicyDoc {
 const EMPTY_BANNER: Banner = { enabled: false, text: "", cta_label: "", cta_href: "/shop" };
 const EMPTY_POLICY: PolicyDoc = { title: "", body: "" };
 
+interface LegalDoc extends PolicyDoc {
+  published: boolean;
+}
+
+const EMPTY_LEGAL: LegalDoc = { title: "", body: "", published: false };
+
 interface Wheel {
   enabled: boolean;
   title: string;
@@ -61,6 +67,10 @@ export function SiteContentEditor() {
   const [shipping, setShipping] = useState<PolicyDoc>(EMPTY_POLICY);
   const [returnsPg, setReturnsPg] = useState<PolicyDoc>(EMPTY_POLICY);
   const [wheel, setWheel] = useState<Wheel>(EMPTY_WHEEL);
+  const [privacy, setPrivacy] = useState<LegalDoc>(EMPTY_LEGAL);
+  const [terms, setTerms] = useState<LegalDoc>(EMPTY_LEGAL);
+  // legal rows are only written back once they have been read, so a failed load can't blank them
+  const [legalLoaded, setLegalLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -70,8 +80,9 @@ export function SiteContentEditor() {
     void supabase
       .from("site_content")
       .select("key, value")
-      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel"])
-      .then(({ data }) => {
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms"])
+      .then(({ data, error }) => {
+        if (!error) setLegalLoaded(true);
         for (const row of data ?? []) {
           const v = row.value as Record<string, unknown>;
           if (row.key === "home_hero") setHero({ ...EMPTY, ...(v as Partial<Hero>) });
@@ -79,6 +90,8 @@ export function SiteContentEditor() {
           if (row.key === "page_shipping") setShipping({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
           if (row.key === "page_returns") setReturnsPg({ ...EMPTY_POLICY, ...(v as Partial<PolicyDoc>) });
           if (row.key === "wheel") setWheel({ ...EMPTY_WHEEL, ...(v as Partial<Wheel>) });
+          if (row.key === "page_privacy") setPrivacy({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
+          if (row.key === "page_terms") setTerms({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,6 +128,12 @@ export function SiteContentEditor() {
       { key: "page_shipping", value: shipping, updated_at: now },
       { key: "page_returns", value: returnsPg, updated_at: now },
       { key: "wheel", value: wheel, updated_at: now },
+      ...(legalLoaded
+        ? [
+            { key: "page_privacy", value: privacy, updated_at: now },
+            { key: "page_terms", value: terms, updated_at: now },
+          ]
+        : []),
     ]);
     setBusy(false);
     if (error) {
@@ -346,6 +365,44 @@ export function SiteContentEditor() {
           </div>
         </div>
       </div>
+
+      {(
+        [
+          ["page_privacy", "سياسة الخصوصية", "/privacy", privacy, setPrivacy, "pv"],
+          ["page_terms", "شروط البيع", "/terms", terms, setTerms, "tm"],
+        ] as const
+      ).map(([key, label, path, doc, setDoc, id]) => (
+        <div key={key} className="space-y-4 rounded-lg border p-5">
+          <h2 className="flex items-center gap-2 font-medium">
+            {label}
+            <HintDot
+              hint={{
+                title: label,
+                what: `الصفحة القانونية على bachwears.com${path}. وهي مسودة: بتبيّن مع ملاحظة «Draft»، مخفية عن غوغل، ومش ظاهرة بالفوتر.`,
+                source: `من جدول site_content (مفتاح ${key}).`,
+                edit: "راجعها مع المحامي، وبس تكون جاهزة علّم «منشورة» واحفظ — بتطلع بالفوتر وبتنفتح لغوغل. «## » بأول السطر = عنوان قسم، «- » = نقطة بلائحة، سطر فاضي = فقرة جديدة.",
+              }}
+            />
+          </h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={doc.published}
+              onChange={(e) => setDoc((x) => ({ ...x, published: e.target.checked }))}
+              className="h-4 w-4"
+            />
+            منشورة (بعد مراجعة المحامي)
+          </label>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${id}-title`}>العنوان</Label>
+            <Input id={`${id}-title`} dir="ltr" value={doc.title} onChange={(e) => setDoc((x) => ({ ...x, title: e.target.value }))} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${id}-body`}>النص (بالإنكليزي)</Label>
+            <Textarea id={`${id}-body`} dir="ltr" rows={14} value={doc.body} onChange={(e) => setDoc((x) => ({ ...x, body: e.target.value }))} />
+          </div>
+        </div>
+      ))}
 
       {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
       {msg && <p className="rounded-md border px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}

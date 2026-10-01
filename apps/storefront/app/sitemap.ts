@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { supabaseServer } from "@bach/supabase/server";
 
+import { publishedLegalPages } from "../lib/legal";
+
 const BASE = "https://bachwears.com";
 
 function entry(
@@ -20,6 +22,7 @@ function entry(
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await supabaseServer();
   const now = new Date();
+  const legal = await publishedLegalPages();
   const [{ data: products }, { data: articles }] = await Promise.all([
     supabase
       .from("products")
@@ -37,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/shipping", now, "monthly", 0.4),
     entry("/returns-policy", now, "monthly", 0.4),
     entry("/support", now, "monthly", 0.4),
+    ...legal.map((p) => entry(p.path, now, "monthly", 0.3)),
     ...(products ?? []).map((p) =>
       entry(`/products/${p.slug}`, p.updated_at ? new Date(p.updated_at) : now, "weekly", 0.8),
     ),

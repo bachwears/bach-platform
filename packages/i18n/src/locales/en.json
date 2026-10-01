@@ -384,5 +384,8 @@
   "sf.help.contact": "Contact us",
   "sf.help.email": "Email care",
   "sf.help.results": "Results for “{q}”",
-  "sf.help.noResults": "No help topics match “{q}”."
+  "sf.help.noResults": "No help topics match “{q}”.",
+  "sf.policy.draft": "Draft — this page is under review and may change before it is final.",
+  "sf.footer.privacy": "Privacy policy",
+  "sf.footer.terms": "Terms of sale"
 }

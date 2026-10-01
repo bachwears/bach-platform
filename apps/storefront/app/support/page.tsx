@@ -48,12 +48,12 @@ export default function SupportPage() {
   if (ticket) {
     return (
       <div className="min-h-dvh bg-background">
-        <main className="mx-auto grid max-w-xl place-items-center px-4 py-24 text-center">
+        <main className="form-underline mx-auto grid max-w-xl place-items-center px-4 pb-24 pt-16 text-center sm:pt-24">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            <p className="type-meta text-muted-foreground">
               {t(locale, "sf.support.heard")}
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+            <h1 className="type-display mt-4 text-4xl sm:text-5xl">
               {t(locale, "sf.support.ticket")} <span className="font-mono" dir="ltr">#{ticket}</span>
             </h1>
             <p className="mt-4 leading-relaxed text-muted-foreground">{t(locale, "sf.support.ticketBody")}</p>
@@ -73,8 +73,8 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-xl px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.support.title")}</h1>
+      <main className="form-underline mx-auto max-w-xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+        <h1 className="type-heading">{t(locale, "sf.support.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {t(locale, "sf.support.sub1")}{" "}
           <Link href={lhref(locale, "/support/track")} className="underline underline-offset-4">
@@ -107,7 +107,7 @@ export default function SupportPage() {
             <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button className="h-12 w-full text-base" disabled={!canSubmit} onClick={() => void submit()}>
+          <Button className="type-label h-12 w-full" disabled={!canSubmit} onClick={() => void submit()}>
             {busy ? t(locale, "sf.support.submitting") : t(locale, "sf.support.submit")}
           </Button>
         </div>
@@ -118,8 +118,8 @@ export default function SupportPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{label}</span>
+    <label className="block space-y-1">
+      <span className="type-meta text-muted-foreground">{label}</span>
       {children}
     </label>
   );

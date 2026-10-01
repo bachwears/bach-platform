@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
 
 interface Popup {
   id: string;
@@ -51,24 +50,22 @@ export function MarketingPopup() {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={dismiss}>
       <div
-        className="w-full max-w-sm rounded-lg border bg-background p-8 text-center shadow-xl"
+        className="w-full max-w-sm border bg-background p-8 text-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold tracking-tight">{popup.title_en}</h2>
+        <h2 className="type-display text-3xl">{popup.title_en}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{popup.body_en}</p>
         <div className="mt-6 flex flex-col gap-2">
-          {popup.cta_href ? (
-            <Link href={popup.cta_href} onClick={dismiss}>
-              <Button className="w-full">{popup.cta_text ?? "Shop now"}</Button>
-            </Link>
-          ) : (
-            <Link href="/shop" onClick={dismiss}>
-              <Button className="w-full">{popup.cta_text ?? "Shop the collection"}</Button>
-            </Link>
-          )}
-          <Button variant="ghost" size="sm" onClick={dismiss}>
+          <Link
+            href={popup.cta_href || "/shop"}
+            onClick={dismiss}
+            className="type-label grid h-12 w-full place-items-center bg-foreground text-background hover:opacity-90"
+          >
+            {popup.cta_text ?? (popup.cta_href ? "Shop now" : "Shop the collection")}
+          </Link>
+          <button type="button" className="type-meta h-10 underline underline-offset-4 hover:opacity-60" onClick={dismiss}>
             Dismiss
-          </Button>
+          </button>
         </div>
       </div>
     </div>

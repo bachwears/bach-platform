@@ -130,3 +130,22 @@
     font-size: 16px;
   }
 }
+
+/* Zara-style underlined fields for older forms that still use the shared
+   @bach/ui Input/Textarea. Unlayered so it outranks their utility classes. */
+.form-underline input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+.form-underline textarea,
+.form-underline select {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-inline: 0;
+}
+.form-underline input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+.form-underline textarea:focus-visible,
+.form-underline select:focus-visible {
+  border-color: var(--foreground);
+  box-shadow: none;
+  outline: none;
+}

@@ -2,12 +2,14 @@ import Link from "next/link";
 import { t } from "@bach/i18n";
 
 import { NewsletterForm } from "./newsletter-form";
+import { publishedLegalPages } from "../lib/legal";
 import { getLocale, lhref } from "../lib/locale";
 
 type FooterLink = { href: string; label: string; external?: boolean };
 
 export async function SiteFooter() {
   const locale = await getLocale();
+  const legal = await publishedLegalPages();
   const columns: Array<{ heading: string; links: FooterLink[] }> = [
     {
       heading: t(locale, "sf.footer.colHelp"),
@@ -37,6 +39,7 @@ export async function SiteFooter() {
       links: [
         { href: "/shipping", label: t(locale, "sf.footer.shipping") },
         { href: "/returns-policy", label: t(locale, "sf.footer.returnsPolicy") },
+        ...legal.map((p) => ({ href: p.path, label: t(locale, p.key === "page_privacy" ? "sf.footer.privacy" : "sf.footer.terms") })),
       ],
     },
   ];

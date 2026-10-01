@@ -384,5 +384,8 @@
   "sf.help.contact": "تواصل معنا",
   "sf.help.email": "راسل خدمة العملاء",
   "sf.help.results": "نتائج “{q}”",
-  "sf.help.noResults": "ما في مواضيع مطابقة لـ “{q}”."
+  "sf.help.noResults": "ما في مواضيع مطابقة لـ “{q}”.",
+  "sf.policy.draft": "مسودة — هالصفحة قيد المراجعة وممكن تتغيّر قبل ما تصير نهائية.",
+  "sf.footer.privacy": "سياسة الخصوصية",
+  "sf.footer.terms": "شروط البيع"
 }

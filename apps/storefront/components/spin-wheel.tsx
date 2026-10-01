@@ -91,11 +91,11 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-label={title}>
-      <div className="glass-panel anim-materialize relative w-full max-w-sm rounded-2xl p-6 text-center shadow-xl">
+      <div className="anim-materialize relative w-full max-w-sm border bg-background p-6 text-center">
         <button
           type="button"
           aria-label="Close"
-          className="absolute end-3 top-3 grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-black/5 hover:text-foreground"
+          className="absolute end-2 top-2 grid h-10 w-10 place-items-center text-muted-foreground hover:text-foreground"
           onClick={dismiss}
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -104,7 +104,7 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
           </svg>
         </button>
 
-        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+        <h2 className="type-display mt-4 text-3xl">{title}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{sub}</p>
 
         <div className="relative mx-auto my-6 h-56 w-56">
@@ -113,7 +113,7 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
             className="absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-8 border-t-[14px] border-x-transparent border-t-foreground"
           />
           <div
-            className="h-full w-full rounded-full border-4 border-foreground/80 shadow-inner"
+            className="h-full w-full rounded-full border-2 border-foreground"
             style={{
               background: gradient,
               transform: `rotate(${rotation}deg)`,
@@ -141,7 +141,7 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
                 </p>
                 <button
                   type="button"
-                  className="mx-auto flex items-center gap-2 rounded-lg border px-4 py-2 font-mono text-sm hover:bg-black/5"
+                  className="mx-auto flex items-center gap-2 border px-4 py-2 font-mono text-sm hover:bg-secondary"
                   dir="ltr"
                   onClick={() => {
                     void navigator.clipboard?.writeText(result.code!);
