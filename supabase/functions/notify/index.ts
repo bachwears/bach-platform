@@ -7,6 +7,8 @@
 // Missing secrets → rows are marked 'skipped', never lost.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+import { renderEmailHtml } from "./email.ts";
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -39,14 +41,14 @@ async function sendWhatsapp(to: string, body: string): Promise<"sent" | "skipped
   return "sent";
 }
 
-async function sendEmail(to: string, subject: string, body: string): Promise<"sent" | "skipped"> {
+async function sendEmail(to: string, subject: string, body: string, html: string): Promise<"sent" | "skipped"> {
   const key = Deno.env.get("RESEND_API_KEY");
   const from = Deno.env.get("EMAIL_FROM") ?? "BACH Wears <noreply@bachwears.com>";
   if (!key) return "skipped";
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, text: body }),
+    body: JSON.stringify({ from, to, subject, text: body, html }),
   });
   if (!res.ok) throw new Error(`resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return "sent";
@@ -81,7 +83,8 @@ Deno.serve(async () => {
         const to = row.recipient === "shop" ? SHOP_WHATSAPP : row.recipient;
         result = await sendWhatsapp(to, body);
       } else {
-        result = await sendEmail(row.recipient, render(tpl.subject ?? "BACH Wears", row.payload), body);
+        const subject = render(tpl.subject ?? "BACH Wears", row.payload);
+        result = await sendEmail(row.recipient, subject, body, renderEmailHtml(row.event, row.lang, subject, body, row.payload));
       }
       await supabase
         .from("notification_log")
