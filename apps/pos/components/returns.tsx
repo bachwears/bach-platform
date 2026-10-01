@@ -70,6 +70,8 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
   const [mode, setMode] = useState<"return" | "exchange">("return");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // a slow connection used to look like nothing happened
+  const [searching, setSearching] = useState(false);
   const [slip, setSlip] = useState<Slip | null>(null);
   // exchange state
   const [query, setQuery] = useState("");
@@ -86,12 +88,17 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     setRetQty({});
     setNewCart([]);
     const num = parseInt(invoice.replace(/[^0-9]/g, ""), 10);
-    if (!num) return;
+    if (!num) {
+      setError("اكتب رقم الفاتورة (أرقام بس).");
+      return;
+    }
+    setSearching(true);
     const { data: o } = await supabase
       .from("orders")
       .select("id, number, status, subtotal_usd_cents, total_usd_cents, created_at, customer_id, customers(full_name), order_items(*)")
       .eq("number", num)
       .maybeSingle();
+    setSearching(false);
     if (!o) {
       setError("ما لقينا فاتورة بهالرقم.");
       return;
@@ -336,8 +343,8 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
           className="h-11 text-lg"
           inputMode="numeric"
         />
-        <Button className="h-11" onClick={() => void loadOrder()}>
-          فتّش
+        <Button className="h-11" disabled={searching} onClick={() => void loadOrder()}>
+          {searching ? "عم نفتّش…" : "فتّش"}
         </Button>
       </div>
 
