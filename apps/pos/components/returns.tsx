@@ -402,18 +402,28 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
             </table>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant={mode === "return" ? "default" : "outline"} onClick={() => setMode("return")}>
-              مرتجع (كاش)
+          {/* A choice, not an action — labelled so nobody mistakes it for the save button. */}
+          <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="نوع العملية">
+            <span className="text-sm text-muted-foreground">نوع العملية:</span>
+            <Button
+              role="radio"
+              aria-checked={mode === "return"}
+              variant={mode === "return" ? "default" : "outline"}
+              onClick={() => setMode("return")}
+            >
+              {mode === "return" ? "✓ " : ""}إرجاع واسترداد
             </Button>
-            <Button variant={mode === "exchange" ? "default" : "outline"} onClick={() => setMode("exchange")}>
-              تبديل بقطع تانية
+            <Button
+              role="radio"
+              aria-checked={mode === "exchange"}
+              variant={mode === "exchange" ? "default" : "outline"} onClick={() => setMode("exchange")}>
+              {mode === "exchange" ? "✓ " : ""}تبديل بقطع تانية
             </Button>
           </div>
 
           {order.customer_id ? (
             <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-              <input type="checkbox" className="h-4 w-4" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
+              <input type="checkbox" className="h-5 w-5 shrink-0 cursor-pointer accent-foreground" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
               <span>
                 رجّع المبلغ <span className="font-medium">رصيد على محفظة الزبون</span>
                 {order.customerName ? <span className="text-muted-foreground"> ({order.customerName})</span> : null} بدل الكاش
