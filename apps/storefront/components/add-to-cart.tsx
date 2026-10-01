@@ -193,8 +193,8 @@ export function AddToCart({
         {autoPicked && chosen && chosen.id === mine?.id && (
           <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSize")}</p>
         )}
-        {colorReady && mine && mine.available <= 0 && !chosen && (
-          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: mine.size })}</p>
+        {colorReady && savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && !chosen && (
+          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
         )}
         {chosen && chosen.available > 0 && chosen.available <= 3 && (
           <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.onlyLeft", { n: chosen.available })}</p>
