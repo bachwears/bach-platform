@@ -351,7 +351,7 @@ export default function CheckoutPage() {
 }
 
 const INPUT =
-  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground";
+  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground";
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (

@@ -11,7 +11,7 @@ import { lhref, useLocale } from "../lib/locale-client";
 type Step = "email" | "password" | "register";
 
 const INPUT =
-  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground";
+  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground";
 const PRIMARY = "type-label h-12 w-full bg-foreground text-background hover:opacity-90 disabled:opacity-40";
 const SECONDARY = "type-label grid h-12 w-full place-items-center border border-foreground hover:bg-secondary";
 
