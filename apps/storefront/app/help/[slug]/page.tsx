@@ -12,7 +12,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getLocale()]);
+  const supabase = await supabaseServer();
+  const { data: a } = await supabase.from("help_articles").select("title_en, title_ar, body_en, body_ar").eq("slug", slug).maybeSingle();
+  const body = a ? pick(locale, a.body_en, a.body_ar) : "";
   return {
+    title: a ? `${pick(locale, a.title_en, a.title_ar)} — BACH Wears Help` : undefined,
+    description: body ? (body.length > 155 ? `${body.slice(0, 152).trimEnd()}…` : body).replace(/\s+/g, " ") : undefined,
     alternates: {
       canonical: lhref(locale, `/help/${slug}`),
     },

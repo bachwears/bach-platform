@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.forgot.sub")}</p>
-            <div className="mt-8 space-y-6 [&_input]:h-11 [&_input]:border-0 [&_input]:border-b [&_input]:bg-transparent [&_input]:px-0 [&_input]:shadow-none [&_input]:focus-visible:ring-0">
+            <div className="mt-8 form-underline space-y-6 [&_input]:h-11">
               <label className="block">
                 <span className="type-meta text-muted-foreground">{t(locale, "sf.login.email")}</span>
                 <Input

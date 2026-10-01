@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { t } from "@bach/i18n";
 
 import { getLocale, lhref } from "../../lib/locale";
+
+export const metadata: Metadata = {
+  title: "Order confirmed — BACH Wears",
+  robots: { index: false, follow: false },
+};
 
 export default async function ConfirmedPage({
   searchParams,
