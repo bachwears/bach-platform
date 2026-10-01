@@ -96,7 +96,6 @@ export default async function Home() {
     },
   };
 
-  const two = (n: number) => String(n).padStart(2, "0");
   const heroAlt = hero.image_alt || t(locale, "sf.home.heroAlt");
   const heroImg = hero.image_url || "/hero-campaign.jpg";
 
@@ -117,7 +116,7 @@ export default async function Home() {
             preload="metadata"
             poster={heroImg}
             aria-label={heroAlt}
-            className="absolute inset-0 hidden h-full w-full object-cover object-[70%_center] motion-safe:block"
+            className="absolute inset-0 hidden h-full w-full object-cover object-[55%_center] motion-safe:block lg:object-[70%_center]"
           >
             <source src={hero.video_url} type="video/mp4" />
           </video>
@@ -140,9 +139,10 @@ export default async function Home() {
           className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
         />
       )}
-      {/* The campaign is shot light (stone), so its copy stays dark in both
-          themes. Phones: above the models' heads; desktop: on the open wall. */}
-      <div className="absolute inset-x-0 top-0 px-4 pt-8 text-neutral-900 sm:px-8 lg:inset-y-0 lg:flex lg:max-w-xl lg:flex-col lg:justify-center lg:pt-0">
+      {/* Phones: white copy over a soft scrim at the foot, clear of the faces.
+          Desktop: dark copy on the open stone wall (shot light in both themes). */}
+      <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent lg:hidden" />
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-16 text-white sm:px-8 lg:inset-y-0 lg:flex lg:max-w-xl lg:flex-col lg:justify-center lg:pb-0 lg:text-neutral-900">
         <p className="type-meta">{hero.eyebrow || t(locale, "sf.home.eyebrow")}</p>
         <h1 className="type-display mt-3 text-[2.5rem] sm:text-6xl lg:text-7xl">
           {hero.headline || t(locale, "sf.home.headline")}
@@ -175,9 +175,7 @@ export default async function Home() {
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent lg:hidden" />
         </div>
         <div className="absolute inset-x-0 bottom-0 px-4 pb-16 text-white sm:px-8 lg:static lg:flex lg:w-1/2 lg:flex-col lg:justify-end lg:pb-24 lg:text-foreground">
-          <p className="type-meta">
-            {two(i + 1)} · {t(locale, "sf.home.collection")}
-          </p>
+          <p className="type-meta">{t(locale, "sf.home.collection")}</p>
           <h2 className="type-display mt-3 text-5xl sm:text-6xl lg:text-8xl">{c.name_en}</h2>
           {c.description_en ? (
             <p className="mt-5 hidden max-w-sm text-sm text-muted-foreground lg:block">{c.description_en}</p>
