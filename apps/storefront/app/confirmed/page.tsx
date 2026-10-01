@@ -28,10 +28,10 @@ export default async function ConfirmedPage({
           <p className="type-meta text-muted-foreground">
             {t(locale, "sf.confirmed.eyebrow")}
           </p>
-          <h1 className="type-display mt-4 text-4xl sm:text-5xl">
-            {t(locale, "sf.confirmed.thanks")}
-            {n ? ` — ${t(locale, "sf.confirmed.order", { n })}` : ""}.
-          </h1>
+          <h1 className="type-display mt-4 text-4xl sm:text-5xl">{t(locale, "sf.confirmed.thanks")}</h1>
+          {n ? (
+            <p className="type-label mt-5 text-base tracking-wide">{t(locale, "sf.confirmed.order", { n })}</p>
+          ) : null}
           <p className="mt-4 leading-relaxed text-muted-foreground">{t(locale, "sf.confirmed.body")}</p>
           <div className="mt-8 space-y-4">
             <Link
