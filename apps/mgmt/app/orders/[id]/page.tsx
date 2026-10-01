@@ -20,7 +20,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     supabase
       .from("orders")
       .select(
-        "*, branches(name), profiles(full_name), order_items(*), order_payments(*), customers(full_name, phone)",
+        "*, branches(name), profiles(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path)))), order_payments(*), customers(full_name, phone)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -111,9 +111,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               {(order.order_items ?? []).map((i: Record<string, unknown>) => (
                 <tr key={String(i.id)} className="border-b last:border-0">
                   <td className="p-3">
+                    <span className="flex items-center gap-3">
+                      {(() => {
+                        // front photo helps picking the right piece off the shelf
+                        const media =
+                          (i.product_variants as { products?: { media_assets?: Array<{ kind: string; storage_path: string }> } } | null)
+                            ?.products?.media_assets ?? [];
+                        const front = media.find((m) => m.kind === "front")?.storage_path;
+                        return front ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={front} alt="" className="h-14 w-11 shrink-0 rounded-sm bg-muted object-cover" />
+                        ) : (
+                          <span className="h-14 w-11 shrink-0 rounded-sm bg-muted" />
+                        );
+                      })()}
+                      <span>
                     {String(i.name_en)}
                     <span className="block text-xs text-muted-foreground">
                       {String(i.size)} {String(i.color_en)}
+                    </span>
+                      </span>
                     </span>
                   </td>
                   <td className="p-3 font-mono text-xs" dir="ltr">
@@ -145,6 +162,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
           <div className="space-y-2 rounded-lg border p-4 text-sm">
             <h2 className="font-medium">الدفعات</h2>
+            {(order.order_payments ?? []).length === 0 ? (
+              <p className="text-muted-foreground">
+                {order.payment_method === "cod" ? "لسّا ما في دفعات — بيندفع للمندوب وقت التسليم." : "لسّا ما في دفعات مسجّلة."}
+              </p>
+            ) : null}
             {(order.order_payments ?? []).map((p: Record<string, unknown>) => (
               <Row
                 key={String(p.id)}
