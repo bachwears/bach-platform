@@ -21,13 +21,15 @@ export default async function CategoryImagesPage() {
       .order("code"),
   ]);
 
+  const own = (c: { products: unknown }) => (c.products as Array<{ count: number }>)?.[0]?.count ?? 0;
   const rows: CategoryImageRow[] = (data ?? []).map((c) => ({
     id: c.id,
     code: c.code,
     name_ar: c.name_ar,
     name_en: c.name_en,
     parent_id: c.parent_id,
-    productCount: (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
+    // a parent's page lists its children's products too
+    productCount: own(c) + (data ?? []).filter((x) => x.parent_id === c.id).reduce((n, x) => n + own(x), 0),
     banner_url: c.banner_url,
     banner_mobile_url: (c as { banner_mobile_url?: string | null }).banner_mobile_url ?? null,
   }));
@@ -44,7 +46,7 @@ export default async function CategoryImagesPage() {
             </p>
           </div>
           <Link href="/categories" className="text-sm underline underline-offset-4">
-            ← الفئات
+            → الفئات
           </Link>
         </div>
         {EDITORS.has(profile?.role ?? "") ? (
