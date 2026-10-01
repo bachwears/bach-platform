@@ -31,6 +31,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   if (!order) notFound();
 
+  // today's rate converts LBP the courier collected (the RPC uses the same one)
+  const { data: rateRow } = await supabase
+    .from("exchange_rates")
+    .select("lbp_per_usd")
+    .order("effective_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const todayRate = Number(rateRow?.lbp_per_usd ?? 0);
   const canManage = ["super_admin", "store_manager", "support_agent"].includes(profile?.role ?? "");
   const rate = Number(order.lbp_per_usd);
 
@@ -180,7 +188,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             ))}
             {canManage && (
               <div className="border-t pt-3">
-                <OrderStatusControl orderId={order.id} currentStatus={order.status} channel={order.channel} />
+                <OrderStatusControl
+                  orderId={order.id}
+                  currentStatus={order.status}
+                  channel={order.channel}
+                  paymentMethod={order.payment_method}
+                  totalUsdCents={order.total_usd_cents}
+                  lbpPerUsd={todayRate}
+                />
               </div>
             )}
           </div>
