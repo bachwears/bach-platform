@@ -514,6 +514,20 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
             <Button className="mt-2 h-11 w-full" disabled={!canSubmit} onClick={() => void submit()}>
               {busy ? "عم نسجّل…" : mode === "return" ? "تسجيل المرتجع" : "تسجيل التبديل"}
             </Button>
+            {/* Say why the button is off instead of leaving the cashier guessing. */}
+            {!busy && !canSubmit ? (
+              <p className="text-center text-xs text-muted-foreground">
+                {!anyReturn
+                  ? "اختار القطع يلّي عم ترجع (+) ليتفعّل الزر."
+                  : mode === "exchange" && newCart.length === 0
+                    ? "زيد القطع الجديدة يلّي بدّو ياخدها الزبون."
+                    : net < -5
+                      ? `اكتب المبلغ يلّي رجّعته للزبون (${usd(-net)} أو ${lbp((-net / 100) * rate)})${order?.customer_id ? "، أو علّم خانة المحفظة فوق" : ""}.`
+                      : net > 5
+                        ? `اكتب المبلغ يلّي دفعه الزبون (${usd(net)} أو ${lbp((net / 100) * rate)}).`
+                        : "المبلغين لازم يكونوا صفر — ما في فرق بالحساب."}
+              </p>
+            ) : null}
           </div>
         </>
       )}
