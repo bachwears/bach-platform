@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Search, User, X } from "lucide-react";
 import { t } from "@bach/i18n";
 
@@ -41,20 +41,15 @@ export function HeaderActions({
   hasSale: boolean;
 }) {
   const locale = useLocale();
-  const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<"categories" | "collections">("categories");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [q, setQ] = useState("");
   const [mode, setMode] = useState<Mode>("system");
-  const inputRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setMenuOpen(false);
-    setSearchOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -65,10 +60,6 @@ export function HeaderActions({
       /* storage blocked — stay on system */
     }
   }, []);
-
-  useEffect(() => {
-    if (searchOpen) inputRef.current?.focus();
-  }, [searchOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -82,9 +73,7 @@ export function HeaderActions({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setMenuOpen(false);
-      setSearchOpen(false);
+      if (e.key === "Escape") setMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -119,10 +108,7 @@ export function HeaderActions({
             aria-expanded={menuOpen}
             aria-controls="site-menu"
             className="-ms-2 grid h-11 w-11 place-items-center"
-            onClick={() => {
-              setSearchOpen(false);
-              setMenuOpen(true);
-            }}
+            onClick={() => setMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
               <path d="M2 9h20M2 15h20" />
@@ -136,14 +122,12 @@ export function HeaderActions({
 
         {/* Desktop: text links. */}
         <nav aria-label={t(locale, "sf.nav.account")} className="hidden items-center gap-7 md:flex">
-          <button
-            type="button"
-            aria-expanded={searchOpen}
-            onClick={() => setSearchOpen((v) => !v)}
+          <Link
+            href={lhref(locale, "/search")}
             className="type-label w-36 border-b border-foreground pb-1 text-start"
           >
             {t(locale, "sf.nav.searchOpen")}
-          </button>
+          </Link>
           <AccountLink variant="text" className={textLink} />
           <Link href={lhref(locale, "/help")} className={textLink}>
             {t(locale, "sf.nav.help")}
@@ -153,49 +137,19 @@ export function HeaderActions({
 
         {/* Phones: thin icons. */}
         <div className="flex items-center md:hidden">
-          <button
-            type="button"
+          <Link
+            href={lhref(locale, "/search")}
             aria-label={t(locale, "sf.nav.searchOpen")}
-            aria-expanded={searchOpen}
-            onClick={() => setSearchOpen((v) => !v)}
             className="grid h-11 w-11 place-items-center"
           >
-            {searchOpen ? <X className="h-5 w-5" strokeWidth={1.25} aria-hidden /> : <Search className="h-5 w-5" strokeWidth={1.25} aria-hidden />}
-          </button>
+            <Search className="h-5 w-5" strokeWidth={1.25} aria-hidden />
+          </Link>
           <AccountLink variant="icon" className="grid h-11 w-11 place-items-center">
             <User className="h-5 w-5" strokeWidth={1.25} aria-hidden />
           </AccountLink>
           <CartLink variant="box" className="grid h-11 w-11 place-items-center" />
         </div>
       </div>
-
-      {searchOpen && (
-        <div className="border-b bg-background">
-          <form
-            role="search"
-            className="mx-auto flex max-w-[1440px] items-end gap-6 px-4 pb-6 pt-2 sm:px-8"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const term = q.trim();
-              setSearchOpen(false);
-              router.push(lhref(locale, term ? `/shop?q=${encodeURIComponent(term)}` : "/shop"));
-            }}
-          >
-            <input
-              ref={inputRef}
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t(locale, "sf.nav.searchPlaceholder")}
-              aria-label={t(locale, "sf.nav.searchPlaceholder")}
-              className="type-label h-11 min-w-0 flex-1 border-0 border-b border-foreground bg-transparent px-0 outline-none placeholder:text-muted-foreground"
-            />
-            <button type="submit" className="type-label h-11 shrink-0 px-1 hover:opacity-60">
-              {t(locale, "sf.shop.searchButton")}
-            </button>
-          </form>
-        </div>
-      )}
 
       {menuOpen && (
         <div className="fixed inset-0 z-50">

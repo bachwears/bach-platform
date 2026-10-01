@@ -353,5 +353,21 @@
   "sf.home.prev": "Previous",
   "sf.home.next": "Next",
   "sf.home.view": "View",
-  "sf.home.collection": "Collection"
+  "sf.home.collection": "Collection",
+  "sf.search.title": "Search",
+  "sf.search.results": "{n} results",
+  "sf.search.result": "1 result",
+  "sf.search.suggested": "You might be interested in",
+  "sf.search.none": "Nothing matches “{q}”. Try a broader word.",
+  "sf.search.categories": "Categories",
+  "sf.search.filter": "Filter results",
+  "sf.cart.tabBag": "Bag",
+  "sf.cart.tabFav": "Favourites",
+  "sf.cart.favSignIn": "Log in to see the pieces you have saved.",
+  "sf.cart.favEmpty": "Nothing saved yet. Tap the bookmark on any piece to keep it here.",
+  "sf.cart.login": "Log in",
+  "sf.cart.loginHint": "to see your saved pieces.",
+  "sf.cart.mayLike": "You may also like",
+  "sf.cart.total": "Total",
+  "sf.cart.continueBtn": "Continue"
 }

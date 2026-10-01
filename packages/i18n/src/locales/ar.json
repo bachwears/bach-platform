@@ -353,5 +353,21 @@
   "sf.home.prev": "السابق",
   "sf.home.next": "التالي",
   "sf.home.view": "شوف",
-  "sf.home.collection": "مجموعة"
+  "sf.home.collection": "مجموعة",
+  "sf.search.title": "بحث",
+  "sf.search.results": "{n} نتيجة",
+  "sf.search.result": "نتيجة وحدة",
+  "sf.search.suggested": "يمكن يعجبك",
+  "sf.search.none": "ما في شي مطابق لـ “{q}”. جرّب كلمة أعمّ.",
+  "sf.search.categories": "الفئات",
+  "sf.search.filter": "فلترة النتائج",
+  "sf.cart.tabBag": "السلّة",
+  "sf.cart.tabFav": "المفضّلة",
+  "sf.cart.favSignIn": "سجّل دخول لتشوف القطع يلّي حفظتها.",
+  "sf.cart.favEmpty": "بعد ما حفظت شي. اضغط علامة الحفظ على أي قطعة لتلاقيها هون.",
+  "sf.cart.login": "تسجيل الدخول",
+  "sf.cart.loginHint": "لتشوف القطع المحفوظة.",
+  "sf.cart.mayLike": "ممكن يعجبك كمان",
+  "sf.cart.total": "المجموع",
+  "sf.cart.continueBtn": "متابعة"
 }
