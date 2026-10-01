@@ -369,5 +369,13 @@
   "sf.cart.loginHint": "to see your saved pieces.",
   "sf.cart.mayLike": "You may also like",
   "sf.cart.total": "Total",
-  "sf.cart.continueBtn": "Continue"
+  "sf.cart.continueBtn": "Continue",
+  "sf.co.stepContact": "Contact",
+  "sf.co.stepAddress": "Delivery address",
+  "sf.co.summary": "Order summary",
+  "sf.auth.title": "Log in or create an account",
+  "sf.auth.continue": "Continue",
+  "sf.auth.change": "Change",
+  "sf.auth.newHere": "New to BACH?",
+  "sf.auth.createInstead": "Create an account"
 }

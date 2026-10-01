@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
-import { Input } from "@bach/ui/components/input";
 import { t, type Locale } from "@bach/i18n";
 
 export interface ProfileCustomer {
@@ -19,18 +17,23 @@ export interface ProfileCustomer {
 const LETTERS = ["XS", "S", "M", "L", "XL", "XXL"];
 const SHOES = ["38", "39", "40", "41", "42", "43", "44", "45", "46", "47"];
 
-// Matches @bach/ui Input, at touch height below lg.
-const selectClass =
-  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-9";
+// Underlined fields, like the rest of the storefront forms.
+const FIELD =
+  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors focus:border-foreground";
+const selectClass = `${FIELD} cursor-pointer`;
+const SAVE = "type-label h-11 bg-foreground px-8 text-background hover:opacity-90 disabled:opacity-40";
 
 export function AccountProfile({
   locale,
   customer,
   onSaved,
+  part,
 }: {
   locale: Locale;
   customer: ProfileCustomer;
   onSaved: (patch: Partial<ProfileCustomer>) => void;
+  /** which half to render — the account page shows them as separate rows */
+  part: "details" | "sizes";
 }) {
   const [name, setName] = useState(customer.full_name ?? "");
   const [nameMsg, setNameMsg] = useState("");
@@ -74,89 +77,87 @@ export function AccountProfile({
     (sizes.size_bottom || null) !== (customer.size_bottom ?? null) ||
     (sizes.size_shoe || null) !== (customer.size_shoe ?? null);
 
-  return (
-    <>
-      <h2 className="mt-10 text-lg font-medium">{t(locale, "sf.acct.details")}</h2>
-      <div className="mt-4 space-y-4 rounded-md border p-5 text-sm">
-        <label className="block space-y-1.5">
-          <span className="font-medium">{t(locale, "sf.acct.name")}</span>
-          <div className="flex gap-2">
-            <Input
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameMsg("");
-              }}
-              autoComplete="name"
-              className="h-11 lg:h-9"
-            />
-            <Button
-              className="h-11 lg:h-9"
-              disabled={busy === "name" || !name.trim() || name.trim() === customer.full_name}
-              onClick={() => void saveName()}
-            >
-              {t(locale, "sf.acct.save")}
-            </Button>
-          </div>
-          {nameMsg && <p className="text-muted-foreground">{nameMsg}</p>}
-        </label>
-        <div className="space-y-1">
-          <p className="font-medium">{t(locale, "sf.acct.email")}</p>
-          <p className="text-muted-foreground" dir="ltr">
-            {customer.email ?? "—"}
-          </p>
+  if (part === "sizes") {
+    if (!hasSizes) return null;
+    return (
+      <div className="text-sm">
+        <p className="text-xs text-muted-foreground">{t(locale, "sf.acct.sizesSub")}</p>
+        <div className="mt-5 grid grid-cols-3 gap-4">
+          {(
+            [
+              ["size_top", "sf.acct.sizeTop", LETTERS],
+              ["size_bottom", "sf.acct.sizeBottom", LETTERS],
+              ["size_shoe", "sf.acct.sizeShoe", SHOES],
+            ] as const
+          ).map(([key, label, options]) => (
+            <label key={key} className="block">
+              <span className="type-meta text-muted-foreground">{t(locale, label)}</span>
+              <select
+                className={selectClass}
+                value={sizes[key]}
+                onChange={(e) => {
+                  setSizes({ ...sizes, [key]: e.target.value });
+                  setSizeMsg("");
+                }}
+              >
+                <option value="">—</option>
+                {options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
         </div>
-        <div className="space-y-1">
-          <p className="font-medium">{t(locale, "sf.acct.phone")}</p>
-          <p className="text-muted-foreground" dir="ltr">
-            {customer.phone ?? "—"}
-          </p>
-          <p className="text-xs text-muted-foreground">{t(locale, "sf.acct.phoneNote")}</p>
+        <div className="mt-6 flex items-center gap-4">
+          <button type="button" className={SAVE} disabled={busy === "sizes" || !sizesDirty} onClick={() => void saveSizes()}>
+            {t(locale, "sf.acct.save")}
+          </button>
+          {sizeMsg && <p className="text-xs text-muted-foreground">{sizeMsg}</p>}
         </div>
       </div>
+    );
+  }
 
-      {hasSizes && (
-        <>
-          <h2 className="mt-10 text-lg font-medium">{t(locale, "sf.acct.sizes")}</h2>
-          <div className="mt-4 rounded-md border p-5 text-sm">
-            <p className="text-muted-foreground">{t(locale, "sf.acct.sizesSub")}</p>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {(
-                [
-                  ["size_top", "sf.acct.sizeTop", LETTERS],
-                  ["size_bottom", "sf.acct.sizeBottom", LETTERS],
-                  ["size_shoe", "sf.acct.sizeShoe", SHOES],
-                ] as const
-              ).map(([key, label, options]) => (
-                <label key={key} className="block space-y-1.5">
-                  <span className="font-medium">{t(locale, label)}</span>
-                  <select
-                    className={selectClass}
-                    value={sizes[key]}
-                    onChange={(e) => {
-                      setSizes({ ...sizes, [key]: e.target.value });
-                      setSizeMsg("");
-                    }}
-                  >
-                    <option value="">—</option>
-                    {options.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center gap-3">
-              <Button className="h-11 lg:h-9" disabled={busy === "sizes" || !sizesDirty} onClick={() => void saveSizes()}>
-                {t(locale, "sf.acct.save")}
-              </Button>
-              {sizeMsg && <p className="text-muted-foreground">{sizeMsg}</p>}
-            </div>
-          </div>
-        </>
-      )}
-    </>
+  return (
+    <div className="space-y-6 text-sm">
+      <label className="block">
+        <span className="type-meta text-muted-foreground">{t(locale, "sf.acct.name")}</span>
+        <div className="flex items-end gap-4">
+          <input
+            className={FIELD}
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameMsg("");
+            }}
+            autoComplete="name"
+          />
+          <button
+            type="button"
+            className="type-label h-11 shrink-0 underline underline-offset-4 hover:opacity-60 disabled:opacity-30 disabled:no-underline"
+            disabled={busy === "name" || !name.trim() || name.trim() === customer.full_name}
+            onClick={() => void saveName()}
+          >
+            {t(locale, "sf.acct.save")}
+          </button>
+        </div>
+        {nameMsg && <p className="mt-2 text-xs text-muted-foreground">{nameMsg}</p>}
+      </label>
+      <div>
+        <p className="type-meta text-muted-foreground">{t(locale, "sf.acct.email")}</p>
+        <p className="mt-1" dir="ltr">
+          {customer.email ?? "—"}
+        </p>
+      </div>
+      <div>
+        <p className="type-meta text-muted-foreground">{t(locale, "sf.acct.phone")}</p>
+        <p className="mt-1" dir="ltr">
+          {customer.phone ?? "—"}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{t(locale, "sf.acct.phoneNote")}</p>
+      </div>
+    </div>
   );
 }

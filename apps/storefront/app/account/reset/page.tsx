@@ -68,8 +68,8 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.reset.title")}</h1>
+      <main className="mx-auto max-w-md px-4 pb-24 pt-12 sm:pt-20">
+        <h1 className="type-heading">{t(locale, "sf.reset.title")}</h1>
 
         {state === "checking" && <p className="mt-4 text-sm text-muted-foreground">{t(locale, "sf.reset.checking")}</p>}
 
@@ -83,9 +83,9 @@ export default function ResetPasswordPage() {
         )}
 
         {state === "ready" && (
-          <div className="mt-8 space-y-4 [&_input]:h-11 lg:[&_input]:h-9">
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">{t(locale, "sf.reset.password")}</span>
+          <div className="mt-8 space-y-6 [&_input]:h-11 [&_input]:border-0 [&_input]:border-b [&_input]:bg-transparent [&_input]:px-0 [&_input]:shadow-none [&_input]:focus-visible:ring-0">
+            <label className="block">
+              <span className="type-meta text-muted-foreground">{t(locale, "sf.reset.password")}</span>
               <Input
                 type="password"
                 value={password}
@@ -93,8 +93,8 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
               />
             </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">{t(locale, "sf.new.confirm")}</span>
+            <label className="block">
+              <span className="type-meta text-muted-foreground">{t(locale, "sf.new.confirm")}</span>
               <Input
                 type="password"
                 value={confirm}
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-destructive">{t(locale, "sf.new.noMatch")}</p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="h-12 w-full text-base" disabled={!canSave} onClick={() => void save()}>
+            <Button className="type-label h-12 w-full" disabled={!canSave} onClick={() => void save()}>
               {busy ? t(locale, "sf.reset.saving") : t(locale, "sf.reset.save")}
             </Button>
           </div>

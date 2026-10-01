@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
-import { Input } from "@bach/ui/components/input";
-import { Textarea } from "@bach/ui/components/textarea";
 
 import { t } from "@bach/i18n";
 
@@ -157,164 +154,193 @@ export default function CheckoutPage() {
     router.replace(lhref(locale, `/confirmed?n=${data![0].order_number}`));
   }
 
+  const payOption = (key: string, title: string, sub: React.ReactNode) => (
+    <button
+      key={key}
+      type="button"
+      role="radio"
+      aria-checked={payMethod === key}
+      onClick={() => setPayMethod(key)}
+      className="flex w-full items-start gap-4 border-b py-4 text-start"
+    >
+      <span
+        aria-hidden
+        className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center border ${payMethod === key ? "border-foreground" : "border-border"}`}
+      >
+        {payMethod === key ? <span className="h-2 w-2 bg-foreground" /> : null}
+      </span>
+      <span>
+        <span className="type-label block">{title}</span>
+        <span className="mt-1 block text-xs text-muted-foreground">{sub}</span>
+      </span>
+    </button>
+  );
+
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">{t(locale, "sf.co.title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t(locale, "sf.co.sub")}</p>
+      <main className="mx-auto max-w-[1440px] px-4 pb-16 pt-8 sm:px-8">
+        <h1 className="type-heading">{t(locale, "sf.co.title")}</h1>
+        <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.co.sub")}</p>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-4 [&_input]:h-11 lg:[&_input]:h-9">
-            <Field label={t(locale, "sf.co.name")}>
-              <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-            </Field>
-            <Field label={t(locale, "sf.co.phone")}>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+961 71 000 000"
-                inputMode="tel"
-                autoComplete="tel"
-                dir="ltr"
-              />
-            </Field>
-            <Field label={t(locale, "sf.co.email")}>
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                inputMode="email"
-                autoComplete="email"
-                dir="ltr"
-              />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t(locale, "sf.co.city")}>
-                <Input value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+        <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20">
+          <div className="max-w-2xl space-y-12">
+            <Step n={1} title={t(locale, "sf.co.stepContact")}>
+              <Field label={t(locale, "sf.co.name")}>
+                <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
               </Field>
-              <Field label={t(locale, "sf.co.address")}>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
-              </Field>
-            </div>
-            <Field label={t(locale, "sf.co.notes")}>
-              <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
-            </Field>
-            {methods.length > 1 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">{t(locale, "sf.co.payment")}</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {walletBalance >= Math.round(total * 0.9) && walletBalance > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setPayMethod("wallet")}
-                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "wallet" ? "border-foreground" : "hover:border-foreground/50"}`}
-                    >
-                      <span className="font-medium">Pay from wallet — 10% off</span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground" dir="ltr">
-                        Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${((Math.round(total * 0.9)) / 100).toFixed(2)}
-                      </span>
-                    </button>
-                  )}
-                  {methods.includes("cod") && (
-                    <button
-                      type="button"
-                      onClick={() => setPayMethod("cod")}
-                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "cod" ? "border-foreground" : "hover:border-foreground/50"}`}
-                    >
-                      <span className="font-medium">{t(locale, "sf.co.cod")}</span>
-                      <span className="block text-xs text-muted-foreground">{t(locale, "sf.co.codSub")}</span>
-                    </button>
-                  )}
-                  {methods.includes("stripe") && (
-                    <button
-                      type="button"
-                      onClick={() => setPayMethod("stripe")}
-                      className={`rounded-md border p-3 text-right text-sm transition-colors ${payMethod === "stripe" ? "border-foreground" : "hover:border-foreground/50"}`}
-                    >
-                      <span className="font-medium">{t(locale, "sf.co.card")}</span>
-                      <span className="block text-xs text-muted-foreground">{t(locale, "sf.co.cardSub")}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-            {signedIn ? (
-              <Field label={t(locale, "sf.co.promo")}>
-                <div className="flex gap-2">
-                  <Input
-                    value={promo}
-                    onChange={(e) => {
-                      setPromo(e.target.value);
-                      setPromoState({ status: "idle" });
-                    }}
-                    placeholder="MYBIRTHDAY"
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field label={t(locale, "sf.co.phone")}>
+                  <input
+                    className={INPUT}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+961 71 000 000"
+                    inputMode="tel"
+                    autoComplete="tel"
                     dir="ltr"
-                    className="font-mono uppercase"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={!promo.trim()}
-                    onClick={async () => {
-                      const { data } = await supabaseBrowser().rpc("validate_promocode", { p_code: promo.trim() });
-                      const v = data?.[0];
-                      setPromoState(
-                        v?.valid
-                          ? { status: "ok", kind: v.kind, value: v.value }
-                          : { status: "bad", message: v?.message ?? "invalid code" },
-                      );
-                    }}
-                  >
-                    {t(locale, "sf.co.apply")}
-                  </Button>
-                </div>
-                {promoState.status === "ok" && (
-                  <p className="text-sm text-green-600 dark:text-green-400">
-                    {t(locale, "sf.co.promoOk", { v: `${(promoDiscount / 100).toFixed(2)}` })}
-                  </p>
-                )}
-                {promoState.status === "bad" && <p className="text-sm text-destructive">{promoState.message}</p>}
+                </Field>
+                <Field label={t(locale, "sf.co.email")}>
+                  <input
+                    className={INPUT}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    inputMode="email"
+                    autoComplete="email"
+                    dir="ltr"
+                  />
+                </Field>
+              </div>
+            </Step>
+
+            <Step n={2} title={t(locale, "sf.co.stepAddress")}>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field label={t(locale, "sf.co.city")}>
+                  <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                </Field>
+                <Field label={t(locale, "sf.co.address")}>
+                  <input className={INPUT} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
+                </Field>
+              </div>
+              <Field label={t(locale, "sf.co.notes")}>
+                <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
               </Field>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {t(locale, "sf.co.promoAsk")} <Link href={lhref(locale, "/account/login")} className="underline underline-offset-4">{t(locale, "sf.pdp.signIn")}</Link> {t(locale, "sf.co.promoSignIn")}
-              </p>
-            )}
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="h-12 w-full text-base" disabled={!canPlace} onClick={() => void placeOrder()}>
-              {busy ? t(locale, "sf.co.placing") : t(locale, "sf.co.place", { v: usd(total) })}
-            </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              {t(locale, "sf.co.consent")}
-            </p>
+            </Step>
+
+            <Step n={3} title={t(locale, "sf.co.payment")}>
+              <div role="radiogroup" aria-label={t(locale, "sf.co.payment")} className="border-t">
+                {methods.length > 1 &&
+                  walletBalance >= Math.round(total * 0.9) &&
+                  walletBalance > 0 &&
+                  payOption(
+                    "wallet",
+                    "Pay from wallet — 10% off",
+                    <span dir="ltr">
+                      Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${(Math.round(total * 0.9) / 100).toFixed(2)}
+                    </span>,
+                  )}
+                {methods.includes("cod") && payOption("cod", t(locale, "sf.co.cod"), t(locale, "sf.co.codSub"))}
+                {methods.includes("stripe") && payOption("stripe", t(locale, "sf.co.card"), t(locale, "sf.co.cardSub"))}
+              </div>
+            </Step>
+
+            <Step n={4} title={t(locale, "sf.co.promo")}>
+              {signedIn ? (
+                <div>
+                  <div className="flex items-end gap-4">
+                    <input
+                      className={`${INPUT} font-mono uppercase`}
+                      value={promo}
+                      onChange={(e) => {
+                        setPromo(e.target.value);
+                        setPromoState({ status: "idle" });
+                      }}
+                      placeholder="MYBIRTHDAY"
+                      aria-label={t(locale, "sf.co.promo")}
+                      dir="ltr"
+                    />
+                    <button
+                      type="button"
+                      className="type-label h-11 shrink-0 underline underline-offset-4 hover:opacity-60 disabled:opacity-30 disabled:no-underline"
+                      disabled={!promo.trim()}
+                      onClick={async () => {
+                        const { data } = await supabaseBrowser().rpc("validate_promocode", { p_code: promo.trim() });
+                        const v = data?.[0];
+                        setPromoState(
+                          v?.valid
+                            ? { status: "ok", kind: v.kind, value: v.value }
+                            : { status: "bad", message: v?.message ?? "invalid code" },
+                        );
+                      }}
+                    >
+                      {t(locale, "sf.co.apply")}
+                    </button>
+                  </div>
+                  {promoState.status === "ok" && (
+                    <p className="mt-2 text-xs">✓ {t(locale, "sf.co.promoOk", { v: `${(promoDiscount / 100).toFixed(2)}` })}</p>
+                  )}
+                  {promoState.status === "bad" && <p className="mt-2 text-xs text-destructive">{promoState.message}</p>}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {t(locale, "sf.co.promoAsk")}{" "}
+                  <Link href={lhref(locale, "/account/login")} className="text-foreground underline underline-offset-4">
+                    {t(locale, "sf.pdp.signIn")}
+                  </Link>{" "}
+                  {t(locale, "sf.co.promoSignIn")}
+                </p>
+              )}
+            </Step>
+
+            {/* Phones: the button rides along the bottom of the screen. */}
+            <div className="sticky bottom-0 z-30 -mx-4 border-t bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:border-0 lg:p-0">
+              {error && <p className="mb-3 text-xs text-destructive">{error}</p>}
+              <button
+                type="button"
+                className="type-label h-12 w-full bg-foreground text-background hover:opacity-90 disabled:opacity-40"
+                disabled={!canPlace}
+                onClick={() => void placeOrder()}
+              >
+                {busy ? t(locale, "sf.co.placing") : t(locale, "sf.co.place", { v: usd(total) })}
+              </button>
+              <p className="mt-3 hidden text-center text-xs text-muted-foreground lg:block">{t(locale, "sf.co.consent")}</p>
+            </div>
+            <p className="-mt-8 text-center text-xs text-muted-foreground lg:hidden">{t(locale, "sf.co.consent")}</p>
           </div>
 
-          <aside className="order-first h-fit space-y-3 border p-5 text-sm lg:sticky lg:top-8 lg:order-none">
-            {summary.map((l, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                <span>
-                  {l.name} <span className="text-muted-foreground">· {l.size} {l.color} × {l.quantity}</span>
-                </span>
-                <span className="tabular-nums">{usd(l.lineTotal)}</span>
-              </div>
-            ))}
+          <aside className="order-first h-fit border p-5 lg:sticky lg:top-24 lg:order-none lg:p-6">
+            <p className="type-heading mb-4">{t(locale, "sf.co.summary")}</p>
+            <ul className="space-y-3">
+              {summary.map((l, i) => (
+                <li key={i} className="flex justify-between gap-4">
+                  <span className="min-w-0">
+                    <span className="type-meta block">{l.name}</span>
+                    <span className="type-meta block text-muted-foreground">
+                      {l.size} | {l.color} · × {l.quantity}
+                    </span>
+                  </span>
+                  <span className="type-meta shrink-0 tabular-nums">{usd(l.lineTotal)}</span>
+                </li>
+              ))}
+            </ul>
             {promoDiscount > 0 && (
-              <div className="flex justify-between text-green-600 dark:text-green-400">
+              <p className="type-meta mt-3 flex justify-between">
                 <span>{t(locale, "sf.co.promoDiscount")}</span>
                 <span className="tabular-nums">- {usd(promoDiscount)}</span>
-              </div>
+              </p>
             )}
-            <div className="flex justify-between border-t pt-3 font-medium">
+            <p className="type-label mt-4 flex justify-between border-t pt-4">
               <span>{t(locale, "sf.co.total")}</span>
               <span className="tabular-nums">{usd(total)}</span>
-            </div>
+            </p>
             {rate && (
-              <p className="text-left text-xs tabular-nums text-muted-foreground" dir="ltr">
+              <p className="type-meta mt-1 text-end tabular-nums text-muted-foreground" dir="ltr">
                 ≈ {Math.round((total / 100) * rate).toLocaleString("en-US")} LBP
               </p>
             )}
-            <p className="text-xs text-muted-foreground">{t(locale, "sf.co.cashNote")}</p>
-            <Link href={lhref(locale, "/cart")} className="block text-xs underline underline-offset-4">
+            <p className="mt-4 text-xs text-muted-foreground">{t(locale, "sf.co.cashNote")}</p>
+            <Link href={lhref(locale, "/cart")} className="type-meta mt-4 inline-block underline underline-offset-4 hover:opacity-60">
               {t(locale, "sf.co.editBag")}
             </Link>
           </aside>
@@ -324,10 +350,24 @@ export default function CheckoutPage() {
   );
 }
 
+const INPUT =
+  "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground";
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="type-heading mb-6">
+        <span className="text-muted-foreground">{String(n).padStart(2, "0")}</span> {title}
+      </h2>
+      <div className="space-y-6">{children}</div>
+    </section>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{label}</span>
+    <label className="block">
+      <span className="type-meta text-muted-foreground">{label}</span>
       {children}
     </label>
   );

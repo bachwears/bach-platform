@@ -70,7 +70,8 @@ export default function CartPage() {
   const [loaded, setLoaded] = useState(false);
   const [suggested, setSuggested] = useState<CardProduct[]>([]);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [favs, setFavs] = useState<CardProduct[] | null>(null);
+  const [favs, setFavs] = useState<Array<{ productId: string; card: CardProduct }> | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   useEffect(() => onCartChange(() => setLines(readCart())), []);
 
@@ -145,16 +146,16 @@ export default function CartPage() {
         setFavs([]);
         return;
       }
+      setCustomerId(cust.id);
       const { data } = await supabase
         .from("wishlists")
-        .select(`products(${CARD_SELECT})`)
+        .select(`product_id, products(${CARD_SELECT})`)
         .eq("customer_id", cust.id)
         .order("created_at", { ascending: false });
       setFavs(
-        ((data ?? []) as unknown as Array<{ products: CardRow | null }>)
-          .map((w) => w.products)
-          .filter((p): p is CardRow => !!p)
-          .map(toCard),
+        ((data ?? []) as unknown as Array<{ product_id: string; products: CardRow | null }>)
+          .filter((w) => !!w.products)
+          .map((w) => ({ productId: w.product_id, card: toCard(w.products!) })),
       );
     })();
   }, []);
@@ -221,8 +222,22 @@ export default function CartPage() {
               <p className="type-label">{t(locale, "sf.cart.favEmpty")}</p>
             ) : (
               <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
-                {favs.map((p) => (
-                  <ProductCard key={p.slug} product={p} locale={locale} />
+                {favs.map((f) => (
+                  <div key={f.productId}>
+                    <ProductCard product={f.card} locale={locale} />
+                    <button
+                      type="button"
+                      className="type-meta mt-3 underline underline-offset-4 hover:opacity-60"
+                      onClick={async () => {
+                        setFavs((cur) => (cur ?? []).filter((x) => x.productId !== f.productId));
+                        if (customerId) {
+                          await supabaseBrowser().from("wishlists").delete().eq("customer_id", customerId).eq("product_id", f.productId);
+                        }
+                      }}
+                    >
+                      {t(locale, "sf.cart.remove")}
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

@@ -369,5 +369,13 @@
   "sf.cart.loginHint": "لتشوف القطع المحفوظة.",
   "sf.cart.mayLike": "ممكن يعجبك كمان",
   "sf.cart.total": "المجموع",
-  "sf.cart.continueBtn": "متابعة"
+  "sf.cart.continueBtn": "متابعة",
+  "sf.co.stepContact": "معلومات التواصل",
+  "sf.co.stepAddress": "عنوان التوصيل",
+  "sf.co.summary": "ملخّص الطلب",
+  "sf.auth.title": "سجّل دخول أو افتح حساب",
+  "sf.auth.continue": "متابعة",
+  "sf.auth.change": "تغيير",
+  "sf.auth.newHere": "جديد عند BACH؟",
+  "sf.auth.createInstead": "افتح حساب"
 }
