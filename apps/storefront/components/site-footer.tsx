@@ -16,7 +16,7 @@ export async function SiteFooter() {
       links: [
         { href: "/help", label: t(locale, "sf.footer.help") },
         { href: "/support", label: t(locale, "sf.footer.support") },
-        { href: "/support/track", label: t(locale, "sf.nav.trackOrder") },
+        { href: "/track", label: t(locale, "sf.nav.trackOrder") },
         { href: "/returns", label: t(locale, "sf.footer.returns") },
       ],
     },

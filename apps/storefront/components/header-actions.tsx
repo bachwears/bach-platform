@@ -263,7 +263,7 @@ export function HeaderActions({
                   </Link>
                 </li>
                 <li>
-                  <Link href={lhref(locale, "/support/track")} className={`${textLink} block`} onClick={close}>
+                  <Link href={lhref(locale, "/track")} className={`${textLink} block`} onClick={close}>
                     {t(locale, "sf.nav.trackOrder")}
                   </Link>
                 </li>

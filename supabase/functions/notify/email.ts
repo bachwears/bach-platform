@@ -21,7 +21,7 @@ const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 const firstName = (p: Payload) => String(p.customer_name ?? "").trim().split(/\s+/)[0] ?? "";
-const track = (p: Payload) => `${SITE}/support/track?n=${encodeURIComponent(String(p.order_number ?? ""))}`;
+const track = (p: Payload) => `${SITE}/track?n=${encodeURIComponent(String(p.order_number ?? ""))}`;
 
 interface EventDesign {
   eyebrow: (p: Payload, lang: Lang) => string;
@@ -31,6 +31,15 @@ interface EventDesign {
   cta?: (p: Payload, lang: Lang) => { label: string; url: string };
 }
 
+const PAYMENT_LABEL: Record<string, string> = {
+  cod: "Cash on delivery",
+  whish: "Whish",
+  stripe: "Card",
+  cash: "Cash",
+};
+const paymentLabel = (p: Payload) => PAYMENT_LABEL[String(p.payment ?? "cod")] ?? "Cash on delivery";
+const isCod = (p: Payload) => String(p.payment ?? "cod") === "cod";
+
 const EVENTS: Record<string, EventDesign> = {
   online_order_placed: {
     eyebrow: (p) => `Order #${p.order_number}`,
@@ -38,7 +47,7 @@ const EVENTS: Record<string, EventDesign> = {
     details: (p) => [
       ["Order", `#${p.order_number}`],
       ["Total", p.total_lbp ? `${p.total_usd}  ·  ≈ ${p.total_lbp} LBP` : String(p.total_usd ?? "")],
-      ["Payment", "Cash on delivery"],
+      ["Payment", paymentLabel(p)],
       ...(p.city ? ([["Delivery to", String(p.city)]] as Array<[string, string]>) : []),
     ],
     cta: (p) => ({ label: "Track your order", url: track(p) }),
@@ -48,9 +57,28 @@ const EVENTS: Record<string, EventDesign> = {
     title: () => "Your order is on its way.",
     details: (p) => [
       ["Order", `#${p.order_number}`],
-      ["Due on delivery", String(p.total_usd ?? "")],
+      // only cash-on-delivery orders have anything to pay at the door
+      isCod(p) ? ["Due on delivery", String(p.total_usd ?? "")] : ["Payment", `${paymentLabel(p)} — paid`],
     ],
     cta: (p) => ({ label: "Track your order", url: track(p) }),
+  },
+  order_delivered: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: (p) => (firstName(p) ? `Delivered — enjoy it, ${firstName(p)}.` : "Your order has arrived."),
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Need anything?", String(p.care_phone ?? "+961 71 566 296")],
+    ],
+    cta: (p) => ({ label: "View your order", url: track(p) }),
+  },
+  order_cancelled: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: () => "Your order was cancelled.",
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Questions?", String(p.care_phone ?? "+961 71 566 296")],
+    ],
+    cta: () => ({ label: "Continue shopping", url: `${SITE}/shop` }),
   },
   return_requested: {
     eyebrow: (p) => `Order #${p.order_number}`,

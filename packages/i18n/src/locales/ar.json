@@ -403,5 +403,15 @@
   "sf.co.errMethod": "طريقة الدفع هيدي مش متوفرة هلّق. اختار الدفع عند التسليم.",
   "sf.co.errDown": "الدفع واقف لدقائق. جرّب بعد شوي.",
   "sf.confirmed.viewOrders": "شوف طلباتك",
-  "sf.confirmed.trackSignedIn": "هالطلب محفوظ بحسابك — فيك تتابعه من هونيك وقت ما بدك."
+  "sf.confirmed.trackSignedIn": "هالطلب محفوظ بحسابك — فيك تتابعه من هونيك وقت ما بدك.",
+  "sf.trackOrder.title": "تتبّع طلبك",
+  "sf.trackOrder.sub": "اكتب رقم الطلب والتلفون يلّي استعملته وقت الطلب.",
+  "sf.trackOrder.account": "مسجّل دخول؟ كل طلباتك بحسابك.",
+  "sf.trackOrder.number": "رقم الطلب",
+  "sf.trackOrder.phone": "التلفون",
+  "sf.trackOrder.go": "تتبّع",
+  "sf.trackOrder.notFound": "ما لقينا طلب بهالرقم والتلفون.",
+  "sf.trackOrder.closed": "هالطلب مسكّر. عندك سؤال؟ نحنا هون.",
+  "sf.trackOrder.placed": "انطلب",
+  "sf.trackOrder.help": "عندك سؤال عن طلبك؟"
 }

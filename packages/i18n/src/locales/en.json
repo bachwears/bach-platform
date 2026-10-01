@@ -403,5 +403,15 @@
   "sf.co.errMethod": "That payment method isn't available right now. Please choose cash on delivery.",
   "sf.co.errDown": "Checkout is briefly unavailable. Please try again in a few minutes.",
   "sf.confirmed.viewOrders": "View your orders",
-  "sf.confirmed.trackSignedIn": "This order is saved in your account — follow it there any time."
+  "sf.confirmed.trackSignedIn": "This order is saved in your account — follow it there any time.",
+  "sf.trackOrder.title": "Track your order",
+  "sf.trackOrder.sub": "Enter your order number and the phone you used at checkout.",
+  "sf.trackOrder.account": "Signed in? All your orders are in your account.",
+  "sf.trackOrder.number": "Order number",
+  "sf.trackOrder.phone": "Phone",
+  "sf.trackOrder.go": "Track",
+  "sf.trackOrder.notFound": "No order found for that number and phone.",
+  "sf.trackOrder.closed": "This order is closed. Questions? We're here to help.",
+  "sf.trackOrder.placed": "Placed",
+  "sf.trackOrder.help": "Questions about your order?"
 }

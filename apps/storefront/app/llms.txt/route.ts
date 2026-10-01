@@ -51,6 +51,7 @@ export async function GET() {
 - [Help Center](https://bachwears.com/help): ordering, delivery, returns and account answers
 - [Search](https://bachwears.com/search): search the catalogue by name, colour, category or SKU
 - [Support](https://bachwears.com/support): file and track a complaint ticket
+- [Track your order](https://bachwears.com/track): order status with order number + phone
 - [Delivery & Shipping](https://bachwears.com/shipping): delivery areas, timing and fees
 - [Returns & Exchanges](https://bachwears.com/returns-policy): 30-day return and exchange policy
 ${legal.map((l) => `- [${l.label}](https://bachwears.com${l.path})`).join("\n")}
