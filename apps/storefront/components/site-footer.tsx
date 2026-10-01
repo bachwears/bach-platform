@@ -64,7 +64,7 @@ export async function SiteFooter() {
                         href={l.href}
                         target={l.href.startsWith("http") ? "_blank" : undefined}
                         rel={l.href.startsWith("http") ? "noreferrer" : undefined}
-                        className="type-meta block py-2 text-muted-foreground hover:text-foreground md:py-1"
+                        className={`type-meta block py-2 text-muted-foreground hover:text-foreground md:py-1 ${l.href.startsWith("mailto:") ? "normal-case" : ""}`}
                         dir="ltr"
                       >
                         {l.label}

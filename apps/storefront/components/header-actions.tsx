@@ -323,7 +323,7 @@ export function HeaderActions({
                   </button>
                 </li>
               </ul>
-              <p className="type-meta mt-4 text-muted-foreground" dir="ltr">
+              <p className="type-meta mt-4 normal-case text-muted-foreground" dir="ltr">
                 {t(locale, "sf.footer.contact")}
               </p>
             </div>
