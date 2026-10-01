@@ -35,25 +35,29 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-2xl px-4 py-12">
-        <Link href={lhref(locale, "/help")} className="text-sm text-muted-foreground hover:text-foreground">
-          {t(locale, "sf.help.back")}
+      <main className="mx-auto max-w-2xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+        <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
+          <Link href={lhref(locale, "/help")} className="hover:text-foreground">
+            {t(locale, "sf.help.eyebrow")}
+          </Link>
+          <span aria-hidden> / </span>
+          <span>{t(locale, `sf.helpcat.${article.category}`)}</span>
+        </nav>
+        <h1 className="type-label mt-6 text-[15px]">{title}</h1>
+        <p className="mt-6 whitespace-pre-line text-sm leading-relaxed">{body}</p>
+        <Link href={lhref(locale, "/help")} className="type-meta mt-10 inline-block underline underline-offset-4 hover:opacity-60">
+          {t(locale, "sf.help.allTopics")}
         </Link>
-        <p className="mt-6 text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          {t(locale, `sf.helpcat.${article.category}`)}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-4 whitespace-pre-line leading-relaxed text-muted-foreground">{body}</p>
 
         {/* The other language stays one fold below for mixed-language households. */}
         {other.title && other.body ? (
           <div
-            className="mt-10 border-t pt-6"
+            className="mt-16 border-t pt-8"
             dir={locale === "ar" ? "ltr" : "rtl"}
             lang={locale === "ar" ? "en" : "ar"}
           >
-            <h2 className="text-xl font-semibold tracking-tight">{other.title}</h2>
-            <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground">{other.body}</p>
+            <h2 className="text-[15px]">{other.title}</h2>
+            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{other.body}</p>
           </div>
         ) : null}
       </main>

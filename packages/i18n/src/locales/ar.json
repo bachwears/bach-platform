@@ -377,5 +377,12 @@
   "sf.auth.continue": "متابعة",
   "sf.auth.change": "تغيير",
   "sf.auth.newHere": "جديد عند BACH؟",
-  "sf.auth.createInstead": "افتح حساب"
+  "sf.auth.createInstead": "افتح حساب",
+  "sf.help.searchPlaceholder": "دوّر بمواضيع المساعدة",
+  "sf.help.faq": "الأسئلة الأكثر تكراراً",
+  "sf.help.allTopics": "كل مواضيع المساعدة",
+  "sf.help.contact": "تواصل معنا",
+  "sf.help.email": "راسل خدمة العملاء",
+  "sf.help.results": "نتائج “{q}”",
+  "sf.help.noResults": "ما في مواضيع مطابقة لـ “{q}”."
 }

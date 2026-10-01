@@ -377,5 +377,12 @@
   "sf.auth.continue": "Continue",
   "sf.auth.change": "Change",
   "sf.auth.newHere": "New to BACH?",
-  "sf.auth.createInstead": "Create an account"
+  "sf.auth.createInstead": "Create an account",
+  "sf.help.searchPlaceholder": "Search help topics",
+  "sf.help.faq": "Frequently asked questions",
+  "sf.help.allTopics": "All help topics",
+  "sf.help.contact": "Contact us",
+  "sf.help.email": "Email care",
+  "sf.help.results": "Results for “{q}”",
+  "sf.help.noResults": "No help topics match “{q}”."
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { t } from "@bach/i18n";
 
 import { getLocale, lhref } from "../lib/locale";
 
@@ -36,11 +37,18 @@ export async function PolicyPage({
   const paragraphs = body.split(/\n\s*\n/).filter(Boolean);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16">
-      <h1 className="anim-rise text-3xl font-semibold tracking-tight">{title}</h1>
-      <div className="mt-8 space-y-5">
+    <main className="mx-auto max-w-2xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
+      <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
+        <Link href={lhref(locale, "/help")} className="hover:text-foreground">
+          {t(locale, "sf.help.eyebrow")}
+        </Link>
+        <span aria-hidden> / </span>
+        <span>{title}</span>
+      </nav>
+      <h1 className="type-display mt-6 text-4xl sm:text-5xl">{title}</h1>
+      <div className="mt-10 space-y-5">
         {paragraphs.map((p, i) => (
-          <p key={i} className="leading-relaxed text-muted-foreground" data-reveal>
+          <p key={i} className="text-sm leading-relaxed">
             {p}
           </p>
         ))}
@@ -48,8 +56,7 @@ export async function PolicyPage({
       {cta ? (
         <Link
           href={lhref(locale, cta.href)}
-          className="mt-10 inline-block border-b border-foreground pb-0.5 text-sm font-medium hover:opacity-70"
-          data-reveal
+          className="type-label mt-12 grid h-12 w-full place-items-center border border-foreground hover:bg-secondary sm:w-auto sm:px-10 sm:inline-grid"
         >
           {cta.label}
         </Link>
