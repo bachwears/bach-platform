@@ -217,6 +217,7 @@ export default function AccountPage() {
             <label className="mt-2 flex cursor-pointer items-center gap-2 text-muted-foreground">
               <input
                 type="checkbox"
+                className="h-[18px] w-[18px] shrink-0 accent-foreground"
                 checked={customer?.marketing_consent ?? false}
                 disabled={!customer?.id}
                 onChange={async (e) => {
@@ -286,7 +287,7 @@ export default function AccountPage() {
               </a>
               .
             </p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className="mt-3 flex flex-wrap items-end gap-3 [&_input]:h-11 lg:[&_input]:h-9">
               <div className="grid gap-1">
                 <label htmlFor="tu-amt" className="text-xs text-muted-foreground">Amount (USD)</label>
                 <Input id="tu-amt" dir="ltr" type="number" min="1" step="1" className="w-28" value={tuAmount} onChange={(e) => setTuAmount(e.target.value)} />
@@ -296,6 +297,7 @@ export default function AccountPage() {
                 <Input id="tu-rcpt" dir="ltr" className="w-44" value={tuReceipt} onChange={(e) => setTuReceipt(e.target.value)} />
               </div>
               <Button
+                className="h-11 lg:h-9"
                 disabled={tuBusy || !Number(tuAmount) || tuReceipt.trim().length < 3}
                 onClick={async () => {
                   setTuBusy(true);
