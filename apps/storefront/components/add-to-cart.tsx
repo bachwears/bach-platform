@@ -136,7 +136,13 @@ export function AddToCart({
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
     window.addEventListener("keydown", onKey);
     sheetRef.current?.querySelector<HTMLElement>("button")?.focus();
-    return () => window.removeEventListener("keydown", onKey);
+    // On phones the sheet covers the page, so the page behind shouldn't scroll.
+    const phone = window.matchMedia("(max-width: 1023px)").matches;
+    if (phone) document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (phone) document.body.style.overflow = "";
+    };
   }, [sheet]);
 
   function closeSheet() {
@@ -212,6 +218,12 @@ export function AddToCart({
             ))}
           </div>
         </div>
+      )}
+      {/* One size only: ADD adds it straight away, so say which size it is first. */}
+      {sizes.length === 1 && (
+        <p className="type-meta text-muted-foreground">
+          {t(locale, "sf.pdp.size")} — <span className="text-foreground">{sizes[0]!.size}</span>
+        </p>
       )}
       {savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
         <p className="type-meta text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
