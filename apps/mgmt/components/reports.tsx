@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { addDays, beirutMidnightOf, beirutStamp, beirutYmd } from "../lib/time";
 
 function csvEscape(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -26,22 +27,21 @@ function usdNum(cents: number | null | undefined): string {
 }
 
 function defaultFrom(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d.toISOString().slice(0, 10);
+  return addDays(beirutYmd(), -30);
 }
 
 export function Reports() {
   const supabase = supabaseBrowser();
   const [from, setFrom] = useState(defaultFrom());
-  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
+  const [to, setTo] = useState(beirutYmd());
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
+  // Beirut calendar days, whatever timezone the browser is in.
   const range = () => ({
-    fromIso: new Date(`${from}T00:00:00`).toISOString(),
-    toIso: new Date(new Date(`${to}T00:00:00`).getTime() + 24 * 3600 * 1000).toISOString(),
+    fromIso: beirutMidnightOf(from).toISOString(),
+    toIso: beirutMidnightOf(addDays(to, 1)).toISOString(),
   });
 
   async function run(key: string, fn: () => Promise<number>) {
@@ -70,7 +70,7 @@ export function Reports() {
       const cust = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
       return [
         o.number,
-        o.created_at.slice(0, 16).replace("T", " "),
+        beirutStamp(o.created_at),
         o.channel,
         o.status,
         o.payment_method,
@@ -101,7 +101,7 @@ export function Reports() {
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((i) => {
       const o = i.orders as unknown as { number: number; created_at: string; channel: string; status: string };
-      return [o.number, o.created_at.slice(0, 10), o.channel, o.status, i.sku ?? "", i.name_en, i.size, i.color_en, i.quantity, usdNum(i.unit_price_usd_cents), usdNum(i.line_total_usd_cents)];
+      return [o.number, beirutYmd(o.created_at), o.channel, o.status, i.sku ?? "", i.name_en, i.size, i.color_en, i.quantity, usdNum(i.unit_price_usd_cents), usdNum(i.line_total_usd_cents)];
     });
     downloadCsv(`bach-order-items-${from}-to-${to}.csv`,
       ["Order", "Date", "Channel", "Status", "SKU", "Product", "Size", "Color", "Qty", "Unit USD", "Line USD"],
@@ -118,7 +118,7 @@ export function Reports() {
     ]);
     if (e1 || e2 || e3) throw new Error((e1 ?? e2 ?? e3)!.message);
     const days = new Map<string, { orders: number; gross: number; disc: number; tva: number; total: number; cashUsd: number; cashLbp: number; outUsd: number; outLbp: number }>();
-    const day = (iso: string) => iso.slice(0, 10);
+    const day = (iso: string) => beirutYmd(iso);
     const get = (k: string) => {
       if (!days.has(k)) days.set(k, { orders: 0, gross: 0, disc: 0, tva: 0, total: 0, cashUsd: 0, cashLbp: 0, outUsd: 0, outLbp: 0 });
       return days.get(k)!;
@@ -172,7 +172,7 @@ export function Reports() {
         usdNum(p.cost_usd_cents), usdNum(p.price_usd_cents), p.sale_price_usd_cents != null ? usdNum(p.sale_price_usd_cents) : "",
       ];
     });
-    downloadCsv(`bach-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
+    downloadCsv(`bach-inventory-${beirutYmd()}.csv`,
       ["SKU", "Barcode", "Product", "Category", "Size", "Color", "Status", "Active", "Stock", "Reserved", "Min Qty", "Cost USD", "Price USD", "Sale USD"],
       rows);
     return rows.length;
@@ -189,23 +189,23 @@ export function Reports() {
       const valid = orders.filter((o) => o.status !== "cancelled");
       return [
         c.full_name ?? "", c.phone ?? "", c.email ?? "", c.birthday ?? "",
-        c.marketing_consent ? "yes" : "no", c.created_at.slice(0, 10),
+        c.marketing_consent ? "yes" : "no", beirutYmd(c.created_at),
         valid.length, usdNum(valid.reduce((s, o) => s + o.total_usd_cents, 0)),
       ];
     });
-    downloadCsv(`bach-customers-${new Date().toISOString().slice(0, 10)}.csv`,
+    downloadCsv(`bach-customers-${beirutYmd()}.csv`,
       ["Name", "Phone", "Email", "Birthday", "Consent", "Since", "Orders", "Lifetime USD"],
       rows);
     return rows.length;
   }
 
   async function exportCloseouts(): Promise<number> {
-    const { fromIso, toIso } = range();
     const { data, error: err } = await supabase
       .from("eod_closeouts")
       .select("business_date, orders_count, gross_usd_cents, discounts_usd_cents, tva_usd_cents, expected_usd_cents, expected_lbp, counted_usd_cents, counted_lbp, note, profiles(full_name)")
-      .gte("business_date", fromIso.slice(0, 10))
-      .lte("business_date", toIso.slice(0, 10))
+      // business_date is already a Beirut calendar date
+      .gte("business_date", from)
+      .lte("business_date", to)
       .order("business_date");
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((c) => [

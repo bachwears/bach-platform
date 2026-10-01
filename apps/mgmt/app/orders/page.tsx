@@ -4,7 +4,8 @@ import { Badge } from "@bach/ui/components/badge";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { Nav } from "../../components/nav";
-import { STATUS_LABELS } from "../../lib/order-status";
+import { STATUS_LABELS, paymentLabel } from "../../lib/order-status";
+import { beirutDayStart, fmt } from "../../lib/time";
 
 const CHANNEL_LABELS: Record<string, string> = { pos: "المحل", online: "أونلاين" };
 
@@ -15,35 +16,58 @@ function usd(cents: number): string {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q: rawQ = "" } = await searchParams;
+  const q = rawQ.trim().replace(/^#/, "");
   const supabase = await supabaseServer();
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  // "Today" is the Beirut calendar day, not the server's (UTC).
+  const startOfDay = beirutDayStart();
 
   let query = supabase
     .from("orders")
     .select(
-      "id, number, channel, status, total_usd_cents, lbp_per_usd, created_at, branches(name), profiles(full_name), order_items(quantity)",
+      "id, number, channel, status, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
     )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(q ? 500 : 100);
   if (status && STATUS_LABELS[status]) query = query.eq("status", status);
 
-  const [{ data: orders }, { data: todayOrders }, { data: todayPays }] = await Promise.all([
+  const [{ data: rows }, { data: todayOrders }, { data: todayPays }] = await Promise.all([
     query,
     supabase
       .from("orders")
       .select("total_usd_cents, status")
       .gte("created_at", startOfDay.toISOString())
       .not("status", "in", '("cancelled","returned")'),
+    // Drawer = in-store cash only; Whish/card/wallet never touch the drawer,
+    // and a cancelled or returned sale isn't cash we still hold.
     supabase
       .from("order_payments")
-      .select("currency, amount_minor, usd_equiv_cents, orders!inner(created_at, status)")
-      .gte("orders.created_at", startOfDay.toISOString()),
+      .select("method, currency, amount_minor, orders!inner(created_at, status)")
+      .eq("method", "cash")
+      .gte("orders.created_at", startOfDay.toISOString())
+      .not("orders.status", "in", '("cancelled","returned")'),
   ]);
+
+  type Row = NonNullable<typeof rows>[number];
+  const customerOf = (o: Row) => {
+    const c = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
+    return { name: o.ship_name ?? c?.full_name ?? null, phone: o.ship_phone ?? c?.phone ?? null };
+  };
+  // Search: order number, customer name or phone (digits only, so +961 / spaces don't matter).
+  const digits = q.replace(/\D/g, "");
+  const orders = q
+    ? (rows ?? []).filter((o) => {
+        const c = customerOf(o);
+        return (
+          String(o.number) === q ||
+          (c.name ?? "").toLowerCase().includes(q.toLowerCase()) ||
+          (digits.length >= 3 && (c.phone ?? "").replace(/\D/g, "").includes(digits))
+        );
+      })
+    : (rows ?? []);
 
   const todayTotal = (todayOrders ?? []).reduce((s, o) => s + o.total_usd_cents, 0);
   const cashUsd = (todayPays ?? []).filter((p) => p.currency === "USD").reduce((s, p) => s + Number(p.amount_minor), 0);
@@ -66,7 +90,7 @@ export default async function OrdersPage({
           </h1>
         </div>
 
-        {/* اليوم — cash drawer expectation per currency */}
+        {/* اليوم (بتوقيت بيروت) — cash drawer expectation per currency */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">مبيعات اليوم</p>
@@ -76,16 +100,38 @@ export default async function OrdersPage({
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">كاش دولار بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd(cashUsd)}</p>
+            <p className="text-xs text-muted-foreground">دفع كاش بالمحل بس</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">كاش ليرة بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{cashLbp.toLocaleString("en-US")} ل.ل</p>
+            <p className="text-xs text-muted-foreground">دفع كاش بالمحل بس</p>
           </div>
         </div>
 
+        <form action="/orders" className="flex flex-wrap items-center gap-2">
+          {status ? <input type="hidden" name="status" value={status} /> : null}
+          <input
+            type="search"
+            name="q"
+            defaultValue={rawQ}
+            placeholder="دوّر برقم الطلب، الاسم أو التلفون…"
+            aria-label="دوّر برقم الطلب، الاسم أو التلفون"
+            className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:max-w-sm"
+          />
+          <button type="submit" className="h-10 rounded-md border px-4 text-sm hover:bg-muted">
+            دوّر
+          </button>
+          {q ? (
+            <Link href={status ? `/orders?status=${status}` : "/orders"} className="text-sm text-muted-foreground underline underline-offset-4">
+              امسح البحث
+            </Link>
+          ) : null}
+        </form>
+
         <div className="flex flex-wrap gap-2 text-sm">
           <Link
-            href="/orders"
+            href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"}
             className={`rounded-full border px-3 py-1 ${!status ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
           >
             الكل
@@ -93,7 +139,7 @@ export default async function OrdersPage({
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <Link
               key={k}
-              href={`/orders?status=${k}`}
+              href={`/orders?status=${k}${q ? `&q=${encodeURIComponent(rawQ)}` : ""}`}
               className={`rounded-full border px-3 py-1 ${status === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
             >
               {v}
@@ -101,26 +147,29 @@ export default async function OrdersPage({
           ))}
         </div>
 
-        <div className="rounded-lg border">
-          {(orders ?? []).length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">ما في طلبات بعد.</p>
+        <div className="overflow-x-auto rounded-lg border">
+          {orders.length === 0 ? (
+            <p className="p-8 text-center text-muted-foreground">{q ? "ما في طلب مطابق." : "ما في طلبات بعد."}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-right text-muted-foreground">
-                  <th className="p-3 font-normal">رقم</th>
-                  <th className="p-3 font-normal">الوقت</th>
-                  <th className="p-3 font-normal">القناة</th>
-                  <th className="p-3 font-normal">الفرع</th>
-                  <th className="p-3 font-normal">الكاشير</th>
-                  <th className="p-3 font-normal">قطع</th>
-                  <th className="p-3 font-normal">الإجمالي</th>
-                  <th className="p-3 font-normal">الحالة</th>
+                <tr className="border-b text-start text-muted-foreground">
+                  <th className="p-3 text-start font-normal">رقم</th>
+                  <th className="p-3 text-start font-normal">الوقت</th>
+                  <th className="p-3 text-start font-normal">الزبون</th>
+                  <th className="p-3 text-start font-normal">القناة</th>
+                  <th className="p-3 text-start font-normal">الدفع</th>
+                  <th className="p-3 text-start font-normal">الفرع</th>
+                  <th className="p-3 text-start font-normal">الكاشير</th>
+                  <th className="p-3 text-start font-normal">قطع</th>
+                  <th className="p-3 text-start font-normal">الإجمالي</th>
+                  <th className="p-3 text-start font-normal">الحالة</th>
                 </tr>
               </thead>
               <tbody>
-                {(orders ?? []).map((o) => {
+                {orders.map((o) => {
                   const items = (o.order_items ?? []).reduce((s: number, i: { quantity: number }) => s + i.quantity, 0);
+                  const c = customerOf(o);
                   return (
                     <tr key={o.id} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="p-3 font-mono">
@@ -128,10 +177,19 @@ export default async function OrdersPage({
                           #{o.number}
                         </Link>
                       </td>
-                      <td className="p-3 text-muted-foreground" dir="ltr">
-                        {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                      <td className="whitespace-nowrap p-3 text-muted-foreground" dir="ltr">
+                        {fmt(o.created_at, { dateStyle: "short", timeStyle: "short" })}
+                      </td>
+                      <td className="p-3">
+                        {c.name ?? "زبون عابر"}
+                        {c.phone ? (
+                          <span className="block text-xs text-muted-foreground" dir="ltr">
+                            {c.phone}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="p-3">{CHANNEL_LABELS[o.channel] ?? o.channel}</td>
+                      <td className="p-3">{paymentLabel(o.payment_method)}</td>
                       <td className="p-3">{(o.branches as unknown as { name: string } | null)?.name}</td>
                       <td className="p-3">{(o.profiles as unknown as { full_name: string } | null)?.full_name ?? "—"}</td>
                       <td className="p-3 font-mono">{items}</td>

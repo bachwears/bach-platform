@@ -24,3 +24,16 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   returned: [],
   exchanged: [],
 };
+
+/** How an order was (or will be) paid — orders.payment_method / order_payments.method. */
+export const PAYMENT_LABELS: Record<string, string> = {
+  cash: "كاش",
+  cod: "كاش عند التسليم",
+  whish: "Whish",
+  stripe: "بطاقة",
+  wallet: "المحفظة",
+};
+
+export function paymentLabel(method: string | null | undefined): string {
+  return method ? (PAYMENT_LABELS[method] ?? method) : "—";
+}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { PrintButton } from "./print-button";
+import { addDays, beirutDayStart, beirutYmd, fmt } from "../lib/time";
 
 interface DashOrder {
   id: string;
@@ -30,9 +31,8 @@ function lbp(n: number) {
 
 export async function Dashboard({ name, days }: { name: string; days: number }) {
   const supabase = await supabaseServer();
-  const from = new Date();
-  from.setDate(from.getDate() - days);
-  from.setHours(0, 0, 0, 0);
+  // the window starts at Beirut midnight, not the server's (UTC)
+  const from = beirutDayStart(days);
 
   const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ] = await Promise.all([
     supabase
@@ -113,11 +113,9 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   const barDays = Math.min(days, 14);
   const series: Array<{ label: string; value: number }> = [];
   for (let d = barDays - 1; d >= 0; d--) {
-    const day = new Date();
-    day.setDate(day.getDate() - d);
-    const key = day.toISOString().slice(0, 10);
+    const key = addDays(beirutYmd(), -d);
     const value = orders
-      .filter((o) => o.created_at.slice(0, 10) === key)
+      .filter((o) => beirutYmd(o.created_at) === key)
       .reduce((s, o) => s + o.total_usd_cents, 0);
     series.push({ label: key.slice(8), value });
   }
@@ -152,7 +150,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
           <PrintButton label="طباعة التقرير" />
         </div>
         <p className="hidden text-xs text-muted-foreground print:block" dir="ltr">
-          Printed {new Date().toLocaleString("en-GB")}
+          Printed {fmt(new Date())}
         </p>
       </div>
 

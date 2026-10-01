@@ -4,6 +4,7 @@ import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { Nav } from "../../components/nav";
 import { RateForm } from "../../components/rate-form";
+import { fmt } from "../../lib/time";
 
 function lbp(n: number): string {
   return `${Math.round(n).toLocaleString("en-US")} ل.ل`;
@@ -54,7 +55,7 @@ export default async function ExchangeRatePage() {
                 {lbp(current)} <span className="text-lg text-muted-foreground">/ $</span>
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                من {new Date(latest.effective_at).toLocaleString("en-GB")}
+                من {fmt(latest.effective_at)}
                 {(latest.profiles as unknown as { full_name: string } | null)?.full_name
                   ? ` · حدّده ${(latest.profiles as unknown as { full_name: string }).full_name}`
                   : ""}
@@ -97,7 +98,7 @@ export default async function ExchangeRatePage() {
                         {delta == null ? "—" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}%`}
                       </td>
                       <td className="p-3 text-muted-foreground" dir="ltr">
-                        {new Date(r.effective_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                        {fmt(r.effective_at, { dateStyle: "short", timeStyle: "short" })}
                       </td>
                       <td className="p-3">
                         {(r.profiles as unknown as { full_name: string } | null)?.full_name ?? "—"}

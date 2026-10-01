@@ -5,7 +5,8 @@ import { Badge } from "@bach/ui/components/badge";
 
 import { Nav } from "../../../components/nav";
 import { OrderStatusControl } from "../../../components/order-status-control";
-import { STATUS_LABELS } from "../../../lib/order-status";
+import { STATUS_LABELS, paymentLabel } from "../../../lib/order-status";
+import { fmt } from "../../../lib/time";
 
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -47,19 +48,53 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </Badge>
           </div>
           <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
-            ← رجوع للطلبات
+            → رجوع للطلبات
           </Link>
         </div>
 
         <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <Info label="الوقت" value={new Date(order.created_at).toLocaleString("en-GB")} ltr />
+          <Info label="الوقت" value={fmt(order.created_at)} ltr />
           <Info label="الفرع" value={(order.branches as unknown as { name: string } | null)?.name ?? "—"} />
           <Info label="الكاشير" value={(order.profiles as unknown as { full_name: string } | null)?.full_name ?? "—"} />
           <Info
             label="الزبون"
-            value={(order.customers as unknown as { full_name: string | null } | null)?.full_name ?? "زبون عابر"}
+            value={(order.customers as unknown as { full_name: string | null } | null)?.full_name ?? order.ship_name ?? "زبون عابر"}
           />
         </div>
+
+        {order.channel === "online" || order.ship_address ? (
+          <div className="grid gap-4 rounded-lg border p-4 text-sm sm:grid-cols-2">
+            <div className="space-y-1">
+              <h2 className="font-medium">التوصيل</h2>
+              <p>{order.ship_name ?? "—"}</p>
+              {order.ship_phone ? (
+                <p className="flex flex-wrap items-center gap-3" dir="ltr">
+                  <a href={`tel:${order.ship_phone.replace(/[^\d+]/g, "")}`} className="font-mono underline-offset-2 hover:underline">
+                    {order.ship_phone}
+                  </a>
+                  <a
+                    href={`https://wa.me/${order.ship_phone.replace(/\D/g, "").replace(/^0+/, "").replace(/^(?!961)/, "961")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  >
+                    WhatsApp
+                  </a>
+                </p>
+              ) : null}
+              <p className="text-muted-foreground">
+                {[order.ship_city, order.ship_address].filter(Boolean).join(" — ") || "—"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <h2 className="font-medium">طريقة الدفع</h2>
+              <p>{paymentLabel(order.payment_method)}</p>
+              {order.payment_method === "cod" ? (
+                <p className="text-xs text-muted-foreground">بيندفع للمندوب وقت التسليم.</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-lg border">
           <table className="w-full text-sm">
@@ -113,7 +148,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {(order.order_payments ?? []).map((p: Record<string, unknown>) => (
               <Row
                 key={String(p.id)}
-                label={p.currency === "USD" ? "كاش دولار" : "كاش ليرة"}
+                label={`${paymentLabel(String(p.method))} · ${p.currency === "USD" ? "دولار" : "ليرة"}`}
                 value={
                   p.currency === "USD"
                     ? usd(Number(p.amount_minor))
