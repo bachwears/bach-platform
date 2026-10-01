@@ -9,6 +9,8 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { t, type Locale } from "@bach/i18n";
 
+import { AccountPassword } from "../../components/account-password";
+import { AccountProfile, type ProfileCustomer } from "../../components/account-profile";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface MyOrder {
@@ -76,13 +78,17 @@ export default function AccountPage() {
   const [tuReceipt, setTuReceipt] = useState("");
   const [tuBusy, setTuBusy] = useState(false);
   const [tuMsg, setTuMsg] = useState("");
-  const [customer, setCustomer] = useState<{
-    id?: string;
-    full_name: string | null;
-    created_at: string;
-    birthday?: string | null;
-    marketing_consent?: boolean;
-  } | null>(null);
+  const [customer, setCustomer] = useState<
+    | (Partial<ProfileCustomer> & {
+        id?: string;
+        full_name: string | null;
+        created_at: string;
+        birthday?: string | null;
+        marketing_consent?: boolean;
+      })
+    | null
+  >(null);
+  const [userEmail, setUserEmail] = useState("");
   const [bdayInput, setBdayInput] = useState("");
   const [bdayMsg, setBdayMsg] = useState("");
   const [orders, setOrders] = useState<MyOrder[]>([]);
@@ -101,9 +107,10 @@ export default function AccountPage() {
       }
       const { data: cust } = await supabase
         .from("customers")
-        .select("id, full_name, created_at, birthday, marketing_consent, balance_usd_cents")
+        .select("*")
         .eq("auth_user_id", user.id)
         .maybeSingle();
+      setUserEmail(user.email ?? "");
       setCustomer(cust ?? { full_name: user.email ?? null, created_at: user.created_at });
       if (cust) {
         void supabase
@@ -230,6 +237,14 @@ export default function AccountPage() {
             </label>
           </div>
         </div>
+
+        {customer?.id && (
+          <AccountProfile
+            locale={locale}
+            customer={{ ...(customer as ProfileCustomer), email: customer.email ?? userEmail }}
+            onSaved={(patch) => setCustomer({ ...customer!, ...patch })}
+          />
+        )}
 
         {wishlist.length > 0 && (
           <>
@@ -403,6 +418,8 @@ export default function AccountPage() {
             ))}
           </ul>
         )}
+
+        {userEmail && <AccountPassword locale={locale} email={userEmail} />}
       </main>
     </div>
   );
