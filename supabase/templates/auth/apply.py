@@ -12,7 +12,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from build import CONTENT, SUBJECTS
+from build import CONTENT, NOTICES, SUBJECTS
 
 PROJECT = "hrosyuaehkhzhnvefhts"
 HERE = Path(__file__).parent
@@ -25,6 +25,8 @@ body = {}
 for kind in CONTENT:
     body[f"mailer_subjects_{kind}"] = SUBJECTS[kind]
     body[f"mailer_templates_{kind}_content"] = (HERE / f"{kind}.html").read_text()
+for flag in NOTICES.values():
+    body[flag] = True
 
 req = urllib.request.Request(
     f"https://api.supabase.com/v1/projects/{PROJECT}/config/auth",
@@ -42,4 +44,6 @@ for attempt in range(5):
         time.sleep(4)
 for kind in CONTENT:
     ok = cfg.get(f"mailer_templates_{kind}_content") == body[f"mailer_templates_{kind}_content"]
-    print(f"{kind:17} subject={cfg.get(f'mailer_subjects_{kind}')!r} html={'ok' if ok else 'MISMATCH'}")
+    print(f"{kind:30} subject={cfg.get(f'mailer_subjects_{kind}')!r} html={'ok' if ok else 'MISMATCH'}")
+for flag in NOTICES.values():
+    print(f"{flag} = {cfg.get(flag)}")

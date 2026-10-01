@@ -28,7 +28,16 @@ SUBJECTS = {
     "email_change": "Confirm your new email for BACH Wears",
     "invite": "You're invited to BACH Wears",
     "reauthentication": "{{ .Token }} is your BACH Wears code",
+    "password_changed_notification": "Your BACH Wears password was changed",
 }
+
+# Security notices carry no one-time link; their button points at a fixed page.
+NOTICE_URLS = {
+    "password_changed_notification": "https://bachwears.com/account/forgot",
+}
+
+# Notices Supabase only sends when switched on (apply.py enables these).
+NOTICES = {"password_changed_notification": "mailer_notifications_password_changed_enabled"}
 
 # eyebrow, title, body (HTML), button label (None = code email), preheader, ignore note
 CONTENT = {
@@ -83,11 +92,31 @@ CONTENT = {
         "Your BACH Wears verification code.",
         "Didn't request a code? Change your password from your account.",
     ),
+    "password_changed_notification": (
+        "Security",
+        "Your password was changed.",
+        'The password on your BACH Wears account <strong style="color:%s;font-weight:600;">{{ .Email }}</strong> '
+        "was just changed. If that was you, there's nothing else to do." % INK,
+        "Reset your password",
+        "The password on your BACH Wears account was changed.",
+        "Wasn't you? Reset your password right away, then write to care@bachwears.com "
+        "or WhatsApp +961 71 566 296 so we can secure your account.",
+    ),
 }
 
 
-def page(subject, eyebrow, title, body, button, preheader, ignore):
-    if button:
+def page(subject, eyebrow, title, body, button, preheader, ignore, url=None):
+    if button and url:
+        action = f"""
+          <tr><td style="padding:32px 40px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td bgcolor="{INK}" style="background:{INK};">
+                <a href="{url}" target="_blank"
+                   style="display:inline-block;padding:16px 34px;font-family:{FONT};font-size:14px;font-weight:600;letter-spacing:0.04em;color:#ffffff;text-decoration:none;">{button}</a>
+              </td>
+            </tr></table>
+          </td></tr>"""
+    elif button:
         action = f"""
           <tr><td style="padding:32px 40px 0;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -150,5 +179,5 @@ def page(subject, eyebrow, title, body, button, preheader, ignore):
 
 if __name__ == "__main__":
     for kind, parts in CONTENT.items():
-        (HERE / f"{kind}.html").write_text(page(SUBJECTS[kind], *parts))
+        (HERE / f"{kind}.html").write_text(page(SUBJECTS[kind], *parts, url=NOTICE_URLS.get(kind)))
     print("rendered:", ", ".join(CONTENT))
