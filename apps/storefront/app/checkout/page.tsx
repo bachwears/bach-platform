@@ -7,7 +7,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 
 import { t } from "@bach/i18n";
 
-import { clearCart, readCart } from "../../lib/cart";
+import { clearCart, readCart, setQuantity } from "../../lib/cart";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface SummaryLine {
@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -53,14 +54,27 @@ export default function CheckoutPage() {
       const [{ data }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
-          .select("id, size, color_en, color_ar, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents)")
+          .select("id, size, color_en, color_ar, is_active, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status)")
           .in("id", cart.map((l) => l.variantId)),
         supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
+      // A bag can outlive a piece (deleted, switched off, unpublished): drop those
+      // lines now rather than let "Place order" fail on them.
+      const sellable = (v: Record<string, unknown> | undefined) =>
+        !!v && v.is_active !== false && (v.products as { status?: string } | null)?.status === "published";
+      const dead = cart.filter((l) => !sellable((data ?? []).find((x) => x.id === l.variantId) as Record<string, unknown> | undefined));
+      if (dead.length) {
+        dead.forEach((l) => setQuantity(l.variantId, 0));
+        setNotice(t(locale, "sf.co.removedGone", { n: String(dead.length) }));
+        if (dead.length === cart.length) {
+          router.replace(lhref(locale, "/cart"));
+          return;
+        }
+      }
       setSummary(
         cart.flatMap((l) => {
           const v = (data ?? []).find((x) => x.id === l.variantId) as Record<string, unknown> | undefined;
-          if (!v) return [];
+          if (!sellable(v) || !v) return [];
           const p = v.products as { name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null };
           const price = Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
           const name = p.name_en; // product names stay English in every locale
@@ -99,27 +113,51 @@ export default function CheckoutPage() {
     if (!canPlace) return;
     setBusy(true);
     setError("");
-    const { data, error: err } = await supabaseBrowser().rpc("storefront_checkout", {
-      p_items: readCart().map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
-      p_name: name.trim(),
-      p_phone: phone,
-      p_city: city.trim(),
-      p_address: address.trim(),
-      p_note: note.trim() || null,
-      p_email: email.trim() || null,
-      p_promocode: promoState.status === "ok" ? promo.trim() : null,
-      p_payment_method: payMethod === "wallet" ? "cod" : payMethod,
-      p_use_wallet: payMethod === "wallet",
-    });
+    const supabase = supabaseBrowser();
+    const call = () =>
+      supabase.rpc("storefront_checkout", {
+        p_items: readCart().map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
+        p_name: name.trim(),
+        p_phone: phone,
+        p_city: city.trim(),
+        p_address: address.trim(),
+        p_note: note.trim() || null,
+        p_email: email.trim() || null,
+        p_promocode: promoState.status === "ok" ? promo.trim() : null,
+        p_payment_method: payMethod === "wallet" ? "cod" : payMethod,
+        p_use_wallet: payMethod === "wallet",
+      });
+    let { data, error: err } = await call();
+    // A stale sign-in (e.g. after a password change elsewhere) must not block a
+    // sale: drop the dead session on this device and place the order as a guest.
+    if (err && payMethod !== "wallet" && /jwt|token|PGRST30|401/i.test(`${err.code ?? ""} ${err.message}`)) {
+      await supabase.auth.signOut({ scope: "local" });
+      setSignedIn(false);
+      ({ data, error: err } = await call());
+    }
     setBusy(false);
     if (err) {
-      setError(
-        err.message.includes("insufficient stock")
-          ? t(locale, "sf.co.soldOut")
-          : err.message.includes("wallet")
-            ? "Your wallet balance no longer covers this order."
-            : t(locale, "sf.co.failed"),
-      );
+      const m = err.message;
+      const known: Array<[RegExp, string]> = [
+        [/insufficient stock/, t(locale, "sf.co.soldOut")],
+        [/wallet/, t(locale, "sf.co.errWallet")],
+        [/name required/, t(locale, "sf.co.errName")],
+        [/valid phone/, t(locale, "sf.co.errPhone")],
+        [/delivery address/, t(locale, "sf.co.errAddress")],
+        [/valid email/, t(locale, "sf.co.errEmail")],
+        [/no longer available/, t(locale, "sf.co.errGone")],
+        [/invalid quantity|cart must have/, t(locale, "sf.co.errQty")],
+        [/payment method/, t(locale, "sf.co.errMethod")],
+        [/temporarily unavailable/, t(locale, "sf.co.errDown")],
+      ];
+      const hit = known.find(([re]) => re.test(m));
+      if (hit) setError(hit[1]);
+      else if (m.startsWith("promocode:")) setError(`${t(locale, "sf.co.promo")}: ${m.slice(10).trim()}`);
+      else {
+        // unexpected: keep the reason visible so it can be reported and fixed
+        setError(`${t(locale, "sf.co.failed")} (${m})`);
+        console.error("checkout failed", err);
+      }
       return;
     }
     if (payMethod === "stripe") {
@@ -181,6 +219,7 @@ export default function CheckoutPage() {
       <main className="mx-auto max-w-[1440px] px-4 pb-16 pt-8 sm:px-8">
         <h1 className="type-heading">{t(locale, "sf.co.title")}</h1>
         <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.co.sub")}</p>
+        {notice ? <p className="mt-4 border border-foreground px-4 py-3 text-xs">{notice}</p> : null}
 
         <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20">
           <div className="max-w-2xl space-y-12">

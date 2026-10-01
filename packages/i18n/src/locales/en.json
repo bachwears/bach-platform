@@ -391,5 +391,15 @@
   "sf.404.title": "This page doesn't exist",
   "sf.404.body": "The link may be out of date, or the piece is no longer available. Try the collection or search for what you were looking for.",
   "sf.404.shop": "Shop the collection",
-  "sf.pdp.shownIn": "Photos show {c}"
+  "sf.pdp.shownIn": "Photos show {c}",
+  "sf.co.removedGone": "{n} piece(s) in your bag are no longer available and were removed.",
+  "sf.co.errWallet": "Your wallet balance no longer covers this order.",
+  "sf.co.errName": "Please enter your full name.",
+  "sf.co.errPhone": "Please enter a valid phone number, e.g. +961 71 000 000.",
+  "sf.co.errAddress": "Please enter your city and delivery address.",
+  "sf.co.errEmail": "Please check your email address.",
+  "sf.co.errGone": "A piece in your bag is no longer available. Please review your bag and try again.",
+  "sf.co.errQty": "Please check the quantities in your bag (up to 10 of each piece).",
+  "sf.co.errMethod": "That payment method isn't available right now. Please choose cash on delivery.",
+  "sf.co.errDown": "Checkout is briefly unavailable. Please try again in a few minutes."
 }

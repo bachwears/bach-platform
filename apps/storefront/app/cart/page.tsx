@@ -68,6 +68,7 @@ export default function CartPage() {
   const [details, setDetails] = useState<Record<string, Detail>>({});
   const [rate, setRate] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [notice, setNotice] = useState("");
   const [suggested, setSuggested] = useState<CardProduct[]>([]);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [favs, setFavs] = useState<Array<{ productId: string; card: CardProduct }> | null>(null);
@@ -97,7 +98,7 @@ export default function CartPage() {
         supabase
           .from("product_variants")
           .select(
-            "id, size, color_en, color_ar, products!inner(slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path)), inventory_levels(quantity, reserved)",
+            "id, size, color_en, color_ar, products!inner(slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, media_assets(kind, storage_path)), inventory_levels(quantity, reserved)",
           )
           .in("id", ids)
           .eq("is_active", true),
@@ -106,6 +107,7 @@ export default function CartPage() {
       const map: Record<string, Detail> = {};
       for (const v of (data ?? []) as unknown as Array<Record<string, unknown>>) {
         const p = v.products as {
+          status?: string;
           slug: string;
           name_en: string;
           name_ar: string | null;
@@ -113,6 +115,7 @@ export default function CartPage() {
           sale_price_usd_cents: number | null;
           media_assets: Array<{ kind: string; storage_path: string }>;
         };
+        if (p.status !== "published") continue;
         const lvl = (v.inventory_levels as Array<{ quantity: number; reserved: number }>)[0];
         map[v.id as string] = {
           id: v.id as string,
@@ -124,6 +127,13 @@ export default function CartPage() {
           slug: p.slug,
           image: p.media_assets?.find((m) => m.kind === "front")?.storage_path ?? null,
         };
+      }
+      // Lines whose piece is gone (deleted, switched off, unpublished) would
+      // otherwise sit invisibly in the bag count and break checkout.
+      const dead = readCart().filter((l) => !map[l.variantId]);
+      if (dead.length) {
+        dead.forEach((l) => setQuantity(l.variantId, 0));
+        setNotice(t(locale, "sf.co.removedGone", { n: String(dead.length) }));
       }
       setDetails(map);
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
@@ -194,6 +204,7 @@ export default function CartPage() {
     <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-[1440px] px-4 pb-20 pt-8 sm:px-8">
         <h1 className="sr-only">{t(locale, "sf.cart.title")}</h1>
+        {notice ? <p className="mb-6 border border-foreground px-4 py-3 text-xs">{notice}</p> : null}
         <div role="tablist" className="flex gap-8">
           <button type="button" role="tab" aria-selected={tab === "bag"} className={tabClass(tab === "bag")} onClick={() => choose("bag")}>
             {t(locale, "sf.cart.tabBag")} ({count})
