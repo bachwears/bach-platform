@@ -98,49 +98,53 @@ export function FilterDrawer({
             </div>
 
             <div className="flex-1 space-y-8 overflow-y-auto overscroll-contain px-6 pb-8 pt-2">
-              {sections.map((s) => (
-                <div key={s.label}>
-                  <p className="type-heading mb-3 text-muted-foreground">{s.label}</p>
-                  {s.kind === "list" ? (
-                    <ul>
-                      {s.options.map((o) => (
-                        <li key={o.label}>
+              {sections
+                // an option with nothing behind it is noise; an active one stays so it can be undone
+                .map((s) => ({ ...s, options: s.options.filter((o) => o.active || o.count !== 0) }))
+                .filter((s) => s.options.length > 0)
+                .map((s) => (
+                  <div key={s.label}>
+                    <p className="type-heading mb-3 text-muted-foreground">{s.label}</p>
+                    {s.kind === "list" ? (
+                      <ul>
+                        {s.options.map((o) => (
+                          <li key={o.label}>
+                            <Link
+                              href={o.href}
+                              aria-current={o.active || undefined}
+                              className={`type-label block py-2 ${o.active ? "font-medium underline underline-offset-4" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                              {o.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {s.options.map((o) => (
                           <Link
+                            key={o.label}
                             href={o.href}
                             aria-current={o.active || undefined}
-                            className={`type-label block py-2 ${o.active ? "font-medium underline underline-offset-4" : "text-muted-foreground hover:text-foreground"}`}
+                            className={`type-meta inline-flex h-10 items-center gap-2 border px-3 transition-colors ${
+                              o.active ? "border-foreground bg-foreground text-background" : "hover:border-foreground"
+                            }`}
                           >
+                            {s.kind === "swatch" && o.swatch ? (
+                              <span
+                                aria-hidden
+                                className="h-3 w-3 border border-black/15 dark:border-white/25"
+                                style={{ backgroundColor: o.swatch }}
+                              />
+                            ) : null}
                             {o.label}
+                            {typeof o.count === "number" && <span className="opacity-60">({o.count})</span>}
                           </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {s.options.map((o) => (
-                        <Link
-                          key={o.label}
-                          href={o.href}
-                          aria-current={o.active || undefined}
-                          className={`type-meta inline-flex h-10 items-center gap-2 border px-3 transition-colors ${
-                            o.active ? "border-foreground bg-foreground text-background" : "hover:border-foreground"
-                          }`}
-                        >
-                          {s.kind === "swatch" && o.swatch ? (
-                            <span
-                              aria-hidden
-                              className="h-3 w-3 border border-black/15 dark:border-white/25"
-                              style={{ backgroundColor: o.swatch }}
-                            />
-                          ) : null}
-                          {o.label}
-                          {typeof o.count === "number" && <span className="opacity-60">({o.count})</span>}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
 
             <div className="flex items-center gap-4 border-t p-6">
