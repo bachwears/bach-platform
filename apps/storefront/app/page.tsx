@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { Button } from "@bach/ui/components/button";
 import { t } from "@bach/i18n";
 
+import { HomeSlides } from "../components/home-slides";
 import { ProductCard, type CardProduct } from "../components/product-card";
 import { getLocale, lhref } from "../lib/locale";
 
@@ -63,7 +63,7 @@ export default async function Home() {
     };
   })
     .sort((a, b) => Number(!a.front) - Number(!b.front))
-    .slice(0, 4);
+    .slice(0, 8);
 
   const orgLd = {
     "@context": "https://schema.org",
@@ -96,96 +96,115 @@ export default async function Home() {
     },
   };
 
+  const two = (n: number) => String(n).padStart(2, "0");
+  const heroAlt = hero.image_alt || t(locale, "sf.home.heroAlt");
+  const heroImg = hero.image_url || "/hero-campaign.jpg";
+
+  // Slide 1 is the MGMT-editable campaign; each collection with a cover
+  // follows. Covers are portrait 3:4, so on desktop a slide splits into
+  // photo + type panel instead of cropping the photo to a landscape band.
+  const slides = [
+    <div key="hero" className="relative h-full w-full overflow-hidden bg-[#d6d1c9]">
+      {hero.video_url ? (
+        <>
+          {/* Muted looping campaign film; the still is the poster and the
+              whole hero for reduced-motion users. */}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={heroImg}
+            aria-label={heroAlt}
+            className="absolute inset-0 hidden h-full w-full object-cover object-[70%_center] motion-safe:block"
+          >
+            <source src={hero.video_url} type="video/mp4" />
+          </video>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={heroImg}
+            alt={heroAlt}
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-[70%_center] motion-safe:hidden"
+          />
+        </>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={heroImg}
+          srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
+          sizes="100vw"
+          alt={heroAlt}
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
+        />
+      )}
+      {/* The campaign is shot light (stone), so its copy stays dark in both
+          themes. Phones: above the models' heads; desktop: on the open wall. */}
+      <div className="absolute inset-x-0 top-0 px-4 pt-8 text-neutral-900 sm:px-8 lg:inset-y-0 lg:flex lg:max-w-xl lg:flex-col lg:justify-center lg:pt-0">
+        <p className="type-meta">{hero.eyebrow || t(locale, "sf.home.eyebrow")}</p>
+        <h1 className="type-display mt-3 text-[2.5rem] sm:text-6xl lg:text-7xl">
+          {hero.headline || t(locale, "sf.home.headline")}
+        </h1>
+        <p className="mt-4 hidden max-w-sm text-sm sm:block">{hero.sub || t(locale, "sf.home.sub")}</p>
+        <Link
+          href={lhref(locale, hero.cta_href || "/shop")}
+          className="type-label mt-5 inline-block self-start underline underline-offset-4 hover:opacity-60"
+        >
+          {hero.cta_label || t(locale, "sf.home.cta")}
+        </Link>
+      </div>
+    </div>,
+    ...collections.map((c, i) => (
+      <Link
+        key={c.slug}
+        href={lhref(locale, `/shop?col=${c.slug}`)}
+        className="group relative flex h-full w-full lg:flex-row-reverse"
+      >
+        <div className="relative h-full w-full lg:w-1/2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            // a "-wide" cover is the banner crop; slides want the portrait original
+            src={c.cover_url!.replace(/-wide(\.\w+)$/, "$1")}
+            alt={c.name_en}
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
+          />
+          <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent lg:hidden" />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 px-4 pb-16 text-white sm:px-8 lg:static lg:flex lg:w-1/2 lg:flex-col lg:justify-end lg:pb-24 lg:text-foreground">
+          <p className="type-meta">
+            {two(i + 1)} · {t(locale, "sf.home.collection")}
+          </p>
+          <h2 className="type-display mt-3 text-5xl sm:text-6xl lg:text-8xl">{c.name_en}</h2>
+          {c.description_en ? (
+            <p className="mt-5 hidden max-w-sm text-sm text-muted-foreground lg:block">{c.description_en}</p>
+          ) : null}
+          <span className="type-label mt-5 inline-block self-start underline underline-offset-4 group-hover:opacity-60">
+            {t(locale, "sf.home.view")}
+          </span>
+        </div>
+      </Link>
+    )),
+  ];
+
   return (
     <div className="min-h-dvh bg-background">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }} />
       <main>
-        {/* Campaign hero — the copy sits on the stone-wall negative space,
-            which is physically LEFT in the art direction, so the text block
-            stays pinned left in both locales. */}
-        <section className="relative overflow-hidden">
-          {hero.video_url ? (
-            <>
-              {/* Muted looping campaign film; the still stays as the poster,
-                  the LCP image for slow connections, and the whole hero for
-                  reduced-motion users. */}
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster={hero.image_url || "/hero-campaign.jpg"}
-                aria-label={hero.image_alt || t(locale, "sf.home.heroAlt")}
-                className="anim-hero-settle hidden h-[46vh] w-full object-cover object-[70%_center] motion-safe:block sm:h-[60vh] md:h-[78vh]"
-              >
-                <source src={hero.video_url} type="video/mp4" />
-              </video>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={hero.image_url || "/hero-campaign.jpg"}
-                alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
-                className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] motion-safe:hidden sm:h-[60vh] md:h-[78vh]"
-              />
-            </>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={hero.image_url || "/hero-campaign.jpg"}
-              srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
-              sizes="100vw"
-              alt={hero.image_alt || t(locale, "sf.home.heroAlt")}
-              fetchPriority="high"
-              className="anim-hero-settle h-[46vh] w-full object-cover object-[70%_center] sm:h-[60vh] md:h-[78vh]"
-            />
-          )}
-          <div className="pointer-events-none md:absolute md:inset-0">
-            <div className="mx-auto h-full max-w-6xl px-4">
-              <div
-                dir={locale === "ar" ? "rtl" : "ltr"}
-                className="pointer-events-auto ml-0 mr-auto flex h-full max-w-md flex-col justify-center py-10 text-foreground md:py-0 md:text-neutral-900"
-              >
-                <p
-                  className="anim-rise text-xs uppercase tracking-[0.35em] text-muted-foreground md:text-neutral-600"
-                  style={{ ["--anim-delay" as string]: "0.1s" }}
-                >
-                  {hero.eyebrow || t(locale, "sf.home.eyebrow")}
-                </p>
-                <h1
-                  className="anim-rise mt-4 text-4xl font-semibold tracking-tight sm:text-5xl"
-                  style={{ ["--anim-delay" as string]: "0.22s" }}
-                >
-                  {hero.headline || t(locale, "sf.home.headline")}
-                </h1>
-                <p
-                  className="anim-rise mt-4 max-w-sm text-muted-foreground md:text-neutral-700"
-                  style={{ ["--anim-delay" as string]: "0.34s" }}
-                >
-                  {hero.sub || t(locale, "sf.home.sub")}
-                </p>
-                <div className="anim-rise mt-8" style={{ ["--anim-delay" as string]: "0.48s" }}>
-                  <Button
-                    asChild
-                    size="lg"
-                    className="md:bg-neutral-900 md:text-neutral-50 md:hover:bg-neutral-800"
-                  >
-                    <Link href={lhref(locale, hero.cta_href || "/shop")}>{hero.cta_label || t(locale, "sf.home.cta")}</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HomeSlides labels={{ prev: t(locale, "sf.home.prev"), next: t(locale, "sf.home.next") }}>{slides}</HomeSlides>
 
         {banner.enabled && banner.text ? (
-          <aside className="border-b bg-foreground text-background" data-reveal>
-            <p className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-3 text-center text-sm tracking-wide">
+          <aside className="border-b">
+            <p className="type-meta mx-auto flex max-w-[1440px] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-center sm:px-8">
               <span>{banner.text}</span>
               {banner.cta_label ? (
                 <Link
                   href={lhref(locale, banner.cta_href || "/shop")}
-                  className="underline underline-offset-4 hover:opacity-80"
+                  className="underline underline-offset-4 hover:opacity-60"
                 >
                   {banner.cta_label}
                 </Link>
@@ -194,84 +213,17 @@ export default async function Home() {
           </aside>
         ) : null}
 
-        {collections.length ? (
-          <section className="mx-auto max-w-6xl px-4 pt-20">
-            <h2 className="text-center text-sm font-semibold uppercase tracking-[0.3em]" data-reveal>
-              Collections
-            </h2>
-            {/* BOSS-style editorial mosaic: one tall feature in the center,
-                smaller tiles flanking it, two wide tiles below. */}
-            <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-              {collections.slice(0, 5).map((c, i) => {
-                const pos = [
-                  "col-span-2 md:col-start-2 md:col-span-2 md:row-start-1 md:row-span-2", // feature
-                  "md:col-start-1 md:row-start-1",
-                  "md:col-start-1 md:row-start-2",
-                  "md:col-start-4 md:row-start-1",
-                  "md:col-start-4 md:row-start-2",
-                ][i];
-                return (
-                  <Link
-                    key={c.slug}
-                    href={lhref(locale, `/shop?col=${c.slug}`)}
-                    className={`group relative block overflow-hidden rounded-md bg-muted ${pos} ${i === 0 ? "aspect-[3/4]" : "aspect-[4/5] md:aspect-auto md:min-h-0"}`}
-                    data-reveal
-                    style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={c.cover_url!}
-                      alt={c.name_en}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
-                    />
-                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-4 pt-10">
-                      <span className={`block font-medium tracking-tight text-white ${i === 0 ? "text-lg" : "text-sm"}`}>
-                        {c.name_en}
-                      </span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-            {collections.length > 5 ? (
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-4 md:gap-4">
-                {collections.slice(5, 7).map((c, i) => (
-                  <Link
-                    key={c.slug}
-                    href={lhref(locale, `/shop?col=${c.slug}`)}
-                    className="group relative block aspect-[16/7] overflow-hidden rounded-md bg-muted"
-                    data-reveal
-                    style={{ ["--reveal-delay" as string]: `${(i + 5) * 60}ms` }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={c.cover_url!}
-                      alt={c.name_en}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover object-[center_30%] transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
-                    />
-                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-4 pt-10">
-                      <span className="block text-sm font-medium tracking-tight text-white">{c.name_en}</span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
         {featured.length ? (
-          <section className="mx-auto max-w-6xl px-4 py-20">
-            <div className="mb-8 flex items-end justify-between" data-reveal>
-              <h2 className="text-xl font-semibold tracking-tight">{t(locale, "sf.nav.newIn")}</h2>
-              <Link href={lhref(locale, "/shop")} className="text-sm text-muted-foreground hover:text-foreground">
+          <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-8">
+            <div className="mb-6 flex items-baseline justify-between">
+              <h2 className="type-heading">{t(locale, "sf.nav.newIn")}</h2>
+              <Link href={lhref(locale, "/shop")} className="type-label underline underline-offset-4 hover:opacity-60">
                 {t(locale, "sf.nav.viewAll")}
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {featured.map((p, i) => (
-                <ProductCard key={p.slug} product={p} locale={locale} revealDelay={i * 70} />
+                <ProductCard key={p.slug} product={p} locale={locale} revealDelay={(i % 4) * 60} />
               ))}
             </div>
           </section>

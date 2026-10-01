@@ -349,5 +349,9 @@
   "sf.acct.cancelFailed": "This order can no longer be cancelled — contact us and we'll help.",
   "sf.acct.cancelNote": "Need a change? Cancel and reorder while the order is still being prepared.",
   "sf.footer.shipping": "Delivery & shipping",
-  "sf.footer.returnsPolicy": "Returns policy"
+  "sf.footer.returnsPolicy": "Returns policy",
+  "sf.home.prev": "Previous",
+  "sf.home.next": "Next",
+  "sf.home.view": "View",
+  "sf.home.collection": "Collection"
 }
