@@ -7,6 +7,9 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
+import { STATUS_LABELS } from "../lib/order-status";
+import { fmt } from "../lib/time";
+
 interface Cust {
   id: string;
   full_name: string | null;
@@ -14,7 +17,17 @@ interface Cust {
   email: string | null;
   balance_usd_cents: number;
   created_at: string;
+  birthday: string | null;
+  marketing_consent: boolean | null;
+  size_top?: string | null;
+  size_bottom?: string | null;
+  size_shoe?: string | null;
+  orders: Array<{ total_usd_cents: number; status: string }>;
 }
+
+// "*" keeps optional columns (sizes) working whatever migrations have landed
+const CUST_SELECT = "*, orders(total_usd_cents, status)";
+const DEAD = new Set(["cancelled", "returned"]);
 
 interface Topup {
   id: string;
@@ -27,6 +40,7 @@ interface Topup {
 }
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+const day = (iso: string) => fmt(iso, { day: "numeric", month: "short", year: "numeric" });
 const hoursAgo = (iso: string) => (Date.now() - new Date(iso).getTime()) / 36e5;
 
 export function CustomersManager({ canDecide }: { canDecide: boolean }) {
@@ -53,21 +67,27 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Newest customers until something is typed.
   async function search(text: string) {
     setQ(text);
-    const t = text.trim();
-    if (t.length < 2) {
-      setRows([]);
-      return;
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the query
+    const t = text.trim().replace(/[,()%*\\]/g, " ").trim();
+    let query = supabase.from("customers").select(CUST_SELECT).order("created_at", { ascending: false });
+    if (t.length >= 2) {
+      const digits = t.replace(/\D/g, "");
+      const parts = [`full_name.ilike.%${t}%`, `email.ilike.%${t}%`, `phone.ilike.%${t}%`];
+      // "70 000 001" or "+961 70…" should still find "+96170000001"
+      if (digits.length >= 3) parts.push(`phone.ilike.%${digits}%`);
+      query = query.or(parts.join(","));
     }
-    const { data } = await supabase
-      .from("customers")
-      .select("id, full_name, phone, email, balance_usd_cents, created_at")
-      .or(`full_name.ilike.%${t}%,phone.ilike.%${t}%,email.ilike.%${t}%`)
-      .order("created_at", { ascending: false })
-      .limit(15);
+    const { data, error } = await query.limit(t.length >= 2 ? 30 : 50);
+    if (error) setErr(`ما مشي البحث: ${error.message}`);
     setRows((data ?? []) as never);
   }
+  useEffect(() => {
+    void search("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function openCustomer(id: string) {
     setOpen(open === id ? null : id);
@@ -143,6 +163,7 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                       <td className="p-3 font-mono text-xs" dir="ltr">{tp.receipt_no}</td>
                       <td className={`p-3 text-xs ${late ? "font-medium text-destructive" : "text-muted-foreground"}`}>
                         {h < 1 ? `${Math.round(h * 60)} دقيقة` : `${h.toFixed(1)} ساعة`}
+                        <span className="block" dir="ltr">{fmt(tp.created_at, { dateStyle: "short", timeStyle: "short" })}</span>
                         {late ? " — متأخر عن وعد الـ6 ساعات" : ""}
                       </td>
                       <td className="p-3">
@@ -167,20 +188,65 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
       <section className="space-y-3">
         <h2 className="text-lg font-medium">العملاء — بحث وسجل الطلبات</h2>
         <Input value={q} placeholder="فتّش بالاسم أو التلفون أو الإيميل…" onChange={(e) => void search(e.target.value)} />
-        {rows.map((c) => (
+        <p className="text-xs text-muted-foreground">
+          {q.trim().length >= 2 ? `${rows.length} نتيجة` : `آخر ${rows.length} عميل — فتّش لتلاقي غيرن`}
+        </p>
+        {rows.map((c) => {
+          const live = (c.orders ?? []).filter((o) => !DEAD.has(o.status));
+          const spent = live.reduce((n, o) => n + o.total_usd_cents, 0);
+          const sizes = [
+            c.size_top ? `فوق ${c.size_top}` : "",
+            c.size_bottom ? `تحت ${c.size_bottom}` : "",
+            c.size_shoe ? `حذاء ${c.size_shoe}` : "",
+          ].filter(Boolean);
+          return (
           <div key={c.id} className="rounded-md border">
-            <button type="button" className="flex w-full items-center justify-between gap-3 p-4 text-start" onClick={() => void openCustomer(c.id)}>
-              <span>
+            <button
+              type="button"
+              aria-expanded={open === c.id}
+              className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-start"
+              onClick={() => void openCustomer(c.id)}
+            >
+              <span className="min-w-0">
                 <span className="font-medium">{c.full_name ?? "بلا اسم"}</span>
                 <span className="block text-xs text-muted-foreground" dir="ltr">{c.phone} {c.email ? `· ${c.email}` : ""}</span>
               </span>
-              <span className="text-sm">
-                <span className="text-muted-foreground">المحفظة: </span>
-                <span className="font-mono" dir="ltr">{usd(c.balance_usd_cents)}</span>
+              <span className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <span>
+                  <span className="text-muted-foreground">طلبات: </span>
+                  <span className="font-mono">{live.length}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">صرف: </span>
+                  <span className="font-mono" dir="ltr">{usd(spent)}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">المحفظة: </span>
+                  <span className="font-mono" dir="ltr">{usd(c.balance_usd_cents)}</span>
+                </span>
               </span>
             </button>
             {open === c.id && (
-              <div className="grid gap-4 border-t p-4 md:grid-cols-2">
+              <div className="space-y-4 border-t p-4">
+              <dl className="grid gap-3 text-sm sm:grid-cols-4">
+                <div>
+                  <dt className="text-xs text-muted-foreground">عميل من</dt>
+                  <dd>{day(c.created_at)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">عيد الميلاد</dt>
+                  <dd>{c.birthday ? fmt(`${c.birthday}T12:00:00Z`, { day: "numeric", month: "long" }) : "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">عروض وتسويق</dt>
+                  <dd>{c.marketing_consent ? "موافق" : "مش موافق"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">المقاسات</dt>
+                  <dd dir="ltr" className="text-end sm:text-start">{sizes.length ? sizes.join(" · ") : "—"}</dd>
+                </div>
+              </dl>
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="mb-2 text-sm font-medium">سجل الطلبات ({orders.length})</p>
                   {orders.length === 0 ? (
@@ -190,8 +256,9 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                       {orders.map((o) => (
                         <li key={o.id} className="flex items-center justify-between gap-2">
                           <a href={`/orders/${o.id}`} className="font-mono hover:underline" dir="ltr">#{o.number}</a>
+                          <span className="text-xs text-muted-foreground">{day(o.created_at)}</span>
                           <Badge variant="secondary">{o.channel === "pos" ? "محل" : "أونلاين"}</Badge>
-                          <span className="text-xs text-muted-foreground">{o.status}</span>
+                          <span className="text-xs text-muted-foreground">{STATUS_LABELS[o.status] ?? o.status}</span>
                           <span className="font-mono text-xs" dir="ltr">{usd(o.total_usd_cents)}</span>
                         </li>
                       ))}
@@ -206,7 +273,10 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                     <ul className="space-y-1 text-sm">
                       {tx.map((w) => (
                         <li key={w.id} className="flex items-center justify-between gap-2">
-                          <span className="text-xs">{KIND_AR[w.kind] ?? w.kind}</span>
+                          <span className="text-xs">
+                            {KIND_AR[w.kind] ?? w.kind}
+                            <span className="block text-muted-foreground">{day(w.created_at)}</span>
+                          </span>
                           <span className="truncate text-xs text-muted-foreground" dir="ltr">{w.note}</span>
                           <span className={`font-mono text-xs ${w.delta_usd_cents > 0 ? "text-green-600 dark:text-green-400" : ""}`} dir="ltr">
                             {w.delta_usd_cents > 0 ? "+" : ""}{usd(w.delta_usd_cents)}
@@ -217,9 +287,11 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                   )}
                 </div>
               </div>
+              </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </section>
     </div>
   );
