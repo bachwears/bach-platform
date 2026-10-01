@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
@@ -12,52 +13,80 @@ export interface QuickShopSize {
 }
 
 /**
- * BOSS-grade quick shop: hovering a listing card reveals a size row on the
- * image; picking a size drops it straight in the bag. Desktop-hover only —
- * touch devices go through the PDP, where stock and color live.
+ * The + beside a card's name opens its sizes over the bottom of the photo;
+ * picking one drops it in the bag. Works on touch as well as with a mouse.
  */
-export function QuickShop({ sizes }: { sizes: QuickShopSize[] }) {
+export function QuickShop({ sizes, name }: { sizes: QuickShopSize[]; name: string }) {
   const locale = useLocale();
-  const [added, setAdded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [added, setAdded] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent | TouchEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("touchstart", away);
+    window.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("touchstart", away);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!added) return;
-    const id = setTimeout(() => setAdded(false), 1600);
+    const id = setTimeout(() => {
+      setAdded(null);
+      setOpen(false);
+    }, 1400);
     return () => clearTimeout(id);
   }, [added]);
 
   if (!sizes.length) return null;
 
   return (
-    <div
-      className="glass-panel invisible absolute inset-x-0 bottom-0 z-10 hidden translate-y-1.5 px-3 pb-3 pt-2 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none motion-reduce:transform-none [@media(hover:hover)]:block"
-      onClick={(e) => e.preventDefault()}
-    >
-      {added ? (
-        <p className="py-1.5 text-center text-xs font-medium">{t(locale, "sf.shop.addedShort")}</p>
-      ) : (
-        <>
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            {t(locale, "sf.shop.quickShop")} · {t(locale, "sf.shop.selectSize")}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {sizes.map((s) => (
-              <button
-                key={s.variantId}
-                type="button"
-                className="h-7 min-w-9 rounded-full px-2 text-xs transition-colors hover:bg-foreground hover:text-background"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  addToCart(s.variantId);
-                  setAdded(true);
-                }}
-              >
-                {s.size}
-              </button>
-            ))}
-          </div>
-        </>
+    <div ref={ref}>
+      <button
+        type="button"
+        aria-label={`${t(locale, "sf.shop.quickShop")}: ${name}`}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="absolute end-0 top-[-0.6rem] grid h-10 w-10 place-items-center"
+      >
+        {open ? <X className="h-4 w-4" strokeWidth={1.25} aria-hidden /> : <Plus className="h-4 w-4" strokeWidth={1.25} aria-hidden />}
+      </button>
+      {open && (
+        <div className="absolute inset-x-0 bottom-[calc(100%+0.75rem)] z-10 border bg-background p-3" role="dialog" aria-label={name}>
+          {added ? (
+            <p className="type-meta py-2 text-center" role="status">
+              {t(locale, "sf.shop.addedShort")} · {added}
+            </p>
+          ) : (
+            <>
+              <p className="type-heading text-muted-foreground">{t(locale, "sf.shop.selectSize")}</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {sizes.map((s) => (
+                  <button
+                    key={s.variantId}
+                    type="button"
+                    className="type-label grid h-10 min-w-10 place-items-center px-2 underline-offset-4 hover:underline"
+                    onClick={() => {
+                      addToCart(s.variantId);
+                      setAdded(s.size);
+                    }}
+                  >
+                    {s.size}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

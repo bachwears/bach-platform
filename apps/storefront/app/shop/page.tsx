@@ -5,7 +5,7 @@ import { t } from "@bach/i18n";
 
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
-import { SearchBox } from "../../components/search-box";
+import { DensityToggle } from "../../components/density-toggle";
 import { colorHex } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
@@ -194,6 +194,8 @@ export default async function ShopPage({
   };
   const activeFilters = [col, size, color, band, sale ? "sale" : ""].filter(Boolean).length + (q ? 1 : 0);
   const saleOnly = sale && activeFilters === 1 && !cat;
+  // Facets the shopper picked in the drawer — the collection or category being browsed isn't one.
+  const drawerActive = [size, color, band, sale ? "sale" : ""].filter(Boolean).length;
   const colName = col
     ? all.flatMap((p) => p.product_collections).find((pc) => pc.collections?.slug === col)?.collections?.name_en ?? col
     : null;
@@ -237,7 +239,17 @@ export default async function ShopPage({
     headerImage = { url: (parentNode as { banner_url?: string | null }).banner_url!, alt: parentNode.name_en };
   }
 
-  const sections: FilterSection[] = [];
+  const sections: FilterSection[] = [
+    {
+      label: t(locale, "sf.shop.sort"),
+      kind: "list",
+      options: SORTS.map(([k, labelKey]) => ({
+        label: t(locale, labelKey),
+        href: href({ sort: k === "new" ? undefined : k }),
+        active: sort === k,
+      })),
+    },
+  ];
   if (sizeFacets.length > 1) {
     sections.push({
       label: t(locale, "sf.shop.size"),
@@ -282,18 +294,18 @@ export default async function ShopPage({
 
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        {headerImage ? (
-          <div className="anim-fade mb-8 overflow-hidden rounded-md">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={headerImage.url}
-              alt={headerImage.alt}
-              className={col ? "max-h-72 w-full object-cover object-[center_30%]" : "max-h-56 w-full object-cover"}
-            />
-          </div>
-        ) : null}
-        <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
+      {headerImage ? (
+        <div className="anim-fade">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={headerImage.url}
+            alt={headerImage.alt}
+            className="aspect-[4/5] w-full object-cover object-[center_30%] sm:aspect-[21/9]"
+          />
+        </div>
+      ) : null}
+      <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-6 sm:px-8">
+        <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
           <ol className="flex flex-wrap items-center gap-1.5">
             <li>
               <Link href={lhref(locale, "/")} className="hover:text-foreground">
@@ -325,36 +337,30 @@ export default async function ShopPage({
           </ol>
         </nav>
 
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold uppercase tracking-tight" style={{ textWrap: "balance" }}>
-              {title}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {cards.length} {cards.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
-              {(activeFilters > 0 || cat) && (
-                <>
-                  {" · "}
-                  <Link href={lhref(locale, "/shop")} className="underline underline-offset-4">
-                    {t(locale, "sf.shop.clearAll")}
-                  </Link>
-                </>
-              )}
-            </p>
-          </div>
-          <SearchBox initial={params.q ?? ""} />
-        </div>
+        <h1 className="type-display mt-6 text-[34px] sm:text-5xl" style={{ textWrap: "balance" }}>
+          {title}
+        </h1>
+        <p className="type-meta mt-3 text-muted-foreground">
+          {cards.length} {cards.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
+          {(activeFilters > 0 || cat) && (
+            <>
+              {" · "}
+              <Link href={lhref(locale, "/shop")} className="underline underline-offset-4 hover:text-foreground">
+                {t(locale, "sf.shop.clearAll")}
+              </Link>
+            </>
+          )}
+        </p>
 
-        <div className="mt-6 overflow-x-auto border-b">
-          <div className="flex gap-6 whitespace-nowrap text-sm">
+        <div className="-mx-4 mt-6 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-6 whitespace-nowrap">
             {tabs.map((tab) => (
               <Link
                 key={tab.code || "all"}
                 href={href({ cat: tab.code || undefined })}
-                className={`border-b-2 pb-2.5 transition-colors ${
-                  tab.active
-                    ? "border-foreground font-medium text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                aria-current={tab.active ? "page" : undefined}
+                className={`type-label border-b pb-1 ${
+                  tab.active ? "border-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {tab.label}
@@ -363,46 +369,35 @@ export default async function ShopPage({
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
-          <FilterDrawer sections={sections} activeCount={activeFilters} resultCount={cards.length} />
-          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-          {SORTS.map(([k, labelKey]) => (
-            <Chip key={k} href={href({ sort: k === "new" ? undefined : k })} active={sort === k}>
-              {t(locale, labelKey)}
-            </Chip>
-          ))}
+        <div className="mt-4 flex items-center justify-between">
+          <FilterDrawer
+            sections={sections}
+            activeCount={drawerActive}
+            resultCount={cards.length}
+            clearHref={href({ size: undefined, color: undefined, price: undefined, sale: undefined })}
+          />
+          <DensityToggle target="product-grid" />
         </div>
 
         {cards.length ? (
-          <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+          <div
+            id="product-grid"
+            data-density="standard"
+            className="mt-4 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4 data-[density=large]:grid-cols-1 lg:data-[density=large]:grid-cols-2"
+          >
             {cards.map((p, i) => (
               <ProductCard key={p.slug} product={p} locale={locale} revealDelay={(i % 4) * 60} />
             ))}
           </div>
         ) : (
-          <div className="mt-16 text-center text-muted-foreground">
-            <p>{t(locale, saleOnly ? "sf.shop.saleEmpty" : "sf.shop.empty")}</p>
-            <Link href={lhref(locale, "/shop")} className="mt-2 inline-block underline underline-offset-4">
+          <div className="mt-16 text-center">
+            <p className="type-label text-muted-foreground">{t(locale, saleOnly ? "sf.shop.saleEmpty" : "sf.shop.empty")}</p>
+            <Link href={lhref(locale, "/shop")} className="type-label mt-3 inline-block underline underline-offset-4">
               {t(locale, saleOnly ? "sf.shop.allProducts" : "sf.shop.clear")}
             </Link>
           </div>
         )}
       </main>
     </div>
-  );
-}
-
-function Chip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full border px-3 py-1 transition-colors ${
-        active
-          ? "border-foreground bg-foreground text-background"
-          : "text-muted-foreground hover:border-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </Link>
   );
 }

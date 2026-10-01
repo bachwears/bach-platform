@@ -21,8 +21,9 @@ function usd(cents: number) {
 }
 
 /**
- * Listing card. Front photo shown, back photo swaps in on hover (§4).
- * Until media lands, an elegant typographic placeholder holds the frame.
+ * Listing card: 3:4 photo on the pale well (BACH's photography is shot 3:4),
+ * back photo on hover for mouse users, then name, price and square swatches
+ * in small uppercase. The + opens sizes for quick add on any device.
  */
 export function ProductCard({
   product,
@@ -33,30 +34,30 @@ export function ProductCard({
   locale?: Locale;
   revealDelay?: number;
 }) {
-  const onSale = product.sale_price_usd_cents != null;
+  const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   // Product names stay English in every locale (founder decision 2026-09-07).
   const name = product.name_en;
-  const prefix = locale === "ar" ? "/ar" : "";
-  const zoom =
-    "transition-[opacity,transform] duration-700 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100";
+  const href = `${locale === "ar" ? "/ar" : ""}/products/${product.slug}`;
+  const off = onSale ? Math.round((1 - product.sale_price_usd_cents! / product.price_usd_cents) * 100) : 0;
+
   return (
-    <Link
-      href={`${prefix}/products/${product.slug}`}
-      className="group block"
+    <div
+      className="group"
       {...(revealDelay != null
         ? { "data-reveal": "", style: { ["--anim-delay" as string]: `${revealDelay}ms` } }
         : {})}
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
+      {/* The photo repeats the name link below, so it stays out of the tab order and the accessibility tree. */}
+      <Link href={href} tabIndex={-1} aria-hidden className="relative block aspect-[3/4] overflow-hidden bg-secondary">
         {product.front ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={product.front}
-              alt={name}
+              alt=""
               loading="lazy"
               decoding="async"
-              className={`absolute inset-0 h-full w-full object-cover group-hover:opacity-0 ${zoom}`}
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-0 motion-reduce:transition-none"
             />
             {product.back ? (
               // hidden on touch screens: a lazy display:none image is never fetched
@@ -66,34 +67,36 @@ export function ProductCard({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className={`absolute inset-0 hidden h-full w-full object-cover opacity-0 group-hover:opacity-100 [@media(hover:hover)]:block ${zoom}`}
+                className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:block"
               />
             ) : null}
           </>
         ) : (
-          <div className="absolute inset-0 grid place-items-center p-6 text-center">
-            <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {name}
-            </span>
-          </div>
+          <span className="type-meta absolute inset-0 grid place-items-center p-6 text-center text-muted-foreground">
+            {name}
+          </span>
         )}
-        {product.sizes?.length ? <QuickShop sizes={product.sizes} /> : null}
-      </div>
-      <div className="mt-3 space-y-1">
-        <h3 className="text-sm font-medium">{name}</h3>
-        <p className="text-sm text-muted-foreground">
+      </Link>
+
+      <div className="relative mt-3 pe-10">
+        <Link href={href} className="block">
+          <h3 className="type-meta line-clamp-2">{name}</h3>
+        </Link>
+        <p className="type-meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
           {onSale ? (
             <>
-              <span className="text-foreground">{usd(product.sale_price_usd_cents!)}</span>{" "}
-              <span className="line-through">{usd(product.price_usd_cents)}</span>
+              <span>{usd(product.sale_price_usd_cents!)}</span>
+              <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
+              <span className="bg-foreground px-1 text-background">-{off}%</span>
             </>
           ) : (
             usd(product.price_usd_cents)
           )}
         </p>
         <ColorChips colors={product.colors} />
+        {product.sizes?.length ? <QuickShop sizes={product.sizes} name={name} /> : null}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -103,16 +106,16 @@ function ColorChips({ colors }: { colors?: string[] }) {
     .filter((c): c is { name: string; hex: string } => c.hex != null);
   if (swatches.length < 2) return null;
   return (
-    <span className="flex items-center gap-1.5 pt-0.5" aria-label={swatches.map((s) => s.name).join(", ")}>
-      {swatches.slice(0, 5).map((s) => (
+    <span className="mt-2 flex items-center gap-1" aria-label={swatches.map((s) => s.name).join(", ")}>
+      {swatches.slice(0, 6).map((s) => (
         <span
           key={s.name}
           title={s.name}
-          className="h-2.5 w-2.5 rounded-full border border-black/10 dark:border-white/20"
+          className="h-2.5 w-2.5 border border-black/15 dark:border-white/25"
           style={{ backgroundColor: s.hex }}
         />
       ))}
-      {swatches.length > 5 && <span className="text-[10px] text-muted-foreground">+{swatches.length - 5}</span>}
+      {swatches.length > 6 && <span className="type-meta ms-1 text-muted-foreground">+{swatches.length - 6}</span>}
     </span>
   );
 }
