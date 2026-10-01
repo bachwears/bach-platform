@@ -56,6 +56,10 @@ export async function generateMetadata({
     alternates: {
       canonical: lhref(locale, `/products/${slug}`),
     },
+    // a piece without photos isn't listed anywhere yet — keep it out of search too
+    robots: ((product.media_assets as unknown as Array<{ kind: string }>) ?? []).some((m) => m.kind === "front")
+      ? undefined
+      : { index: false, follow: true },
   };
 }
 
@@ -157,7 +161,7 @@ export default async function ProductPage({
   const firstFour = (rows: unknown) =>
     ((rows ?? []) as Parameters<typeof toCard>[0][])
       .map(toCard)
-      .sort((a, b) => Number(!a.front) - Number(!b.front))
+      .filter((c) => c.front)
       .slice(0, 4);
   const related = firstFour(relatedRaw);
   const look = firstFour(lookRaw);

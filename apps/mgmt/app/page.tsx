@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Dashboard } from "../components/dashboard";
+import { MissingPhotosAlert } from "../components/missing-photos-alert";
 import { Nav } from "../components/nav";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -14,6 +15,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const DASHBOARD_ROLES = new Set(["super_admin", "store_manager"]);
+const CATALOG_ROLES = new Set(["super_admin", "store_manager", "inventory_manager", "marketing_manager"]);
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
   const { days: daysParam } = await searchParams;
@@ -30,6 +32,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       <div className="print:hidden">
         <Nav />
       </div>
+      {CATALOG_ROLES.has(profile?.role ?? "") ? (
+        <div className="mx-auto max-w-6xl px-4 pt-6 print:hidden">
+          <MissingPhotosAlert />
+        </div>
+      ) : null}
       {DASHBOARD_ROLES.has(profile?.role ?? "") ? (
         <Dashboard name={profile?.full_name ?? ""} days={days} />
       ) : (

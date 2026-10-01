@@ -32,6 +32,18 @@ export default async function EditProductPage({
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-3xl space-y-10 p-4 py-8">
+        {!(media ?? []).some((m) => m.kind === "front") && (
+          <div role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm">
+            <p className="font-semibold text-red-700 dark:text-red-300">هالمنتج مخفي عن الموقع لأنو ما إلو صورة أمامية</p>
+            <p className="mt-1 text-muted-foreground">
+              نزّل صوره (front · back · side · closeup) من صفحة{" "}
+              <a href="/media-import" className="underline underline-offset-2">
+                رفع الصور
+              </a>{" "}
+              — بس تنزل الصورة الأمامية بيطلع بالشوب والبحث لحالو.
+            </p>
+          </div>
+        )}
         <div className="space-y-6">
           <h1 className="text-2xl font-semibold tracking-tight" dir="ltr">{product.name_en}</h1>
           <ProductForm

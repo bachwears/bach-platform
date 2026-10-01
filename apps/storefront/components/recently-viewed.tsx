@@ -61,7 +61,7 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
           }),
         );
         // Keep the visit order, newest first.
-        setItems(previous.map((s) => bySlug.get(s)).filter((c): c is CardProduct => !!c).slice(0, 4));
+        setItems(previous.map((s) => bySlug.get(s)).filter((c): c is CardProduct => !!c?.front).slice(0, 4));
       });
   }, [currentSlug]);
 

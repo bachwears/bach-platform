@@ -26,8 +26,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ data: products }, { data: articles }] = await Promise.all([
     supabase
       .from("products")
-      .select("slug, updated_at")
+      .select("slug, updated_at, media_assets!inner(kind)")
       .eq("status", "published")
+      .eq("media_assets.kind", "front")
       .order("created_at", { ascending: false }),
     // RLS scopes the anonymous read to customer-visible articles.
     supabase.from("help_articles").select("slug, updated_at").eq("is_published", true),

@@ -3,6 +3,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 
+import { MissingPhotosAlert } from "../../components/missing-photos-alert";
 import { Nav } from "../../components/nav";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "success" | "secondary" | "outline" }> = {
@@ -57,6 +58,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           </Button>
         </div>
 
+        <MissingPhotosAlert />
+
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((x) => (
             <Link
@@ -104,6 +107,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           <Link href={`/products/${p.id}`} className="font-medium hover:underline" dir="ltr">
                             {p.name_en}
                           </Link>
+                          {p.photoCount === 0 && p.status === "published" && (
+                            <Badge variant="outline" className="border-red-500/50 text-red-600 dark:text-red-400">
+                              مخفي عن الموقع — بلا صور
+                            </Badge>
+                          )}
                           {p.branded && (
                             <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
                               شعار ماركة

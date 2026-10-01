@@ -9,7 +9,11 @@ export const revalidate = 3600;
 export async function GET() {
   const supabase = await supabaseServer();
   const [{ count: productCount }, { data: cats }, { data: articles }] = await Promise.all([
-    supabase.from("products").select("id", { count: "exact", head: true }).eq("status", "published"),
+    supabase
+      .from("products")
+      .select("id, media_assets!inner(kind)", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("media_assets.kind", "front"),
     supabase
       .from("categories")
       .select("name_en, products(count)")

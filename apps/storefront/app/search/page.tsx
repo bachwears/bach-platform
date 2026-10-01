@@ -72,8 +72,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       .order("created_at", { ascending: false }),
     supabase.from("categories").select("code, name_en, sort").is("parent_id", null).order("sort"),
   ]);
-  const all = (data ?? []) as unknown as Row[];
   const hasPhoto = (p: Row) => p.media_assets.some((m) => m.kind === "front");
+  // unphotographed pieces stay hidden until they are shot
+  const all = ((data ?? []) as unknown as Row[]).filter(hasPhoto);
 
   // Every word must appear somewhere in the product: name, category,
   // collection, colour or SKU — so "black boots" and "BW-KN" both work.
@@ -91,15 +92,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             .toLowerCase();
           return words.every((w) => hay.includes(w));
         })
-        // name hits first, then photographed pieces
+        // name hits first
         .sort(
           (a, b) =>
             Number(!words.every((w) => a.name_en.toLowerCase().includes(w))) -
-              Number(!words.every((w) => b.name_en.toLowerCase().includes(w))) ||
-            Number(!hasPhoto(a)) - Number(!hasPhoto(b)),
+            Number(!words.every((w) => b.name_en.toLowerCase().includes(w))),
         )
     : [];
-  const suggested = all.filter(hasPhoto).slice(0, 8);
+  const suggested = all.slice(0, 8);
   const shown = (words.length ? results : suggested).map(toCard);
 
   return (

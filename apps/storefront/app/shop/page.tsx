@@ -78,9 +78,14 @@ export default async function ShopPage({
       .eq("status", "published")
       .order("created_at", { ascending: false }),
     supabase.from("merchandising_settings").select("active_season").maybeSingle(),
-    supabase.from("categories").select("id, code, name_en, name_ar, sort, parent_id, banner_url"),
+    // "*" so banner_mobile_url is picked up whether or not its migration has landed
+    supabase.from("categories").select("*"),
   ]);
-  const all = (data ?? []) as unknown as ShopProduct[];
+  // Pieces without a front photo stay off the storefront until they are shot
+  // (MGMT flags them under Product Data Health).
+  const all = ((data ?? []) as unknown as ShopProduct[]).filter((p) =>
+    (p.media_assets ?? []).some((m) => m.kind === "front"),
+  );
   const tree = catTree ?? [];
   // A parent category code matches every child underneath it.
   const catCodes = (code: string) => {
@@ -144,11 +149,7 @@ export default async function ShopPage({
     const seasons = p.product_seasons.map((s) => s.season);
     return seasons.includes(activeSeason) || seasons.includes("all_season") || seasons.length === 0 ? 0 : 1;
   };
-  // pieces still waiting on photography never lead a grid, whatever the sort
-  const unshot = (p: ShopProduct) => ((p.media_assets ?? []).some((m) => m.kind === "front") ? 0 : 1);
   items = items.sort((a, b) => {
-    const photo = unshot(a) - unshot(b);
-    if (photo) return photo;
     if (sort === "price-asc") return price(a) - price(b);
     if (sort === "price-desc") return price(b) - price(a);
     return inSeason(a) - inSeason(b) || b.created_at.localeCompare(a.created_at);
@@ -230,13 +231,17 @@ export default async function ShopPage({
         : t(locale, sale ? "sf.shop.saleTitle" : "sf.shop.allProducts"));
 
   // Editorial header imagery: the collection's cover when browsing a
-  // collection, else the parent category's banner.
-  let headerImage: { url: string; alt: string } | null = null;
+  // collection, else the category's own banner, else its parent's. Banners
+  // come as a wide desktop crop (banner_url) and a portrait phone crop
+  // (banner_mobile_url).
+  type Banner = { banner_url?: string | null; banner_mobile_url?: string | null; name_en: string };
+  let headerImage: { url: string; mobile: string | null; alt: string } | null = null;
   if (col) {
     const { data: colRow } = await supabase.from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
-    if (colRow?.cover_url) headerImage = { url: colRow.cover_url, alt: colRow.name_en };
-  } else if (parentNode && (parentNode as { banner_url?: string | null }).banner_url) {
-    headerImage = { url: (parentNode as { banner_url?: string | null }).banner_url!, alt: parentNode.name_en };
+    if (colRow?.cover_url) headerImage = { url: colRow.cover_url, mobile: null, alt: colRow.name_en };
+  } else {
+    const src = [catNode, parentNode].find((n) => (n as Banner | null)?.banner_url) as Banner | undefined;
+    if (src) headerImage = { url: src.banner_url!, mobile: src.banner_mobile_url ?? null, alt: src.name_en };
   }
 
   const sections: FilterSection[] = [
@@ -295,14 +300,16 @@ export default async function ShopPage({
   return (
     <div className="min-h-dvh bg-background">
       {headerImage ? (
-        <div className="anim-fade">
+        <picture className="anim-fade block">
+          {headerImage.mobile ? <source media="(min-width: 640px)" srcSet={headerImage.url} /> : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={headerImage.url}
+            src={headerImage.mobile ?? headerImage.url}
             alt={headerImage.alt}
-            className="aspect-[4/5] w-full object-cover object-[center_30%] sm:aspect-[21/9]"
+            fetchPriority="high"
+            className="aspect-[4/5] w-full object-cover object-[center_30%] sm:aspect-[21/9] sm:max-h-[75vh] sm:object-[center_20%]"
           />
-        </div>
+        </picture>
       ) : null}
       <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-6 sm:px-8">
         <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">

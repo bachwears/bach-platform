@@ -62,7 +62,7 @@ export default async function Home() {
         .map((v) => v.color_en),
     };
   })
-    .sort((a, b) => Number(!a.front) - Number(!b.front))
+    .filter((p) => p.front)
     .slice(0, 8);
 
   const orgLd = {
