@@ -1,13 +1,11 @@
 "use client";
 
-import { Heart } from "lucide-react";
+import { Bookmark, X } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
-import { Input } from "@bach/ui/components/input";
-
 import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
@@ -34,48 +32,65 @@ function sizeSlot(categoryCode: string | null, variants: PdpVariant[]): SizeSlot
   return categoryCode && BOTTOMS.has(categoryCode) ? "size_bottom" : "size_top";
 }
 
+const ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+const rank = (s: string) => {
+  const i = ORDER.indexOf(s.toUpperCase());
+  if (i >= 0) return i;
+  const n = Number(s);
+  return Number.isFinite(n) ? 100 + n : 999;
+};
+
+/**
+ * Zara-style buy box: colour chips, then ADD opens a size sheet (bottom sheet on
+ * phones, inline panel on desktop). Picking an in-stock size adds it at once; a
+ * sold-out size offers the back-in-stock alert. On phones a slim bar with name,
+ * price and ADD stays pinned while the main button is scrolled away.
+ */
 export function AddToCart({
   variants,
   productId,
   categoryCode = null,
+  name,
+  priceLabel,
+  sizeGuide,
 }: {
   variants: PdpVariant[];
   productId: string;
   categoryCode?: string | null;
+  name: string;
+  priceLabel: string;
+  sizeGuide?: React.ReactNode;
 }) {
   const locale = useLocale();
+  const router = useRouter();
   const colors = useMemo(
-    () =>
-      [
-        ...new Map(
-          variants.map((v) => [v.color_code, locale === "ar" && v.color_ar ? v.color_ar : v.color_en]),
-        ).entries(),
-      ],
+    () => [
+      ...new Map(
+        variants.map((v) => [v.color_code, locale === "ar" && v.color_ar ? v.color_ar : v.color_en]),
+      ).entries(),
+    ],
     [variants, locale],
   );
-  const [color, setColor] = useState(colors.length === 1 ? colors[0]![0] : "");
-  const sizes = useMemo(() => {
-    const ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-    const rank = (s: string) => {
-      const i = ORDER.indexOf(s.toUpperCase());
-      if (i >= 0) return i;
-      const n = Number(s);
-      return Number.isFinite(n) ? 100 + n : 999;
-    };
-    return variants
-      .filter((v) => !color || v.color_code === color)
-      .sort((a, b) => rank(a.size) - rank(b.size));
-  }, [variants, color]);
-  const [variantId, setVariantId] = useState(sizes.length === 1 ? sizes[0]!.id : "");
-  const chosen = variants.find((v) => v.id === variantId);
-  const [added, setAdded] = useState(false);
+  // Open on a colour that can actually be bought.
+  const [color, setColor] = useState(
+    () => (variants.find((v) => v.available > 0) ?? variants[0])?.color_code ?? "",
+  );
+  const sizes = useMemo(
+    () => variants.filter((v) => v.color_code === color).sort((a, b) => rank(a.size) - rank(b.size)),
+    [variants, color],
+  );
+  const [sheet, setSheet] = useState(false);
+  const [added, setAdded] = useState<PdpVariant | null>(null);
+  const [alertFor, setAlertFor] = useState<PdpVariant | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [saved, setSaved] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyState, setNotifyState] = useState<"idle" | "done" | "error">("idle");
   const [savedSize, setSavedSize] = useState<string | null>(null);
-  const [autoPicked, setAutoPicked] = useState(false);
+  const [mainVisible, setMainVisible] = useState(true);
+  const mainRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -93,7 +108,7 @@ export function AddToCart({
           .select(slot)
           .eq("id", cid)
           .maybeSingle()
-          .then(({ data }) => setSavedSize(((data as Record<string, string | null> | null)?.[slot] ?? null)));
+          .then(({ data }) => setSavedSize((data as Record<string, string | null> | null)?.[slot] ?? null));
       }
       const { data: w } = await supabase
         .from("wishlists")
@@ -107,16 +122,47 @@ export function AddToCart({
     // variants and categoryCode are fixed per product page
   }, [productId]);
 
-  const colorReady = colors.length <= 1 || !!color;
-  const mine = savedSize ? sizes.find((v) => v.size.toUpperCase() === savedSize.toUpperCase()) : undefined;
+  // Pinned phone bar shows only while the main ADD is off screen.
   useEffect(() => {
-    if (!colorReady || variantId || !mine || mine.available <= 0) return;
-    setVariantId(mine.id);
-    setAutoPicked(true);
-  }, [colorReady, variantId, mine]);
+    const el = mainRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setMainVisible(e!.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
+    window.addEventListener("keydown", onKey);
+    sheetRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sheet]);
+
+  function closeSheet() {
+    setSheet(false);
+    setAdded(null);
+    setAlertFor(null);
+    setNotifyState("idle");
+  }
+
+  function openSheet() {
+    setAdded(null);
+    setAlertFor(null);
+    setNotifyState("idle");
+    // A single size needs no choice.
+    if (sizes.length === 1 && sizes[0]!.available > 0) {
+      addToCart(sizes[0]!.id);
+      setAdded(sizes[0]!);
+    }
+    setSheet(true);
+  }
 
   async function toggleWishlist() {
-    if (!customerId) return;
+    if (!signedIn || !customerId) {
+      router.push(lhref(locale, "/account/login"));
+      return;
+    }
     const supabase = supabaseBrowser();
     if (saved) {
       setSaved(false);
@@ -128,138 +174,200 @@ export function AddToCart({
   }
 
   async function subscribeAlert() {
-    if (!chosen) return;
+    if (!alertFor) return;
     const { error } = await supabaseBrowser().rpc("subscribe_stock_alert", {
-      p_variant_id: chosen.id,
+      p_variant_id: alertFor.id,
       p_phone: signedIn ? null : notifyPhone,
     });
     setNotifyState(error ? "error" : "done");
   }
 
+  const mine = savedSize ? sizes.find((v) => v.size.toUpperCase() === savedSize.toUpperCase()) : undefined;
+  const soldOutEverywhere = variants.every((v) => v.available <= 0);
+  const addLabel = soldOutEverywhere ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
+
   return (
     <div className="mt-8 space-y-6">
-      {colors.length > 0 && (
+      {colors.length > 1 && (
         <div>
-          <p className="text-sm font-medium">{t(locale, "sf.pdp.color")}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {colors.map(([code, name]) => (
+          <p className="type-meta text-muted-foreground">
+            {t(locale, "sf.pdp.color")} — <span className="text-foreground">{colors.find(([c]) => c === color)?.[1]}</span>
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {colors.map(([code, label]) => (
               <button
                 key={code}
                 type="button"
+                aria-pressed={color === code}
                 onClick={() => {
                   setColor(code);
-                  setVariantId("");
-                  setAdded(false);
+                  closeSheet();
                 }}
-                className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                  color === code ? "border-foreground bg-foreground text-background" : "hover:border-foreground"
+                className={`type-meta h-10 border px-3 transition-colors ${
+                  color === code ? "border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
                 }`}
               >
-                {name}
+                {label}
               </button>
             ))}
           </div>
         </div>
       )}
-
-      <div>
-        <p className="text-sm font-medium">{t(locale, "sf.pdp.size")}</p>
-        {colors.length > 1 && !color ? (
-          <p className="mt-2 text-sm text-muted-foreground">{t(locale, "sf.pdp.selectColor")}</p>
-        ) : null}
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(colors.length > 1 && !color ? [] : sizes).map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => {
-                setVariantId(v.id);
-                setAutoPicked(false);
-                setAdded(false);
-                setNotifyState("idle");
-              }}
-              className={`min-w-12 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                variantId === v.id
-                  ? "border-foreground bg-foreground text-background"
-                  : v.available <= 0
-                    ? "border-dashed text-muted-foreground line-through hover:border-foreground"
-                    : "hover:border-foreground"
-              }`}
-            >
-              {v.size}
-            </button>
-          ))}
-        </div>
-        {autoPicked && chosen && chosen.id === mine?.id && (
-          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSize")}</p>
-        )}
-        {colorReady && savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && !chosen && (
-          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
-        )}
-        {chosen && chosen.available > 0 && chosen.available <= 3 && (
-          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.onlyLeft", { n: chosen.available })}</p>
-        )}
-      </div>
-
-      {chosen && chosen.available <= 0 ? (
-        <div className="space-y-3 rounded-md border border-dashed p-4">
-          <p className="text-sm font-medium">{t(locale, "sf.pdp.soldOut")}</p>
-          {notifyState === "done" ? (
-            <p className="text-sm text-green-600 dark:text-green-400">
-              {t(locale, "sf.pdp.notifyDone")}
-            </p>
-          ) : (
-            <>
-              {!signedIn && (
-                <Input
-                  value={notifyPhone}
-                  onChange={(e) => setNotifyPhone(e.target.value)}
-                  placeholder="+961 71 000 000"
-                  inputMode="tel"
-                  dir="ltr"
-                />
-              )}
-              <Button
-                variant="outline"
-                className="w-full"
-                disabled={!signedIn && notifyPhone.replace(/[^0-9+]/g, "").length < 7}
-                onClick={() => void subscribeAlert()}
-              >
-                {t(locale, "sf.pdp.notifyCta")}
-              </Button>
-              {notifyState === "error" && (
-                <p className="text-sm text-destructive">{t(locale, "sf.pdp.notifyError")}</p>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <Button
-          className="h-12 w-full text-base"
-          disabled={!chosen || chosen.available <= 0}
-          onClick={() => {
-            if (!chosen) return;
-            addToCart(chosen.id);
-            setAdded(true);
-          }}
-        >
-          {added ? t(locale, "sf.pdp.added") : chosen ? t(locale, "sf.pdp.addToBag") : t(locale, "sf.pdp.selectSize")}
-        </Button>
+      {savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
+        <p className="type-meta text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
       )}
 
-      {signedIn ? (
+      <div className="flex gap-2">
+        <button
+          ref={mainRef}
+          type="button"
+          disabled={!sizes.length}
+          onClick={openSheet}
+          aria-expanded={sheet}
+          className="type-label h-12 flex-1 border border-foreground bg-background transition-colors hover:bg-foreground hover:text-background disabled:opacity-40"
+        >
+          {addLabel}
+        </button>
         <button
           type="button"
           onClick={() => void toggleWishlist()}
-          className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          aria-pressed={saved}
+          aria-label={saved ? t(locale, "sf.pdp.wishSaved") : t(locale, "sf.pdp.wishSave")}
+          className="grid h-12 w-12 place-items-center border border-border hover:border-foreground"
         >
-          <Heart className={"me-1 inline h-3.5 w-3.5 align-[-2px] " + (saved ? "fill-current" : "")} aria-hidden />
-          {saved ? t(locale, "sf.pdp.wishSaved") : t(locale, "sf.pdp.wishSave")}
+          <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} strokeWidth={1.25} aria-hidden />
         </button>
-      ) : (
-        <p className="text-center text-xs text-muted-foreground">
-          <Link href={lhref(locale, "/account/login")} className="underline underline-offset-4">{t(locale, "sf.pdp.signIn")}</Link> {t(locale, "sf.pdp.signInWish")}
-        </p>
+      </div>
+
+      {sheet && (
+        <>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+            onClick={closeSheet}
+          />
+          <div
+            ref={sheetRef}
+            role="dialog"
+            aria-label={t(locale, "sf.pdp.selectSize")}
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] overflow-y-auto border-t bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-4 lg:static lg:z-auto lg:max-h-none lg:border lg:px-5 lg:pb-5"
+          >
+            <div className="flex items-center justify-between">
+              <p className="type-heading">{added ? t(locale, "sf.pdp.addedTo") : t(locale, "sf.pdp.selectSize")}</p>
+              <button type="button" aria-label={t(locale, "sf.nav.close")} className="-me-2 grid h-11 w-11 place-items-center" onClick={closeSheet}>
+                <X className="h-5 w-5" strokeWidth={1} aria-hidden />
+              </button>
+            </div>
+
+            {added ? (
+              <div className="mt-2 space-y-4" role="status">
+                <p className="type-label">
+                  {name} · {added.size}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  <Link href={lhref(locale, "/cart")} className="type-label grid h-12 place-items-center bg-foreground text-background">
+                    {t(locale, "sf.pdp.viewBag")}
+                  </Link>
+                  <button type="button" onClick={closeSheet} className="type-label h-12 border border-foreground">
+                    {t(locale, "sf.pdp.continueShopping")}
+                  </button>
+                </div>
+              </div>
+            ) : alertFor ? (
+              <div className="mt-2 space-y-4">
+                <p className="type-label">
+                  {alertFor.size} — {t(locale, "sf.pdp.soldOut")}
+                </p>
+                {notifyState === "done" ? (
+                  <p className="text-sm">{t(locale, "sf.pdp.notifyDone")}</p>
+                ) : (
+                  <>
+                    {!signedIn && (
+                      <input
+                        value={notifyPhone}
+                        onChange={(e) => setNotifyPhone(e.target.value)}
+                        placeholder="+961 71 000 000"
+                        aria-label={t(locale, "sf.co.phone")}
+                        inputMode="tel"
+                        autoComplete="tel"
+                        dir="ltr"
+                        className="type-label h-11 w-full border-0 border-b border-foreground bg-transparent px-0 outline-none placeholder:text-muted-foreground"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="type-label h-12 w-full bg-foreground text-background disabled:opacity-40"
+                      disabled={!signedIn && notifyPhone.replace(/[^0-9+]/g, "").length < 7}
+                      onClick={() => void subscribeAlert()}
+                    >
+                      {t(locale, "sf.pdp.notifyCta")}
+                    </button>
+                    {notifyState === "error" && <p className="text-sm text-destructive">{t(locale, "sf.pdp.notifyError")}</p>}
+                  </>
+                )}
+                <button type="button" className="type-meta underline underline-offset-4" onClick={() => setAlertFor(null)}>
+                  {t(locale, "sf.pdp.otherSizes")}
+                </button>
+              </div>
+            ) : (
+              <>
+                <ul className="mt-1 divide-y">
+                  {sizes.map((v) => {
+                    const out = v.available <= 0;
+                    const isMine = mine?.id === v.id;
+                    return (
+                      <li key={v.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (out) {
+                              setAlertFor(v);
+                              return;
+                            }
+                            addToCart(v.id);
+                            setAdded(v);
+                          }}
+                          className={`flex h-12 w-full items-center justify-between gap-4 text-start ${out ? "text-muted-foreground" : "hover:opacity-60"}`}
+                        >
+                          <span className={`type-label ${out ? "line-through" : ""} ${isMine ? "font-medium" : ""}`}>{v.size}</span>
+                          <span className="type-meta text-muted-foreground">
+                            {out
+                              ? t(locale, "sf.pdp.notifyShort")
+                              : isMine
+                                ? t(locale, "sf.pdp.yourSizeTag")
+                                : v.available <= 3
+                                  ? t(locale, "sf.pdp.fewLeft")
+                                  : ""}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {sizeGuide ? <div className="mt-3">{sizeGuide}</div> : null}
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Phones: pinned buy bar while the main ADD is scrolled away. */}
+      {!mainVisible && !sheet && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="type-meta truncate">{name}</p>
+            <p className="type-meta tabular-nums text-muted-foreground">{priceLabel}</p>
+          </div>
+          <button
+            type="button"
+            onClick={openSheet}
+            className="type-label h-11 shrink-0 bg-foreground px-8 text-background"
+          >
+            {addLabel}
+          </button>
+        </div>
       )}
     </div>
   );

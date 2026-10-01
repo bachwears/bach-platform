@@ -41,8 +41,8 @@ export function AssistantWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  // on phones the launcher would sit on the bag / place-order buttons
-  const inPurchase = /\/(cart|checkout)(\/|$)/.test(usePathname() ?? "");
+  // on phones the launcher would sit on the bag, place-order and pinned ADD buttons
+  const inPurchase = /\/(cart|checkout|products)(\/|$)/.test(usePathname() ?? "");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

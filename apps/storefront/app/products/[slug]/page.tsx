@@ -226,26 +226,7 @@ export default async function ProductPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <nav aria-label="Breadcrumb" className="mx-auto max-w-6xl px-4 pt-6 text-xs text-muted-foreground">
-        <Link href={lhref(locale, "/")} className="hover:text-foreground">
-          {t(locale, "sf.pdp.home")}
-        </Link>
-        {" / "}
-        <Link href={lhref(locale, "/shop")} className="hover:text-foreground">
-          {t(locale, "sf.nav.shop")}
-        </Link>
-        {category && (
-          <>
-            {" / "}
-            <Link href={lhref(locale, `/shop?cat=${category.code}`)} className="hover:text-foreground">
-              {categoryName}
-            </Link>
-          </>
-        )}
-        {" / "}
-        <span className="text-foreground">{displayName}</span>
-      </nav>
-      <main className="mx-auto grid max-w-6xl gap-10 px-4 py-8 lg:grid-cols-2">
+      <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div>
           {gallery.length ? (
             <PdpGallery
@@ -254,27 +235,31 @@ export default async function ProductPage({
             />
           ) : (
             <div className="grid aspect-[3/4] place-items-center bg-secondary p-6 text-center">
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                {t(locale, "sf.pdp.photoSoon")}
-              </span>
+              <span className="type-meta text-muted-foreground">{t(locale, "sf.pdp.photoSoon")}</span>
             </div>
           )}
         </div>
 
-        <div className="lg:sticky lg:top-8 lg:self-start">
-          {category ? (
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-              {categoryName}
-            </p>
-          ) : null}
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">{displayName}</h1>
-          <p className="mt-3 text-lg">
+        <div className="px-4 pt-6 lg:sticky lg:top-24 lg:self-start lg:px-0 lg:pt-0">
+          <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
+            <Link href={lhref(locale, "/shop")} className="hover:text-foreground">
+              {t(locale, "sf.nav.shop")}
+            </Link>
+            {category && (
+              <>
+                {" / "}
+                <Link href={lhref(locale, `/shop?cat=${category.code}`)} className="hover:text-foreground">
+                  {categoryName}
+                </Link>
+              </>
+            )}
+          </nav>
+          <h1 className="type-label mt-4 text-[15px] leading-snug">{displayName}</h1>
+          <p className="type-label mt-2 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums">
             {onSale ? (
               <>
-                <span>{usd(product.sale_price_usd_cents!)}</span>{" "}
-                <span className="text-muted-foreground line-through">
-                  {usd(product.price_usd_cents)}
-                </span>
+                <span>{usd(product.sale_price_usd_cents!)}</span>
+                <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
               </>
             ) : (
               usd(product.price_usd_cents)
@@ -282,12 +267,15 @@ export default async function ProductPage({
           </p>
 
           {displayDescription ? (
-            <p className="mt-6 leading-relaxed text-muted-foreground">{displayDescription}</p>
+            <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{displayDescription}</p>
           ) : null}
 
           <AddToCart
             productId={product.id}
             categoryCode={category?.code ?? null}
+            name={displayName}
+            priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}
+            sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             variants={variants.map((v) => ({
               id: v.id,
               size: v.size,
@@ -297,25 +285,29 @@ export default async function ProductPage({
               available: (v.inventory_levels ?? []).reduce((s, l) => s + l.quantity - l.reserved, 0),
             }))}
           />
-          {guide && <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />}
+          {guide && (
+            <div className="mt-4">
+              <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />
+            </div>
+          )}
 
-          <dl className="mt-10 space-y-4 border-t pt-6 text-sm">
+          <dl className="mt-10 border-t">
             {product.fit ? (
-              <div className="flex justify-between gap-6">
-                <dt className="text-muted-foreground">{t(locale, "sf.pdp.fit")}</dt>
-                <dd className="capitalize">{product.fit}</dd>
+              <div className="flex justify-between gap-6 border-b py-3">
+                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.fit")}</dt>
+                <dd className="type-meta">{product.fit}</dd>
               </div>
             ) : null}
             {product.material_en ? (
-              <div className="flex justify-between gap-6">
-                <dt className="text-muted-foreground">{t(locale, "sf.pdp.material")}</dt>
-                <dd className="text-end">{pick(locale, product.material_en, product.material_ar)}</dd>
+              <div className="flex justify-between gap-6 border-b py-3">
+                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.material")}</dt>
+                <dd className="type-meta text-end">{pick(locale, product.material_en, product.material_ar)}</dd>
               </div>
             ) : null}
             {product.care_en ? (
-              <div className="flex justify-between gap-6">
-                <dt className="text-muted-foreground">{t(locale, "sf.pdp.care")}</dt>
-                <dd className="text-end">{pick(locale, product.care_en, product.care_ar)}</dd>
+              <div className="gap-6 border-b py-3">
+                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.care")}</dt>
+                <dd className="mt-1 text-sm text-muted-foreground">{pick(locale, product.care_en, product.care_ar)}</dd>
               </div>
             ) : null}
           </dl>
@@ -323,29 +315,29 @@ export default async function ProductPage({
         </div>
       </main>
 
-      <section className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
-          {related.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">{t(locale, "sf.pdp.related")}</h2>
-              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-4">
-                {related.map((p) => (
-                  <ProductCard key={p.slug} product={p} locale={locale} />
-                ))}
-              </div>
+      <section className="mx-auto mt-20 max-w-[1440px] space-y-16 px-4 pb-16 sm:px-8">
+        {related.length > 0 && (
+          <div>
+            <h2 className="type-heading">{t(locale, "sf.pdp.related")}</h2>
+            <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+              {related.map((p) => (
+                <ProductCard key={p.slug} product={p} locale={locale} />
+              ))}
             </div>
-          )}
-          {look.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">{t(locale, "sf.pdp.completeLook")}</h2>
-              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-4">
-                {look.map((p) => (
-                  <ProductCard key={p.slug} product={p} locale={locale} />
-                ))}
-              </div>
+          </div>
+        )}
+        {look.length > 0 && (
+          <div>
+            <h2 className="type-heading">{t(locale, "sf.pdp.completeLook")}</h2>
+            <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+              {look.map((p) => (
+                <ProductCard key={p.slug} product={p} locale={locale} />
+              ))}
             </div>
-          )}
-          <RecentlyViewed currentSlug={product.slug} />
-        </section>
+          </div>
+        )}
+        <RecentlyViewed currentSlug={product.slug} />
+      </section>
     </div>
   );
 }

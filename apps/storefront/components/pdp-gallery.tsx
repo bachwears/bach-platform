@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 export interface GalleryImage {
   kind: string;
@@ -8,27 +9,12 @@ export interface GalleryImage {
 }
 
 /**
- * PDP gallery: below lg a full-bleed swipe carousel so name, price and the bag
- * button stay near the fold; from lg a stacked column with cursor-tracked hover
- * zoom. Click opens a lightbox (arrow keys / on-screen arrows, Esc or backdrop).
+ * PDP photos: full-bleed vertical stack on phones, a two-up grid on desktop.
+ * Tapping a photo opens it full screen (arrow keys / on-screen arrows move,
+ * Esc or backdrop closes). No hover zoom.
  */
 export function PdpGallery({ images, name }: { images: GalleryImage[]; name: string }) {
   const [open, setOpen] = useState<number | null>(null);
-  const [slide, setSlide] = useState(0);
-  const track = useRef<HTMLDivElement>(null);
-
-  const onScroll = useCallback(() => {
-    const el = track.current;
-    if (!el || !el.clientWidth) return;
-    setSlide(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
-  }, []);
-
-  const goTo = (i: number) => {
-    const el = track.current;
-    if (!el) return;
-    const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
-    el.scrollTo({ left: dir * i * el.clientWidth, behavior: "smooth" });
-  };
 
   const step = useCallback(
     (delta: number) => {
@@ -54,56 +40,30 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
 
   return (
     <>
-      <div className="relative -mx-4 lg:mx-0">
-        <div
-          ref={track}
-          onScroll={onScroll}
-          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:block lg:space-y-4 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
-        >
-          {images.map((m, i) => (
-            <button
-              key={m.kind}
-              type="button"
-              onClick={() => setOpen(i)}
-              className="group/zoom block w-full shrink-0 snap-center cursor-zoom-in overflow-hidden bg-secondary"
-              aria-label={`${name} — ${m.kind}`}
-              onMouseMove={(e) => {
-                const img = e.currentTarget.querySelector("img");
-                if (!img) return;
-                const r = e.currentTarget.getBoundingClientRect();
-                img.style.transformOrigin = `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}% ${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`;
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={m.url}
-                alt={`${name} — ${m.kind}`}
-                className="aspect-[3/4] w-full object-cover transition-transform duration-200 group-hover/zoom:scale-150 motion-reduce:transition-none motion-reduce:group-hover/zoom:scale-100"
-              />
-            </button>
-          ))}
-        </div>
-        {images.length > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 lg:hidden">
-            {images.map((m, i) => (
-              <button
-                key={m.kind}
-                type="button"
-                aria-label={`${i + 1} / ${images.length}`}
-                aria-current={i === slide}
-                onClick={() => goTo(i)}
-                className={`pointer-events-auto h-1.5 rounded-full bg-neutral-900/70 transition-all duration-200 motion-reduce:transition-none ${
-                  i === slide ? "w-5" : "w-1.5 opacity-40"
-                }`}
-              />
-            ))}
-          </div>
-        )}
+      <div className="grid gap-0.5 lg:grid-cols-2 lg:gap-2">
+        {images.map((m, i) => (
+          <button
+            key={m.kind}
+            type="button"
+            onClick={() => setOpen(i)}
+            className="block w-full cursor-zoom-in bg-secondary"
+            aria-label={`${name} — ${m.kind}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={m.url}
+              alt={`${name} — ${m.kind}`}
+              loading={i < 2 ? "eager" : "lazy"}
+              decoding="async"
+              className="aspect-[3/4] w-full object-cover"
+            />
+          </button>
+        ))}
       </div>
 
       {open != null && images[open] && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 grid place-items-center bg-background"
           role="dialog"
           aria-modal="true"
           aria-label={name}
@@ -120,9 +80,9 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
             type="button"
             aria-label="Close"
             onClick={() => setOpen(null)}
-            className="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            className="absolute end-2 top-2 grid h-11 w-11 place-items-center"
           >
-            ✕
+            <X className="h-6 w-6" strokeWidth={1} aria-hidden />
           </button>
           {images.length > 1 && (
             <>
@@ -133,7 +93,7 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
                   e.stopPropagation();
                   step(-1);
                 }}
-                className="absolute start-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                className="type-label absolute start-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center"
               >
                 ‹
               </button>
@@ -144,10 +104,13 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
                   e.stopPropagation();
                   step(1);
                 }}
-                className="absolute end-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                className="type-label absolute end-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center"
               >
                 ›
               </button>
+              <p className="type-meta absolute bottom-4 start-1/2 -translate-x-1/2 tabular-nums">
+                {open + 1} / {images.length}
+              </p>
             </>
           )}
         </div>

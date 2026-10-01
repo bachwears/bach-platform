@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 
 export interface SizeGuideData {
   name: string;
@@ -17,31 +18,31 @@ export function SizeGuide({ guide, label = "Size guide" }: { guide: SizeGuideDat
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        className="type-meta underline underline-offset-4 hover:opacity-60"
       >
         {label}
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/20 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Size guide"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg"
+            className="w-full max-w-lg border bg-background p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-lg font-semibold tracking-tight">{guide.name}</h2>
+              <h2 className="type-heading">{guide.name}</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close size guide"
-                className="text-muted-foreground hover:text-foreground"
+                className="-me-2 -mt-2 grid h-11 w-11 place-items-center"
               >
-                ✕
+                <X className="h-5 w-5" strokeWidth={1} aria-hidden />
               </button>
             </div>
             <div className="mt-4 overflow-x-auto">
@@ -49,7 +50,7 @@ export function SizeGuide({ guide, label = "Size guide" }: { guide: SizeGuideDat
                 <thead>
                   <tr className="border-b text-start">
                     {guide.headers.map((h) => (
-                      <th key={h} className="py-2 pe-4 text-start font-medium">
+                      <th key={h} className="type-meta py-2 pe-4 text-start font-medium">
                         {h}
                       </th>
                     ))}
