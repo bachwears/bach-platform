@@ -120,19 +120,27 @@ export default function CartPage() {
                       <p className="tabular-nums">{usd(d!.price * line.quantity)}</p>
                     </div>
                     <div className="mt-auto flex items-center gap-2 pt-3">
-                      <Button size="sm" variant="outline" onClick={() => setQuantity(line.variantId, line.quantity - 1)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0 lg:h-8 lg:w-8"
+                        aria-label={t(locale, "sf.cart.decrease")}
+                        onClick={() => setQuantity(line.variantId, line.quantity - 1)}
+                      >
                         −
                       </Button>
                       <span className="w-6 text-center text-sm tabular-nums">{line.quantity}</span>
                       <Button
                         size="sm"
                         variant="outline"
+                        className="h-10 w-10 p-0 lg:h-8 lg:w-8"
+                        aria-label={t(locale, "sf.cart.increase")}
                         disabled={line.quantity >= Math.min(d!.available, 10)}
                         onClick={() => setQuantity(line.variantId, line.quantity + 1)}
                       >
                         +
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setQuantity(line.variantId, 0)}>
+                      <Button size="sm" variant="ghost" className="h-10 lg:h-8" onClick={() => setQuantity(line.variantId, 0)}>
                         {t(locale, "sf.cart.remove")}
                       </Button>
                       {line.quantity > d!.available && (
@@ -156,11 +164,15 @@ export default function CartPage() {
                 </div>
               )}
               <p className="text-xs text-muted-foreground">{t(locale, "sf.cart.codNote")}</p>
-              <Link href={lhref(locale, "/checkout")} className="block">
-                <Button className="h-11 w-full" disabled={rows.some((r) => r.line.quantity > r.d!.available)}>
+              {rows.some((r) => r.line.quantity > r.d!.available) ? (
+                <Button className="h-11 w-full" disabled>
                   {t(locale, "sf.cart.checkout")}
                 </Button>
-              </Link>
+              ) : (
+                <Button asChild className="h-11 w-full">
+                  <Link href={lhref(locale, "/checkout")}>{t(locale, "sf.cart.checkout")}</Link>
+                </Button>
+              )}
             </aside>
           </div>
         )}

@@ -52,6 +52,8 @@
   "sf.pdp.completeLook": "كمّل الإطلالة",
   "sf.pdp.photoSoon": "الصور قريبًا",
   "sf.cart.title": "شنتتك",
+  "sf.cart.decrease": "نقّص الكمية",
+  "sf.cart.increase": "زيد الكمية",
   "sf.cart.empty": "شنتتك فاضية.",
   "sf.cart.continue": "كمّل تسوّق",
   "sf.cart.remove": "شيل",

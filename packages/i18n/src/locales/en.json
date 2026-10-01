@@ -52,6 +52,8 @@
   "sf.pdp.completeLook": "Complete the look",
   "sf.pdp.photoSoon": "Photography coming soon",
   "sf.cart.title": "Your bag",
+  "sf.cart.decrease": "Decrease quantity",
+  "sf.cart.increase": "Increase quantity",
   "sf.cart.empty": "Your bag is empty.",
   "sf.cart.continue": "Continue shopping",
   "sf.cart.remove": "Remove",
