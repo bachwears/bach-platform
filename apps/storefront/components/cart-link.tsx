@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
 import { t } from "@bach/i18n";
 
 import { cartCount, onCartChange } from "../lib/cart";
 import { lhref, useLocale } from "../lib/locale-client";
 
-export function CartLink() {
+/** "Bag [n]" as text on desktop, the count in a hairline box on phones. */
+export function CartLink({ variant, className = "" }: { variant: "text" | "box"; className?: string }) {
   const locale = useLocale();
   const [count, setCount] = useState(0);
   const [pop, setPop] = useState(0);
@@ -24,17 +24,17 @@ export function CartLink() {
     });
   }, []);
 
+  const label = t(locale, "sf.nav.bag");
   return (
-    <Link
-      href={lhref(locale, "/cart")}
-      aria-label={t(locale, "sf.nav.bag")}
-      className="relative grid h-9 w-9 place-items-center rounded-full text-foreground/80 transition-colors hover:bg-black/5 hover:text-foreground"
-    >
-      <ShoppingBag className="h-[18px] w-[18px]" aria-hidden />
-      {count > 0 && (
+    <Link href={lhref(locale, "/cart")} aria-label={`${label} (${count})`} className={className}>
+      {variant === "text" ? (
+        <span key={pop} className={pop > 0 ? "anim-pop inline-block" : undefined}>
+          {label} [{count}]
+        </span>
+      ) : (
         <span
           key={pop}
-          className={`absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-foreground px-1 font-mono text-[10px] leading-none text-background ${pop > 0 ? "anim-pop" : ""}`}
+          className={`grid h-[22px] min-w-[22px] place-items-center border border-current px-1 text-[11px] leading-none tabular-nums ${pop > 0 ? "anim-pop" : ""}`}
         >
           {count}
         </span>

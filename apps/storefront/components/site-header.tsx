@@ -1,11 +1,8 @@
-import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
-import { AccountLink } from "./account-link";
-import { CartLink } from "./cart-link";
 import { HeaderActions, type NavGroup } from "./header-actions";
-import { getLocale, lhref, pick } from "../lib/locale";
+import { getLocale, pick } from "../lib/locale";
 
 export async function SiteHeader() {
   const locale = await getLocale();
@@ -31,12 +28,11 @@ export async function SiteHeader() {
       .not("sale_price_usd_cents", "is", null),
   ]);
 
-  // Parent categories are navigation headings; children with published
-  // products are the links. A parent with nothing published disappears.
+  // Parent categories are menu groups; children with published products are
+  // the links. A parent with nothing published disappears.
   const all = cats ?? [];
   const count = (c: (typeof all)[number]) =>
     (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0;
-  const byId = new Map(all.map((c) => [c.id, c]));
   const groups: NavGroup[] = [];
   for (const parent of all.filter((c) => !c.parent_id)) {
     const items = all
@@ -52,145 +48,13 @@ export async function SiteHeader() {
     .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar) }));
   if (loose.length) groups.push({ code: null, label: t(locale, "sf.nav.categories"), items: loose });
 
-  // Sequential fill into 3 columns so groups stay in merchandising order.
-  const total = groups.reduce((n, g) => n + g.items.length + 2, 0);
-  const capacity = Math.ceil(total / 3);
-  const columns: NavGroup[][] = [[], [], []];
-  let col = 0;
-  let used = 0;
-  for (const g of groups) {
-    const size = g.items.length + 2;
-    if (used > 0 && used + size > capacity && col < 2) {
-      col += 1;
-      used = 0;
-    }
-    columns[col]!.push(g);
-    used += size;
-  }
-
-  const collections = cols ?? [];
-
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
-      <div className="glass-bar relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
-        <Link href={lhref(locale, "/")} className="flex shrink-0 items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-bach.png" alt="BACH Wears" className="h-4 w-auto dark:invert" />
-        </Link>
-
-        {/* Desktop text nav with the mega-menu; mobile nav lives in the hamburger. */}
-        <nav className="hidden items-center gap-6 text-sm md:flex">
-          <div className="group static">
-            <Link
-              href={lhref(locale, "/shop")}
-              className="inline-flex h-14 items-center text-muted-foreground group-hover:text-foreground group-focus-within:text-foreground"
-              aria-haspopup="true"
-            >
-              {t(locale, "sf.nav.shop")}
-            </Link>
-            <div className="glass-panel invisible absolute inset-x-0 top-full mt-2 origin-top -translate-y-1.5 scale-[0.99] rounded-2xl opacity-0 shadow-lg ring-1 ring-black/5 transition-[opacity,transform] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 motion-reduce:transition-none motion-reduce:transform-none">
-              <div className="grid grid-cols-2 gap-8 px-6 py-8 md:grid-cols-4">
-                {columns.map((column, i) => (
-                  <div key={i} className="space-y-8">
-                    {column.map((g) => (
-                      <div key={g.code ?? "loose"}>
-                        <MenuHeading href={g.code ? lhref(locale, `/shop?cat=${g.code}`) : undefined}>
-                          {g.label}
-                        </MenuHeading>
-                        <ul className="space-y-2">
-                          {g.items.map((c) => (
-                            <li key={c.code}>
-                              <Link
-                                href={lhref(locale, `/shop?cat=${c.code}`)}
-                                className="text-muted-foreground transition-colors hover:text-foreground"
-                              >
-                                {c.label}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                <div className="space-y-8">
-                  <div>
-                    <MenuHeading>{t(locale, "sf.nav.collections")}</MenuHeading>
-                    <ul className="space-y-2">
-                      {collections.slice(0, 8).map((c) => (
-                        <li key={c.slug}>
-                          <Link
-                            href={lhref(locale, `/shop?col=${c.slug}`)}
-                            className="text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            {pick(locale, c.name_en, c.name_ar)}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <MenuHeading>{t(locale, "sf.nav.featured")}</MenuHeading>
-                    <ul className="space-y-2">
-                      <li>
-                        <Link
-                          href={lhref(locale, "/shop")}
-                          className="text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {t(locale, "sf.nav.newIn")}
-                        </Link>
-                      </li>
-                      {saleCount ? (
-                        <li>
-                          <Link
-                            href={lhref(locale, "/shop?sale=1")}
-                            className="text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            {t(locale, "sf.nav.onSale")}
-                          </Link>
-                        </li>
-                      ) : null}
-                    </ul>
-                    <Link href={lhref(locale, "/shop")} className="group/tile mt-5 block">
-                      <span className="block overflow-hidden rounded-xl">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="/hero-campaign-mobile.jpg"
-                          alt=""
-                          className="aspect-[4/3] w-full object-cover object-[70%_center] transition-transform duration-300 group-hover/tile:scale-[1.03] motion-reduce:transition-none"
-                        />
-                      </span>
-                      <span className="mt-2 block text-xs uppercase tracking-wider text-muted-foreground transition-colors group-hover/tile:text-foreground">
-                        {t(locale, "sf.nav.newInTile")}
-                      </span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        {/* Icon cluster (BOSS-style): search · account · bag · menu */}
-        <div className="flex items-center gap-0.5">
-          <HeaderActions groups={groups}>
-            <AccountLink className="hidden md:grid" />
-            <CartLink />
-          </HeaderActions>
-        </div>
-      </div>
+    <header className="sticky top-0 z-40 bg-background">
+      <HeaderActions
+        groups={groups}
+        collections={(cols ?? []).map((c) => ({ slug: c.slug, label: pick(locale, c.name_en, c.name_ar) }))}
+        hasSale={Boolean(saleCount)}
+      />
     </header>
   );
-}
-
-function MenuHeading({ children, href }: { children: React.ReactNode; href?: string }) {
-  const cls = "mb-3 block text-xs uppercase tracking-wider text-muted-foreground";
-  if (href) {
-    return (
-      <Link href={href} className={`${cls} transition-colors hover:text-foreground`}>
-        {children}
-      </Link>
-    );
-  }
-  return <p className={cls}>{children}</p>;
 }

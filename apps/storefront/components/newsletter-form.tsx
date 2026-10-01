@@ -34,12 +34,12 @@ export function NewsletterForm() {
   }
 
   if (state === "done") {
-    return <p className="text-sm text-green-600 dark:text-green-400">{t(locale, "sf.nl.done")}</p>;
+    return <p className="type-meta">{t(locale, "sf.nl.done")}</p>;
   }
 
   return (
     <form onSubmit={(e) => void subscribe(e)} className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex items-end gap-6">
         <input
           type="email"
           value={email}
@@ -50,18 +50,18 @@ export function NewsletterForm() {
           placeholder={t(locale, "sf.nl.placeholder")}
           aria-label={t(locale, "sf.nl.placeholder")}
           dir="ltr"
-          className="h-10 flex-1 rounded-md border bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-foreground"
+          className="type-label h-11 min-w-0 flex-1 border-0 border-b border-foreground bg-transparent px-0 normal-case outline-none placeholder:uppercase placeholder:text-muted-foreground"
         />
         <button
           type="submit"
           disabled={state === "busy"}
-          className="h-10 rounded-md bg-foreground px-4 text-sm font-medium text-background disabled:opacity-60"
+          className="type-label h-11 shrink-0 px-1 hover:opacity-60 disabled:opacity-40"
         >
           {t(locale, "sf.nl.cta")}
         </button>
       </div>
       {state === "error" && <p className="text-sm text-destructive">{message}</p>}
-      <p className="text-xs text-muted-foreground">{t(locale, "sf.nl.consent")}</p>
+      <p className="pt-1 text-xs text-muted-foreground">{t(locale, "sf.nl.consent")}</p>
     </form>
   );
 }
