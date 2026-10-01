@@ -8,25 +8,49 @@ import { Select } from "@bach/ui/components/select";
 
 import { ALLOWED_TRANSITIONS, STATUS_LABELS } from "../lib/order-status";
 
-export function OrderStatusControl({ orderId, currentStatus }: { orderId: string; currentStatus: string }) {
+export function OrderStatusControl({
+  orderId,
+  currentStatus,
+  channel,
+}: {
+  orderId: string;
+  currentStatus: string;
+  channel: string;
+}) {
   const router = useRouter();
-  const options = ALLOWED_TRANSITIONS[currentStatus] ?? [];
+  // In-store sales are complete at the till; only online orders move through steps.
+  const options = channel === "online" ? (ALLOWED_TRANSITIONS[currentStatus] ?? []) : [];
   const [next, setNext] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (options.length === 0) {
-    return <p className="text-xs text-muted-foreground">هالحالة نهائية — ما في تعديل.</p>;
+    return (
+      <p className="text-xs text-muted-foreground">
+        {["delivered", "completed"].includes(currentStatus) || channel !== "online" ? (
+          <>
+            ما في خطوة تانية للحالة. للإرجاع أو التبديل استعمل{" "}
+            <a href="/returns" className="underline underline-offset-2">
+              صفحة الإرجاع
+            </a>{" "}
+            — هيك المخزون والمبلغ بيرجعوا صح.
+          </>
+        ) : (
+          "هالحالة نهائية — ما في تعديل."
+        )}
+      </p>
+    );
   }
 
   async function apply() {
     if (!next) return;
     setBusy(true);
     setError("");
-    const { error: err } = await supabaseBrowser()
-      .from("orders")
-      .update({ status: next, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+    // The RPC checks the step and moves stock (packed = sale, cancelled = release).
+    const { error: err } = await supabaseBrowser().rpc("advance_online_order", {
+      p_order_id: orderId,
+      p_next: next,
+    });
     setBusy(false);
     if (err) {
       setError(`ما مشي التعديل: ${err.message}`);
@@ -52,6 +76,11 @@ export function OrderStatusControl({ orderId, currentStatus }: { orderId: string
           {busy ? "عم نحدّث…" : "تحديث"}
         </Button>
       </div>
+      {next === "packed" ? (
+        <p className="text-xs text-muted-foreground">«جاهز» بينزّل القطع من المخزون (البيع بيتسجّل).</p>
+      ) : next === "cancelled" ? (
+        <p className="text-xs text-muted-foreground">الإلغاء بيرجّع القطع المحجوزة للمخزون.</p>
+      ) : null}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

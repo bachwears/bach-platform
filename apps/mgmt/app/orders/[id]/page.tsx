@@ -180,7 +180,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             ))}
             {canManage && (
               <div className="border-t pt-3">
-                <OrderStatusControl orderId={order.id} currentStatus={order.status} />
+                <OrderStatusControl orderId={order.id} currentStatus={order.status} channel={order.channel} />
               </div>
             )}
           </div>

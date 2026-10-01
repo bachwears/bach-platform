@@ -11,15 +11,21 @@ export const STATUS_LABELS: Record<string, string> = {
   exchanged: "مبدّل",
 };
 
-/** Transitions managers may apply from each status (terminal states stay terminal). */
+/**
+ * Online-order steps staff may take from each status — mirrors the
+ * advance_online_order RPC, which also moves stock: packing turns the
+ * reservation into a sale, cancelling (before packing) releases it.
+ * Returns and exchanges go through the returns flow (restock + refund),
+ * never a bare status change.
+ */
 export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["picking", "cancelled"],
   picking: ["packed", "cancelled"],
-  packed: ["shipped", "cancelled"],
+  packed: ["shipped"],
   shipped: ["delivered"],
-  delivered: ["completed", "returned", "exchanged"],
-  completed: ["returned", "exchanged"],
+  delivered: ["completed"],
+  completed: [],
   cancelled: [],
   returned: [],
   exchanged: [],
