@@ -8,7 +8,8 @@ type Payload = Record<string, unknown>;
 type Lang = "en" | "ar";
 
 const SITE = "https://bachwears.com";
-const LOGO = `${SITE}/logo-bach.png`;
+// served from the storage CDN: mail image proxies fetch it reliably (the site host can rate-limit them)
+const LOGO = "https://hrosyuaehkhzhnvefhts.supabase.co/storage/v1/object/public/product-media/site/email-logo.png";
 const INK = "#111111";
 const BODY = "#45423e";
 const MUTED = "#86817a";

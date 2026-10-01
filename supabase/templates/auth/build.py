@@ -13,7 +13,7 @@ that recolour backgrounds still show the black wordmark.
 from pathlib import Path
 
 HERE = Path(__file__).parent
-LOGO = "https://bachwears.com/logo-bach.png"  # 1070x220 black wordmark, transparent
+LOGO = "https://hrosyuaehkhzhnvefhts.supabase.co/storage/v1/object/public/product-media/site/email-logo.png"  # 1070x220 black wordmark, transparent — storage CDN, not the site host (mail proxies)
 FONT = "'Helvetica Neue',Helvetica,Arial,sans-serif"
 INK = "#111111"
 BODY = "#45423e"
