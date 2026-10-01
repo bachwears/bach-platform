@@ -74,7 +74,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
-        <ThemeScript />
+        <ThemeScript fallback="light" />
         <div className="flex min-h-dvh flex-col bg-background">
           <SiteHeader />
           <div className="flex-1">{children}</div>

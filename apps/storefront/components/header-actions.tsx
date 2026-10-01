@@ -21,8 +21,7 @@ export interface NavCollection {
   label: string;
 }
 
-type Mode = "system" | "light" | "dark";
-const MODES: Mode[] = ["system", "light", "dark"];
+type Mode = "light" | "dark";
 
 const two = (n: number) => String(n).padStart(2, "0");
 
@@ -44,7 +43,7 @@ export function HeaderActions({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<"categories" | "collections">("categories");
-  const [mode, setMode] = useState<Mode>("system");
+  const [mode, setMode] = useState<Mode>("light");
   const closeRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -55,9 +54,9 @@ export function HeaderActions({
   useEffect(() => {
     try {
       const stored = localStorage.getItem("theme");
-      if (stored === "light" || stored === "dark") setMode(stored);
+      if (stored === "dark") setMode("dark");
     } catch {
-      /* storage blocked — stay on system */
+      /* storage blocked — stay light */
     }
   }, []);
 
@@ -79,21 +78,21 @@ export function HeaderActions({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Same contract as @bach/ui ThemeScript: localStorage "theme", absent = follow the device.
-  function cycleTheme() {
-    const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length]!;
+  // Same contract as @bach/ui ThemeScript (fallback "light"): the storefront is
+  // light unless the visitor switches to dark, which is remembered.
+  function toggleTheme() {
+    const next: Mode = mode === "dark" ? "light" : "dark";
     setMode(next);
     try {
-      if (next === "system") localStorage.removeItem("theme");
-      else localStorage.setItem("theme", next);
+      if (next === "dark") localStorage.setItem("theme", "dark");
+      else localStorage.removeItem("theme");
     } catch {
       /* storage blocked — still applies for this page */
     }
-    const dark = next === "dark" || (next === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("dark", next === "dark");
   }
 
-  const themeLabel = { system: "sf.nav.themeAuto", light: "sf.nav.themeLight", dark: "sf.nav.themeDark" }[mode];
+  const themeLabel = mode === "dark" ? "sf.nav.themeDark" : "sf.nav.themeLight";
   const close = () => setMenuOpen(false);
   const textLink = "type-label py-2 text-foreground transition-opacity hover:opacity-60";
 
@@ -272,7 +271,7 @@ export function HeaderActions({
                   <AccountLink variant="text" className={`${textLink} block`} />
                 </li>
                 <li>
-                  <button type="button" onClick={cycleTheme} className={`${textLink} block`}>
+                  <button type="button" onClick={toggleTheme} className={`${textLink} block`}>
                     {t(locale, "sf.nav.theme")}: {t(locale, themeLabel)}
                   </button>
                 </li>
