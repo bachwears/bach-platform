@@ -220,8 +220,8 @@ export default async function Home() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
-              {featured.map((p, i) => (
-                <ProductCard key={p.slug} product={p} locale={locale} revealDelay={(i % 4) * 60} />
+              {featured.map((p) => (
+                <ProductCard key={p.slug} product={p} locale={locale} />
               ))}
             </div>
           </section>
