@@ -1,6 +1,126 @@
 @import "@bach/ui/globals.css";
 @source "../../../packages/ui/src";
 
+/*
+ * Storefront design language (founder decision 2026-10-01, CLAUDE.md §0/§2):
+ * Zara-style restraint on BACH's identity — pure white/black, square corners,
+ * hairlines instead of shadows, light type. POS and MGMT compile their own CSS
+ * from @bach/ui and keep the original palette.
+ */
+:root {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+  --primary: oklch(0 0 0);
+  --primary-foreground: oklch(1 0 0);
+  /* pale warm grey of photo wells and quiet bands */
+  --secondary: oklch(0.948 0.003 80);
+  --secondary-foreground: oklch(0 0 0);
+  --muted: oklch(0.948 0.003 80);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.948 0.003 80);
+  --accent-foreground: oklch(0 0 0);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.82 0 0);
+  --ring: oklch(0 0 0);
+  --radius: 0rem;
+}
+
+/* Dark mode stays (decision 6): the same language, inverted. */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.13 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.17 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.13 0 0);
+  --secondary: oklch(0.2 0.002 80);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.2 0.002 80);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.2 0.002 80);
+  --accent-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.36 0 0);
+  --ring: oklch(0.98 0 0);
+}
+
+@theme inline {
+  /* Square everywhere; rounded-full stays for the few true circles (icons, dots). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  /* Hairlines and whitespace separate things; nothing floats on a shadow. */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --inset-shadow-2xs: 0 0 #0000;
+  --inset-shadow-xs: 0 0 #0000;
+  --inset-shadow-sm: 0 0 #0000;
+  --font-display: var(--font-bodoni), "Bodoni 72", Didot, Georgia, serif;
+}
+
+@layer base {
+  body {
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Bold reads as a shout in this language; the strongest text weight is medium. */
+  b,
+  strong {
+    font-weight: 500;
+  }
+}
+
+/*
+ * Type roles for the redesign phases. Sizes are BACH's accessible floor for the
+ * Zara scale (Zara runs 10–11px on cards; we hold 12px minimum).
+ */
+@layer components {
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+  }
+  .type-label {
+    font-size: 13px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .type-meta {
+    font-size: 12px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .type-heading {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
 /* iOS Safari zooms the page when a focused field's text is under 16px.
    Unlayered so it outranks Tailwind's text-sm/text-xs utilities. */
 @media (pointer: coarse) {

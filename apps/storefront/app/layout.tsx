@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Archivo, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Bodoni_Moda, IBM_Plex_Sans_Arabic, Inter_Tight } from "next/font/google";
 import { dir } from "@bach/i18n";
 
 import "./globals.css";
@@ -16,9 +16,18 @@ import { SiteHeader } from "../components/site-header";
 import { ThemeScript } from "@bach/ui/components/theme-script";
 import { getLocale } from "../lib/locale";
 
-const archivo = Archivo({
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  variable: "--font-archivo",
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-inter-tight",
+  display: "swap",
+});
+
+// Editorial titles only (collection names, section heads) — never body copy.
+const bodoni = Bodoni_Moda({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-bodoni",
   display: "swap",
 });
 
@@ -45,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 // Storefront is English-only (founder decision 2026-09-07); /ar redirects here.
-// Latin renders in Archivo; Arabic glyphs fall through to IBM Plex Sans Arabic —
+// Latin renders in Inter Tight; Arabic glyphs fall through to IBM Plex Sans Arabic —
 // the stack order flips per locale so each script leads with its own face.
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseServer();
@@ -54,14 +63,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = await getLocale();
   const stack =
     locale === "ar"
-      ? "var(--font-plex-arabic), var(--font-archivo), ui-sans-serif, system-ui, sans-serif"
-      : "var(--font-archivo), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif";
+      ? "var(--font-plex-arabic), var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif"
+      : "var(--font-inter-tight), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif";
   return (
     <html
       lang={locale}
       dir={dir(locale)}
       suppressHydrationWarning
-      className={`${archivo.variable} ${plexArabic.variable}`}
+      className={`${interTight.variable} ${bodoni.variable} ${plexArabic.variable}`}
       style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
