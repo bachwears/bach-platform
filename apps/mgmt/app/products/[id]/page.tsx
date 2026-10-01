@@ -3,6 +3,7 @@ import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../../components/nav";
 import { PhotoColor } from "../../../components/photo-color";
+import { ProductPhotos, type ProductPhoto } from "../../../components/product-photos";
 import { ProductForm } from "../../../components/product-form";
 import { VariantManager, type Variant } from "../../../components/variant-manager";
 
@@ -36,9 +37,9 @@ export default async function EditProductPage({
           <div role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm">
             <p className="font-semibold text-red-700 dark:text-red-300">هالمنتج مخفي عن الموقع لأنو ما إلو صورة أمامية</p>
             <p className="mt-1 text-muted-foreground">
-              نزّل صوره (front · back · side · closeup) من صفحة{" "}
-              <a href="/media-import" className="underline underline-offset-2">
-                رفع الصور
+              زيد صوره من{" "}
+              <a href="#photos" className="underline underline-offset-2">
+                «صور المنتج» تحت
               </a>{" "}
               — بس تنزل الصورة الأمامية بيطلع بالشوب والبحث لحالو.
             </p>
@@ -66,6 +67,7 @@ export default async function EditProductPage({
             }}
           />
         </div>
+        <ProductPhotos productId={product.id} photos={(media ?? []) as ProductPhoto[]} />
         <PhotoColor
           productId={product.id}
           front={(media ?? []).find((m) => m.kind === "front")?.storage_path ?? null}
