@@ -29,11 +29,11 @@ export function OrderStatusControl({
       <p className="text-xs text-muted-foreground">
         {["delivered", "completed"].includes(currentStatus) || channel !== "online" ? (
           <>
-            ما في خطوة تانية للحالة. للإرجاع أو التبديل استعمل{" "}
+            ما في خطوة تانية للحالة. للإرجاع أو التبديل: وافق على طلب الزبون من{" "}
             <a href="/returns" className="underline underline-offset-2">
               صفحة الإرجاع
-            </a>{" "}
-            — هيك المخزون والمبلغ بيرجعوا صح.
+            </a>
+            ، وسجّل الإرجاع نفسه من شاشة المرتجعات بنقطة البيع — هيك المخزون والمبلغ بيرجعوا صح.
           </>
         ) : (
           "هالحالة نهائية — ما في تعديل."

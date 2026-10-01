@@ -86,6 +86,30 @@ const EVENTS: Record<string, EventDesign> = {
     title: () => "Request received.",
     cta: (p) => ({ label: "View your order", url: track(p) }),
   },
+  return_approved: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: (p) => (p.kind === "exchange" ? "Exchange approved." : "Return approved."),
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Next step", "We'll contact you to arrange it"],
+    ],
+    cta: (p) => ({ label: "View your order", url: track(p) }),
+  },
+  return_rejected: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: (p) => (p.kind === "exchange" ? "About your exchange request." : "About your return request."),
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Questions?", String(p.care_phone ?? "+961 71 566 296")],
+    ],
+    cta: (p) => ({ label: "View your order", url: track(p) }),
+  },
+  return_completed: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: (p) => (p.kind === "exchange" ? "Your exchange is complete." : "Your return is complete."),
+    details: (p) => [["Order", `#${p.order_number}`]],
+    cta: () => ({ label: "Continue shopping", url: `${SITE}/shop` }),
+  },
   back_in_stock: {
     eyebrow: () => "Back in stock",
     title: (p) => `${p.product} is back.`,

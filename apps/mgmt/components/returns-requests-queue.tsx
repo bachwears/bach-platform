@@ -6,6 +6,8 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Textarea } from "@bach/ui/components/textarea";
 
+import { fmt } from "../lib/time";
+
 const STATUS_AR: Record<string, string> = {
   requested: "قيد المراجعة",
   approved: "مقبول",
@@ -102,7 +104,9 @@ export function ReturnsRequestsQueue() {
                 <li key={r.id} className="rounded-md border p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-mono font-medium" dir="ltr">#{r.orders.number}</span>
+                      <a href={`/orders/${r.orders.id}`} className="font-mono font-medium underline-offset-2 hover:underline" dir="ltr">
+                        #{r.orders.number}
+                      </a>
                       <Badge variant={["requested", "approved"].includes(r.status) ? "default" : "secondary"}>
                         {STATUS_AR[r.status] ?? r.status}
                       </Badge>
@@ -111,7 +115,7 @@ export function ReturnsRequestsQueue() {
                       <span className="text-sm text-muted-foreground" dir="ltr">{r.phone}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString("ar-LB", { dateStyle: "medium", timeStyle: "short" })}
+                      {fmt(r.created_at, { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                   </div>
 
@@ -153,17 +157,14 @@ export function ReturnsRequestsQueue() {
                             </Button>
                           </>
                         )}
-                        {r.status === "approved" && (
-                          <Button size="sm" onClick={() => void setStatus(r, "completed")}>
-                            اكتمل
-                          </Button>
-                        )}
                         <Button size="sm" variant="ghost" onClick={() => void setStatus(r, "cancelled")}>
                           إلغاء
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        بعد القبول: الاسترداد أو التبديل الفعلي بيتسجّل من شاشة المرتجعات بنقطة البيع لما توصل القطع.
+                        {r.status === "requested"
+                          ? "القبول أو الرفض بيبعت إيميل ورسالة للزبون. الملاحظات الداخلية ما بتنبعت."
+                          : "مقبول — لما توصل القطع، سجّل الإرجاع أو التبديل من شاشة المرتجعات بنقطة البيع: المخزون والمبلغ بيرجعوا، هالطلب بيتسكّر لحالو، والزبون بيوصلو إيميل."}
                       </p>
                     </div>
                   )}
