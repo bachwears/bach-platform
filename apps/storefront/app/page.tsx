@@ -174,9 +174,9 @@ export default async function Home() {
           />
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent lg:hidden" />
         </div>
-        <div className="absolute inset-x-0 bottom-0 px-4 pb-16 text-white sm:px-8 lg:static lg:flex lg:w-1/2 lg:flex-col lg:justify-end lg:pb-24 lg:text-foreground">
+        <div className="absolute inset-x-0 bottom-0 px-4 pb-16 text-white sm:px-8 lg:static lg:flex lg:w-1/2 lg:min-w-0 lg:flex-col lg:justify-end lg:pb-24 lg:pe-12 lg:text-foreground">
           <p className="type-meta">{t(locale, "sf.home.collection")}</p>
-          <h2 className="type-display mt-3 text-5xl sm:text-6xl lg:text-8xl">{c.name_en}</h2>
+          <h2 className="type-display mt-3 text-5xl [overflow-wrap:anywhere] sm:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">{c.name_en}</h2>
           {c.description_en ? (
             <p className="mt-5 hidden max-w-sm text-sm text-muted-foreground lg:block">{c.description_en}</p>
           ) : null}

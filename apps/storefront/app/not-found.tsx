@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { t } from "@bach/i18n";
 
 import { getLocale, lhref } from "../lib/locale";
+
+export const metadata: Metadata = { title: "Page not found — BACH Wears" };
 
 export default async function NotFound() {
   const locale = await getLocale();

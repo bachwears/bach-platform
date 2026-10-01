@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { publishedLegalPages } from "../../lib/legal";
+
 export const revalidate = 3600;
 
 // GEO (§12): a stable, crawlable summary of who BACH Wears is, what the store
@@ -15,6 +17,7 @@ export async function GET() {
       .eq("products.status", "published"),
     supabase.from("help_articles").select("slug, title_en").eq("is_published", true).order("sort"),
   ]);
+  const legal = await publishedLegalPages();
   const categories = (cats ?? [])
     .filter((c) => ((c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0) > 0)
     .map((c) => c.name_en)
@@ -42,7 +45,11 @@ export async function GET() {
 
 - [Shop](https://bachwears.com/shop): full collection with category, size, color and price filters
 - [Help Center](https://bachwears.com/help): ordering, delivery, returns and account answers
+- [Search](https://bachwears.com/search): search the catalogue by name, colour, category or SKU
 - [Support](https://bachwears.com/support): file and track a complaint ticket
+- [Delivery & Shipping](https://bachwears.com/shipping): delivery areas, timing and fees
+- [Returns & Exchanges](https://bachwears.com/returns-policy): 30-day return and exchange policy
+${legal.map((l) => `- [${l.label}](https://bachwears.com${l.path})`).join("\n")}
 - [Sitemap](https://bachwears.com/sitemap.xml)
 
 ## Policies (Help Center)
