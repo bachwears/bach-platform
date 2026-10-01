@@ -6,7 +6,7 @@ import { t } from "@bach/i18n";
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { DensityToggle } from "../../components/density-toggle";
-import { colorHex } from "../../lib/colors";
+import { colorFill } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -270,7 +270,7 @@ export default async function ShopPage({
         href: href({ color: color === value ? undefined : value }),
         active: color === value,
         count: countWith({ color: value }),
-        swatch: colorHex(value),
+        swatch: colorFill(value),
       })),
     });
   }

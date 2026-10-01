@@ -134,7 +134,7 @@ export function FilterDrawer({
                               <span
                                 aria-hidden
                                 className="h-3 w-3 border border-black/15 dark:border-white/25"
-                                style={{ backgroundColor: o.swatch }}
+                                style={{ background: o.swatch }}
                               />
                             ) : null}
                             {o.label}

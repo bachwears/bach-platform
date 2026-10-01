@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@bach/i18n";
 
-import { colorHex } from "../lib/colors";
+import { colorFill } from "../lib/colors";
 import { QuickShop, type QuickShopSize } from "./quick-shop";
 
 export interface CardProduct {
@@ -102,7 +102,7 @@ export function ProductCard({
 
 function ColorChips({ colors }: { colors?: string[] }) {
   const swatches = [...new Set(colors ?? [])]
-    .map((c) => ({ name: c, hex: colorHex(c) }))
+    .map((c) => ({ name: c, hex: colorFill(c) }))
     .filter((c): c is { name: string; hex: string } => c.hex != null);
   if (swatches.length < 2) return null;
   return (
@@ -112,7 +112,7 @@ function ColorChips({ colors }: { colors?: string[] }) {
           key={s.name}
           title={s.name}
           className="h-2.5 w-2.5 border border-black/15 dark:border-white/25"
-          style={{ backgroundColor: s.hex }}
+          style={{ background: s.hex }}
         />
       ))}
       {swatches.length > 6 && <span className="type-meta ms-1 text-muted-foreground">+{swatches.length - 6}</span>}
