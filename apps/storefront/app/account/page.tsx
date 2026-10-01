@@ -92,6 +92,11 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<MyOrder[]>([]);
   const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
   const [loaded, setLoaded] = useState(false);
+  // /account?open=orders (e.g. from the order confirmation) opens the orders row
+  const [openOrders, setOpenOrders] = useState(false);
+  useEffect(() => {
+    setOpenOrders(new URLSearchParams(window.location.search).get("open") === "orders");
+  }, []);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -171,7 +176,7 @@ export default function AccountPage() {
         )}
 
         <div className="mt-10 border-t">
-          <Row title={t(locale, "sf.acct.orders")} count={orders.length}>
+          <Row title={t(locale, "sf.acct.orders")} count={orders.length} open={openOrders}>
             {orders.length === 0 ? (
               <div>
                 <p className="text-muted-foreground">{t(locale, "sf.acct.noOrders")}</p>
@@ -407,9 +412,21 @@ export default function AccountPage() {
 }
 
 /** An uppercase row with a chevron that opens in place. */
-function Row({ title, count, meta, children }: { title: string; count?: number; meta?: string; children: React.ReactNode }) {
+function Row({
+  title,
+  count,
+  meta,
+  open,
+  children,
+}: {
+  title: string;
+  count?: number;
+  meta?: string;
+  open?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <details className="group border-b">
+    <details className="group border-b" open={open}>
       <summary className="type-label flex h-14 cursor-pointer list-none items-center justify-between gap-4 hover:opacity-60 [&::-webkit-details-marker]:hidden">
         <span>
           {title}

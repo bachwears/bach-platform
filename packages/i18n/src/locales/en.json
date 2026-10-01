@@ -401,5 +401,7 @@
   "sf.co.errGone": "A piece in your bag is no longer available. Please review your bag and try again.",
   "sf.co.errQty": "Please check the quantities in your bag (up to 10 of each piece).",
   "sf.co.errMethod": "That payment method isn't available right now. Please choose cash on delivery.",
-  "sf.co.errDown": "Checkout is briefly unavailable. Please try again in a few minutes."
+  "sf.co.errDown": "Checkout is briefly unavailable. Please try again in a few minutes.",
+  "sf.confirmed.viewOrders": "View your orders",
+  "sf.confirmed.trackSignedIn": "This order is saved in your account — follow it there any time."
 }
