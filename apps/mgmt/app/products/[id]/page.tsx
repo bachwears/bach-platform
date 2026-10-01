@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../../components/nav";
+import { PhotoColor } from "../../../components/photo-color";
 import { ProductForm } from "../../../components/product-form";
 import { VariantManager, type Variant } from "../../../components/variant-manager";
 
@@ -13,7 +14,7 @@ export default async function EditProductPage({
   const { id } = await params;
   const supabase = await supabaseServer();
 
-  const [{ data: product }, { data: categories }, { data: variants }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variants }, { data: media }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("categories").select("id, name_ar, code").eq("is_active", true).order("sort"),
     supabase
@@ -21,6 +22,8 @@ export default async function EditProductPage({
       .select("id, size, color_code, color_en, color_ar, sku, barcode, is_active")
       .eq("product_id", id)
       .order("created_at"),
+    // "*" keeps this working whether or not the color_en column has landed yet
+    supabase.from("media_assets").select("*").eq("product_id", id),
   ]);
 
   if (!product) notFound();
@@ -51,6 +54,12 @@ export default async function EditProductPage({
             }}
           />
         </div>
+        <PhotoColor
+          productId={product.id}
+          front={(media ?? []).find((m) => m.kind === "front")?.storage_path ?? null}
+          colors={[...new Set((variants ?? []).filter((v) => v.is_active && v.color_en).map((v) => v.color_en as string))].sort()}
+          initial={((media ?? []).find((m) => m.kind === "front") as { color_en?: string | null } | undefined)?.color_en ?? null}
+        />
         <VariantManager productId={product.id} variants={(variants ?? []) as Variant[]} />
       </main>
     </div>

@@ -53,8 +53,11 @@ export function AddToCart({
   name,
   priceLabel,
   sizeGuide,
+  shownColor = null,
 }: {
   variants: PdpVariant[];
+  /** colour the product photos show (color_en), if known */
+  shownColor?: string | null;
   productId: string;
   categoryCode?: string | null;
   name: string;
@@ -71,10 +74,22 @@ export function AddToCart({
     ],
     [variants, locale],
   );
-  // Open on a colour that can actually be bought.
+  // Open on the photographed colour when it can be bought, else any colour in stock.
   const [color, setColor] = useState(
-    () => (variants.find((v) => v.available > 0) ?? variants[0])?.color_code ?? "",
+    () =>
+      (
+        variants.find((v) => shownColor && v.color_en === shownColor && v.available > 0) ??
+        variants.find((v) => v.available > 0) ??
+        variants[0]
+      )?.color_code ?? "",
   );
+  const shownLabel = shownColor
+    ? (() => {
+        const v = variants.find((x) => x.color_en === shownColor);
+        return v ? (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) : null;
+      })()
+    : null;
+  const pickedEn = variants.find((v) => v.color_code === color)?.color_en ?? null;
   const sizes = useMemo(
     () => variants.filter((v) => v.color_code === color).sort((a, b) => rank(a.size) - rank(b.size)),
     [variants, color],
@@ -217,6 +232,9 @@ export function AddToCart({
               </button>
             ))}
           </div>
+          {shownLabel && pickedEn !== shownColor ? (
+            <p className="type-meta mt-3 text-muted-foreground">{t(locale, "sf.pdp.shownIn", { c: shownLabel })}</p>
+          ) : null}
         </div>
       )}
       {/* One size only: ADD adds it straight away, so say which size it is first. */}

@@ -32,7 +32,7 @@ async function getProduct(slug: string) {
   const { data } = await supabase
     .from("products")
     .select(
-      "id, slug, name_en, name_ar, description_en, description_ar, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(kind, storage_path), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, inventory_levels(quantity, reserved))",
+      "id, slug, name_en, name_ar, description_en, description_ar, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(*), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, inventory_levels(quantity, reserved))",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -68,7 +68,9 @@ export default async function ProductPage({
   const [product, locale] = await Promise.all([getProduct(slug), getLocale()]);
   if (!product) notFound();
 
-  const media = (product.media_assets as unknown as Array<{ kind: string; storage_path: string }>) ?? [];
+  const media = (product.media_assets as unknown as Array<{ kind: string; storage_path: string; color_en?: string | null }>) ?? [];
+  // The colour the photos show (set per photo in MGMT); preselected in the buy box.
+  const shownColor = (media.find((m) => m.kind === "front") ?? media[0])?.color_en ?? null;
   const gallery = ["front", "back", "side", "closeup"]
     .map((kind) => media.find((m) => m.kind === kind))
     .filter(Boolean) as Array<{ kind: string; storage_path: string }>;
@@ -272,6 +274,7 @@ export default async function ProductPage({
 
           <AddToCart
             productId={product.id}
+            shownColor={shownColor}
             categoryCode={category?.code ?? null}
             name={displayName}
             priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}

@@ -390,5 +390,6 @@
   "sf.footer.terms": "Terms of sale",
   "sf.404.title": "This page doesn't exist",
   "sf.404.body": "The link may be out of date, or the piece is no longer available. Try the collection or search for what you were looking for.",
-  "sf.404.shop": "Shop the collection"
+  "sf.404.shop": "Shop the collection",
+  "sf.pdp.shownIn": "Photos show {c}"
 }
