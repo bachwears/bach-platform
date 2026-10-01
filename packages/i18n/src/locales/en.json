@@ -42,6 +42,8 @@
   "sf.shop.searchButton": "Search",
   "sf.shop.preparing": "The collection is being prepared. Check back soon.",
   "sf.pdp.home": "Home",
+  "sf.pdp.yourSize": "Your saved size",
+  "sf.pdp.yourSizeOut": "Your saved size ({s}) is sold out in this colour.",
   "sf.pdp.fit": "Fit",
   "sf.pdp.material": "Material",
   "sf.pdp.care": "Care",

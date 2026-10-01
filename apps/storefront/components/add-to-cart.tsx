@@ -22,7 +22,27 @@ export interface PdpVariant {
   available: number;
 }
 
-export function AddToCart({ variants, productId }: { variants: PdpVariant[]; productId: string }) {
+// Category codes whose sizing follows the customer's saved bottoms size; scarves
+// and hats are one-size accessories, so nothing is preselected for them.
+const BOTTOMS = new Set(["BTMS", "PNT", "JOG"]);
+const ONE_SIZE = new Set(["SCF", "HAT"]);
+type SizeSlot = "size_top" | "size_bottom" | "size_shoe";
+
+function sizeSlot(categoryCode: string | null, variants: PdpVariant[]): SizeSlot | null {
+  if (categoryCode && ONE_SIZE.has(categoryCode)) return null;
+  if (variants.length && variants.every((v) => /^\d+$/.test(v.size))) return "size_shoe";
+  return categoryCode && BOTTOMS.has(categoryCode) ? "size_bottom" : "size_top";
+}
+
+export function AddToCart({
+  variants,
+  productId,
+  categoryCode = null,
+}: {
+  variants: PdpVariant[];
+  productId: string;
+  categoryCode?: string | null;
+}) {
   const locale = useLocale();
   const colors = useMemo(
     () =>
@@ -54,6 +74,8 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyState, setNotifyState] = useState<"idle" | "done" | "error">("idle");
+  const [savedSize, setSavedSize] = useState<string | null>(null);
+  const [autoPicked, setAutoPicked] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -64,6 +86,15 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
       const { data: cid } = await supabase.rpc("my_customer_id");
       if (!cid) return;
       setCustomerId(cid as string);
+      const slot = sizeSlot(categoryCode, variants);
+      if (slot) {
+        void supabase
+          .from("customers")
+          .select(slot)
+          .eq("id", cid)
+          .maybeSingle()
+          .then(({ data }) => setSavedSize(((data as Record<string, string | null> | null)?.[slot] ?? null)));
+      }
       const { data: w } = await supabase
         .from("wishlists")
         .select("product_id")
@@ -73,7 +104,16 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
       setSaved(!!w);
     }
     void init();
+    // variants and categoryCode are fixed per product page
   }, [productId]);
+
+  const colorReady = colors.length <= 1 || !!color;
+  const mine = savedSize ? sizes.find((v) => v.size.toUpperCase() === savedSize.toUpperCase()) : undefined;
+  useEffect(() => {
+    if (!colorReady || variantId || !mine || mine.available <= 0) return;
+    setVariantId(mine.id);
+    setAutoPicked(true);
+  }, [colorReady, variantId, mine]);
 
   async function toggleWishlist() {
     if (!customerId) return;
@@ -134,6 +174,7 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
               type="button"
               onClick={() => {
                 setVariantId(v.id);
+                setAutoPicked(false);
                 setAdded(false);
                 setNotifyState("idle");
               }}
@@ -149,6 +190,12 @@ export function AddToCart({ variants, productId }: { variants: PdpVariant[]; pro
             </button>
           ))}
         </div>
+        {autoPicked && chosen && chosen.id === mine?.id && (
+          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSize")}</p>
+        )}
+        {colorReady && mine && mine.available <= 0 && !chosen && (
+          <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: mine.size })}</p>
+        )}
         {chosen && chosen.available > 0 && chosen.available <= 3 && (
           <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pdp.onlyLeft", { n: chosen.available })}</p>
         )}
