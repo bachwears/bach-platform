@@ -234,8 +234,15 @@ export function AddToCart({
                 type="button"
                 aria-pressed={color === code}
                 onClick={() => {
+                  const nextEn = variants.find((v) => v.color_code === code)?.color_en ?? null;
+                  const swaps = code !== color && !!nextEn && photoColors.includes(nextEn);
                   setColor(code);
                   closeSheet();
+                  // On phones the photos sit far above the chips: bring the new colour's photos into view.
+                  if (swaps && window.matchMedia("(max-width: 1023px)").matches) {
+                    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    document.getElementById("pdp-gallery")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                  }
                   // shareable without a reload or a history entry per tap
                   const url = new URL(window.location.href);
                   url.searchParams.set("color", code);
@@ -405,7 +412,10 @@ export function AddToCart({
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden">
           <div className="min-w-0 flex-1">
             <p className="type-meta truncate">{name}</p>
-            <p className="type-meta tabular-nums text-muted-foreground">{priceLabel}</p>
+            <p className="type-meta tabular-nums text-muted-foreground">
+              {priceLabel}
+              {colors.length > 1 ? ` · ${colors.find(([c]) => c === color)?.[1] ?? ""}` : ""}
+            </p>
           </div>
           <button
             type="button"

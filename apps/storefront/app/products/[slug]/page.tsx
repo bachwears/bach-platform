@@ -257,7 +257,7 @@ export default async function ProductPage({
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
-        <div>
+        <div id="pdp-gallery" className="scroll-mt-16">
           {gallery.length ? (
             <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} />
           ) : (
