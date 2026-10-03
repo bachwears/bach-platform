@@ -26,13 +26,27 @@ interface LevelRow {
 export default async function InventoryPage() {
   const supabase = await supabaseServer();
 
-  const [{ data: variants }, { data: branches }, { data: movements }] = await Promise.all([
+  // Paged: the API caps a request at 1000 rows and there are more variants than that.
+  const variantPage = (from: number) =>
     supabase
       .from("product_variants")
       .select(
         "id, sku, size, color_ar, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
       )
-      .order("sku"),
+      .order("sku")
+      .range(from, from + 999);
+  type VariantRow = NonNullable<Awaited<ReturnType<typeof variantPage>>["data"]>[number];
+  const loadVariants = async () => {
+    const all: VariantRow[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data } = await variantPage(from);
+      all.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    return { data: all };
+  };
+  const [{ data: variants }, { data: branches }, { data: movements }] = await Promise.all([
+    loadVariants(),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at"),
     supabase
       .from("inventory_movements")

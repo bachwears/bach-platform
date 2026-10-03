@@ -48,17 +48,35 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
 
   const loadState = useCallback(
     async (id: string) => {
+      // Both lists can pass the API's 1000-rows-per-request cap (a full count
+      // covers every variant), so read them page by page.
+      const allRows = async (page: (from: number, to: number) => PromiseLike<{ data: unknown[] | null }>) => {
+        const rows: unknown[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data } = await page(from, from + 999);
+          rows.push(...(data ?? []));
+          if (!data || data.length < 1000) break;
+        }
+        return { data: rows };
+      };
       const [{ data: c }, { data: levels }] = await Promise.all([
-        supabase
-          .from("stocktake_counts")
-          .select("variant_id, counted, system_qty, product_variants(sku, size, color_en, products(name_en))")
-          .eq("stocktake_id", id)
-          .order("counted_at", { ascending: false }),
-        supabase
-          .from("inventory_levels")
-          .select("variant_id, quantity, product_variants!inner(sku, size, color_en, is_active, products!inner(name_en))")
-          .eq("branch_id", branchId)
-          .gt("quantity", 0),
+        allRows((from, to) =>
+          supabase
+            .from("stocktake_counts")
+            .select("variant_id, counted, system_qty, product_variants(sku, size, color_en, products(name_en))")
+            .eq("stocktake_id", id)
+            .order("counted_at", { ascending: false })
+            .range(from, to),
+        ),
+        allRows((from, to) =>
+          supabase
+            .from("inventory_levels")
+            .select("variant_id, quantity, product_variants!inner(sku, size, color_en, is_active, products!inner(name_en))")
+            .eq("branch_id", branchId)
+            .gt("quantity", 0)
+            .order("variant_id")
+            .range(from, to),
+        ),
       ]);
       const countRows = ((c ?? []) as unknown as Array<Record<string, unknown>>).map((r) => {
         const pv = r.product_variants as { sku: string | null; size: string; color_en: string; products: { name_en: string } };

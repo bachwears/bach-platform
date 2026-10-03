@@ -163,11 +163,18 @@ export function Reports() {
   }
 
   async function exportInventory(): Promise<number> {
-    const { data, error: err } = await supabase
-      .from("product_variants")
-      .select("sku, barcode, size, color_en, is_active, products!inner(name_en, status, price_usd_cents, sale_price_usd_cents, cost_usd_cents, categories(name_en)), inventory_levels(quantity, reserved, reorder_threshold)")
-      .order("sku");
-    if (err) throw new Error(err.message);
+    // paged: the API returns at most 1000 rows per request
+    const data: Array<Record<string, unknown>> = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: page, error: err } = await supabase
+        .from("product_variants")
+        .select("sku, barcode, size, color_en, is_active, products!inner(name_en, status, price_usd_cents, sale_price_usd_cents, cost_usd_cents, categories(name_en)), inventory_levels(quantity, reserved, reorder_threshold)")
+        .order("sku")
+        .range(from, from + 999);
+      if (err) throw new Error(err.message);
+      data.push(...((page ?? []) as Array<Record<string, unknown>>));
+      if (!page || page.length < 1000) break;
+    }
     const rows = (data ?? []).map((v) => {
       const p = v.products as unknown as { name_en: string; status: string; price_usd_cents: number; sale_price_usd_cents: number | null; cost_usd_cents: number | null; categories: { name_en: string } | null };
       const lvl = (v.inventory_levels as Array<{ quantity: number; reserved: number; reorder_threshold: number }>)[0];
