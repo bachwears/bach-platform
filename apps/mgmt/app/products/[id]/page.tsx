@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../../components/nav";
+import { ColourPhotos } from "../../../components/colour-photos";
 import { PhotoColor } from "../../../components/photo-color";
 import { ProductPhotos, type ProductPhoto } from "../../../components/product-photos";
 import { ProductForm } from "../../../components/product-form";
@@ -73,6 +74,10 @@ export default async function EditProductPage({
           front={(media ?? []).find((m) => m.kind === "front")?.storage_path ?? null}
           colors={[...new Set((variants ?? []).filter((v) => v.is_active && v.color_en).map((v) => v.color_en as string))].sort()}
           initial={((media ?? []).find((m) => m.kind === "front") as { color_en?: string | null } | undefined)?.color_en ?? null}
+        />
+        <ColourPhotos
+          photos={(media ?? []) as Parameters<typeof ColourPhotos>[0]["photos"]}
+          heroColor={((media ?? []).find((m) => m.kind === "front") as { color_en?: string | null } | undefined)?.color_en ?? null}
         />
         <VariantManager productId={product.id} variants={(variants ?? []) as Variant[]} />
       </main>

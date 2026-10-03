@@ -37,7 +37,7 @@ async function toWebp(bitmap: ImageBitmap, width: number): Promise<Blob> {
 /** The four product photo slots, editable in place on the product page. */
 export function ProductPhotos({ productId, photos }: { productId: string; photos: ProductPhoto[] }) {
   // keep the photographed colour when a slot is replaced
-  const color = photos.find((p) => p.color_en)?.color_en ?? null;
+  const color = photos.find((p) => p.kind === "front")?.color_en ?? photos.find((p) => p.color_en)?.color_en ?? null;
   return (
     <div id="photos" className="scroll-mt-24 space-y-4 rounded-lg border p-5">
       <h2 className="flex items-center gap-2 font-medium">

@@ -7,7 +7,8 @@ import { t } from "@bach/i18n";
 
 import { AddToCart } from "../../../components/add-to-cart";
 import { PdpAccordion } from "../../../components/pdp-accordion";
-import { PdpGallery } from "../../../components/pdp-gallery";
+import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-colour";
+import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
@@ -63,25 +64,47 @@ export async function generateMetadata({
   };
 }
 
+// Extra photos (kind "other") reach the site only inside this sort window; MGMT keeps the rest.
+const SHOWN_EXTRA = (sort: number | null) => sort != null && sort >= 100 && sort < 500;
+
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ color?: string }>;
 }) {
   const { slug } = await params;
+  const { color: colorParam } = await searchParams;
   const [product, locale] = await Promise.all([getProduct(slug), getLocale()]);
   if (!product) notFound();
 
-  const media = (product.media_assets as unknown as Array<{ kind: string; storage_path: string; color_en?: string | null }>) ?? [];
-  // The colour the photos show (set per photo in MGMT); preselected in the buy box.
+  const media =
+    (product.media_assets as unknown as Array<{ kind: string; storage_path: string; color_en?: string | null; sort: number | null }>) ?? [];
+  // The colour the main photos show (set in MGMT); preselected in the buy box.
   const shownColor = (media.find((m) => m.kind === "front") ?? media[0])?.color_en ?? null;
-  const gallery = ["front", "back", "side", "closeup"]
-    .map((kind) => media.find((m) => m.kind === kind))
-    .filter(Boolean) as Array<{ kind: string; storage_path: string }>;
+  const toImage = (m: { kind: string; storage_path: string }): GalleryImage => ({ kind: m.kind, url: m.storage_path });
+  const extras = media
+    .filter((m) => m.kind === "other" && m.color_en && SHOWN_EXTRA(m.sort))
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const gallery = [
+    ...(["front", "back", "side", "closeup"]
+      .map((kind) => media.find((m) => m.kind === kind))
+      .filter(Boolean) as Array<{ kind: string; storage_path: string }>),
+    ...extras.filter((m) => m.color_en === shownColor),
+  ].map(toImage);
+  // Every other colour with photos of its own gets its own gallery.
+  const colorGalleries: Record<string, GalleryImage[]> = {};
+  for (const m of extras) {
+    if (m.color_en === shownColor) continue;
+    (colorGalleries[m.color_en!] ??= []).push(toImage(m));
+  }
 
   const variants = ((product.product_variants as unknown as VariantRow[]) ?? []).filter(
     (v) => v.is_active,
   );
+  // ?color=NAV opens on that colour (shared links keep the shopper's pick)
+  const linkedColor = colorParam ? variants.find((v) => v.color_code === colorParam.toUpperCase()) : undefined;
   const onSale = product.sale_price_usd_cents != null;
   const category = product.categories as unknown as { code: string; name_en: string; name_ar: string } | null;
   const displayName = product.name_en; // product names stay English in every locale
@@ -232,13 +255,11 @@ export default async function ProductPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div>
           {gallery.length ? (
-            <PdpGallery
-              images={gallery.map((m) => ({ kind: m.kind, url: m.storage_path }))}
-              name={displayName}
-            />
+            <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} />
           ) : (
             <div className="grid aspect-[3/4] place-items-center bg-secondary p-6 text-center">
               <span className="type-meta text-muted-foreground">{t(locale, "sf.pdp.photoSoon")}</span>
@@ -279,6 +300,8 @@ export default async function ProductPage({
           <AddToCart
             productId={product.id}
             shownColor={shownColor}
+            photoColors={[...(shownColor ? [shownColor] : []), ...Object.keys(colorGalleries)]}
+            initialColorCode={linkedColor?.color_code ?? null}
             categoryCode={category?.code ?? null}
             name={displayName}
             priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}
@@ -321,6 +344,7 @@ export default async function ProductPage({
           <PdpAccordion locale={locale} />
         </div>
       </main>
+      </PdpColourProvider>
 
       <section className="mx-auto mt-20 max-w-[1440px] space-y-16 px-4 pb-16 sm:px-8">
         {related.length > 0 && (

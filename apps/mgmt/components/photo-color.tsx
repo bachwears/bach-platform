@@ -30,7 +30,9 @@ export function PhotoColor({
     const { error } = await supabaseBrowser()
       .from("media_assets")
       .update({ color_en: next || null })
-      .eq("product_id", productId);
+      .eq("product_id", productId)
+      // only the four main photos; each extra colour keeps its own tag
+      .in("kind", ["front", "back", "side", "closeup"]);
     if (error) setErr(`ما مشي الحفظ: ${error.message}`);
     else setMsg("انحفظ.");
   }
@@ -42,8 +44,8 @@ export function PhotoColor({
         <HintDot
           hint={{
             title: "لون الصور",
-            what: "أي لون ظاهر بصور المنتج. صفحة المنتج بتختاره تلقائياً، ولمّا الزبون يختار لون تاني بتكتبلو «Photos show …».",
-            source: "من جدول media_assets (عمود color_en) — نفس اللون لكل صور المنتج.",
+            what: "أي لون ظاهر بالصور الأربعة الأساسية. صفحة المنتج بتفتح عليه، ولمّا الزبون يختار لون ما إلو صور بتكتبلو «Photos show …».",
+            source: "من جدول media_assets (عمود color_en) للصور الأساسية الأربعة. صور الألوان التانية إلها لونها الخاص (تحت).",
             edit: "اختار اللون من هون. «غير محدد» = الصفحة بتختار أول لون متوفّر.",
           }}
         />

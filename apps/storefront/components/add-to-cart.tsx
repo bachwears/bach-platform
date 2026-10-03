@@ -9,6 +9,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
+import { usePdpColour } from "./pdp-colour";
 import { lhref, useLocale } from "../lib/locale-client";
 
 export interface PdpVariant {
@@ -54,10 +55,16 @@ export function AddToCart({
   priceLabel,
   sizeGuide,
   shownColor = null,
+  photoColors = [],
+  initialColorCode = null,
 }: {
   variants: PdpVariant[];
-  /** colour the product photos show (color_en), if known */
+  /** colour the main product photos show (color_en), if known */
   shownColor?: string | null;
+  /** colours (color_en) that have photos of their own */
+  photoColors?: string[];
+  /** colour to open on, from a shared ?color= link */
+  initialColorCode?: string | null;
   productId: string;
   categoryCode?: string | null;
   name: string;
@@ -74,10 +81,12 @@ export function AddToCart({
     ],
     [variants, locale],
   );
-  // Open on the photographed colour when it can be bought, else any colour in stock.
+  const { setColor: setGalleryColor } = usePdpColour();
+  // Open on a linked colour, else the photographed colour when it can be bought, else any colour in stock.
   const [color, setColor] = useState(
     () =>
       (
+        variants.find((v) => initialColorCode && v.color_code === initialColorCode) ??
         variants.find((v) => shownColor && v.color_en === shownColor && v.available > 0) ??
         variants.find((v) => v.available > 0) ??
         variants[0]
@@ -90,6 +99,10 @@ export function AddToCart({
       })()
     : null;
   const pickedEn = variants.find((v) => v.color_code === color)?.color_en ?? null;
+  // the gallery follows the picked colour (an in-stock fallback can differ from the hero photos)
+  useEffect(() => {
+    setGalleryColor(pickedEn);
+  }, [pickedEn, setGalleryColor]);
   const sizes = useMemo(
     () => variants.filter((v) => v.color_code === color).sort((a, b) => rank(a.size) - rank(b.size)),
     [variants, color],
@@ -223,6 +236,10 @@ export function AddToCart({
                 onClick={() => {
                   setColor(code);
                   closeSheet();
+                  // shareable without a reload or a history entry per tap
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("color", code);
+                  window.history.replaceState(window.history.state, "", url);
                 }}
                 className={`type-meta h-10 border px-3 transition-colors ${
                   color === code ? "border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
@@ -232,7 +249,7 @@ export function AddToCart({
               </button>
             ))}
           </div>
-          {shownLabel && pickedEn !== shownColor ? (
+          {shownLabel && pickedEn && !photoColors.includes(pickedEn) ? (
             <p className="type-meta mt-3 text-muted-foreground">{t(locale, "sf.pdp.shownIn", { c: shownLabel })}</p>
           ) : null}
         </div>

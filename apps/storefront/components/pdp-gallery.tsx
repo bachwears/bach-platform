@@ -43,7 +43,7 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
       <div className="grid gap-0.5 lg:grid-cols-2 lg:gap-2">
         {images.map((m, i) => (
           <button
-            key={m.kind}
+            key={m.url}
             type="button"
             onClick={() => setOpen(i)}
             className="block w-full cursor-zoom-in bg-secondary"
