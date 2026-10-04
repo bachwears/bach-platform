@@ -30,6 +30,7 @@ export function PdpColourGallery({
   layout = "grid",
   start,
   end,
+  focus,
 }: {
   hero: GalleryImage[];
   /** color_en → that colour's photos (hero colour excluded) */
@@ -38,6 +39,7 @@ export function PdpColourGallery({
   layout?: "grid" | "lead" | "stack";
   start?: number;
   end?: number;
+  focus?: "top" | "bottom";
 }) {
   const { color } = usePdpColour();
   const own = color ? galleries[color] : undefined;
@@ -49,6 +51,7 @@ export function PdpColourGallery({
       layout={layout}
       start={start}
       end={end}
+      focus={focus}
     />
   );
 }

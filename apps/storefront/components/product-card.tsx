@@ -9,6 +9,7 @@ import { colorFill } from "../lib/colors";
 import { photoSrc } from "../lib/media";
 import { availableFirst } from "../lib/sizes";
 import { QuickShop, type QuickShopSize } from "./quick-shop";
+import { RetryImg } from "./retry-img";
 
 // two across on phones, four on desktop
 const CARD_SIZES = "(min-width: 1024px) 25vw, 50vw";
@@ -186,6 +187,17 @@ function CardPhotos({
   }, []);
   const photos = mouse && hover ? all.filter((src, i) => i === 0 || src !== hover) : all;
   const many = photos.length > 1;
+  // The swipe photos after the first load only once the card is near the screen
+  // (or touched): a long grid would otherwise ask for every card's photos at once,
+  // which phones (iOS Safari loads them eagerly) and the photo store don't take well.
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = strip.current;
+    if (!el || near || !many) return;
+    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setNear(true), { rootMargin: "200px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near, many]);
 
   const go = (step: number) => {
     const el = strip.current;
@@ -203,6 +215,7 @@ function CardPhotos({
         href={href}
         draggable={false}
         {...(mini ? { "aria-label": name } : { tabIndex: -1, "aria-hidden": true })}
+        onTouchStart={() => setNear(true)}
         onScroll={(e) => {
           const el = e.currentTarget;
           setAt(Math.round(Math.abs(el.scrollLeft) / Math.max(1, el.clientWidth)));
@@ -212,8 +225,8 @@ function CardPhotos({
         {photos.length ? (
           photos.map((src, i) => (
             <span key={src} className="relative h-full w-full shrink-0 snap-start snap-always">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {i > 0 && !near ? null : (
+              <RetryImg
                 {...photoSrc(src, sizes)}
                 alt=""
                 loading={priority && i === 0 ? "eager" : "lazy"}
@@ -226,10 +239,10 @@ function CardPhotos({
                     : ""
                 }`}
               />
+              )}
               {i === 0 && hover ? (
                 // mouse only: a lazy display:none image is never fetched on touch screens
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <RetryImg
                   {...photoSrc(hover, sizes)}
                   alt=""
                   loading="lazy"

@@ -307,7 +307,15 @@ export default async function ProductPage({
               </div>
               {/* phones: the first (worn) photo, then the buy box; the rest follow further down */}
               <div className="lg:hidden">
-                <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} layout="lead" end={1} />
+                <PdpColourGallery
+                  hero={gallery}
+                  galleries={colorGalleries}
+                  name={displayName}
+                  layout="lead"
+                  end={1}
+                  // shoes: the worn shots are legs-and-feet, so the crop keeps the bottom
+                  focus={lineage.includes("SHO") ? "bottom" : "top"}
+                />
               </div>
             </>
           ) : (

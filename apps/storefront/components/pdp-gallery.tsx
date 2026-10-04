@@ -19,6 +19,7 @@ function viewLabel(m: { kind: string; url: string }) {
   );
 }
 import { photoSrc, photoView } from "../lib/media";
+import { RetryImg } from "./retry-img";
 
 export interface GalleryImage {
   kind: string;
@@ -37,12 +38,15 @@ export function PdpGallery({
   layout = "grid",
   start = 0,
   end,
+  focus = "top",
 }: {
   images: GalleryImage[];
   name: string;
   layout?: "grid" | "lead" | "stack";
   start?: number;
   end?: number;
+  /** where the cropped phone lead photo keeps its subject: worn shots of shoes keep the bottom */
+  focus?: "top" | "bottom";
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -84,8 +88,7 @@ export function PdpGallery({
               className="block w-full cursor-zoom-in bg-secondary"
               aria-label={`${name} — ${viewLabel(m)}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <RetryImg
                 {...photoSrc(
                   m.url,
                   // the phone layouts are hidden on desktop: same sizes as the grid there, so the
@@ -99,7 +102,7 @@ export function PdpGallery({
                 decoding="async"
                 className={
                   layout === "lead"
-                    ? "aspect-[3/4] max-h-[60dvh] w-full object-cover object-[center_20%]"
+                    ? `aspect-[3/4] max-h-[60dvh] w-full object-cover ${focus === "bottom" ? "object-[center_85%]" : "object-[center_20%]"}`
                     : "aspect-[3/4] w-full object-cover"
                 }
               />
@@ -116,8 +119,7 @@ export function PdpGallery({
           aria-label={name}
           onClick={() => setOpen(null)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <RetryImg
             src={images[open].url}
             alt={`${name} — ${viewLabel(images[open])}`}
             className="max-h-full max-w-full object-contain"
