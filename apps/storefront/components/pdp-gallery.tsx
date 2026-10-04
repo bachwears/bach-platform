@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
+import { photoSrc } from "../lib/media";
+
 export interface GalleryImage {
   kind: string;
   url: string;
@@ -51,7 +53,7 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={m.url}
+              {...photoSrc(m.url, "(min-width: 1024px) 33vw, 100vw")}
               alt={`${name} — ${m.kind}`}
               loading={i < 2 ? "eager" : "lazy"}
               decoding="async"

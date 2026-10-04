@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { Locale } from "@bach/i18n";
 
 import { colorFill } from "../lib/colors";
+import { photoSrc } from "../lib/media";
 import { QuickShop, type QuickShopSize } from "./quick-shop";
+
+// two across on phones, four on desktop
+const CARD_SIZES = "(min-width: 1024px) 25vw, 50vw";
 
 export interface CardProduct {
   slug: string;
@@ -53,7 +57,7 @@ export function ProductCard({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={product.front}
+              {...photoSrc(product.front, CARD_SIZES)}
               alt=""
               loading="lazy"
               decoding="async"
@@ -63,7 +67,7 @@ export function ProductCard({
               // hidden on touch screens: a lazy display:none image is never fetched
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={product.back}
+                {...photoSrc(product.back, CARD_SIZES)}
                 alt=""
                 loading="lazy"
                 decoding="async"
