@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { photoSrc } from "../lib/media";
@@ -11,12 +11,15 @@ export interface GalleryImage {
 }
 
 /**
- * PDP photos: full-bleed vertical stack on phones, a two-up grid on desktop.
+ * PDP photos: a full-bleed sideways swipe with a 1 / n counter on phones (the
+ * buy box follows the first photo), a two-up grid on desktop.
  * Tapping a photo opens it full screen (arrow keys / on-screen arrows move,
  * Esc or backdrop closes). No hover zoom.
  */
 export function PdpGallery({ images, name }: { images: GalleryImage[]; name: string }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [shown, setShown] = useState(0);
+  const track = useRef<HTMLDivElement>(null);
 
   const step = useCallback(
     (delta: number) => {
@@ -42,13 +45,21 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
 
   return (
     <>
-      <div className="grid gap-0.5 lg:grid-cols-2 lg:gap-2">
+      <div className="relative">
+      <div
+        ref={track}
+        onScroll={() => {
+          const el = track.current;
+          if (el && el.clientWidth) setShown(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
+        }}
+        className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:grid lg:snap-none lg:grid-cols-2 lg:gap-2 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+      >
         {images.map((m, i) => (
           <button
             key={m.url}
             type="button"
             onClick={() => setOpen(i)}
-            className="block w-full cursor-zoom-in bg-secondary"
+            className="block w-full shrink-0 snap-center cursor-zoom-in bg-secondary"
             aria-label={`${name} — ${m.kind}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -56,11 +67,21 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
               {...photoSrc(m.url, "(min-width: 1024px) 33vw, 100vw")}
               alt={`${name} — ${m.kind}`}
               loading={i < 2 ? "eager" : "lazy"}
+              draggable={false}
               decoding="async"
               className="aspect-[3/4] w-full object-cover"
             />
           </button>
         ))}
+      </div>
+      {images.length > 1 && (
+        <p
+          aria-hidden
+          className="type-meta pointer-events-none absolute bottom-3 start-4 tabular-nums text-white mix-blend-difference lg:hidden"
+        >
+          {shown + 1} / {images.length}
+        </p>
+      )}
       </div>
 
       {open != null && images[open] && (
