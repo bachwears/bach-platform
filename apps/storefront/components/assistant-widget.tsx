@@ -42,7 +42,7 @@ export function AssistantWidget() {
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   // on phones the launcher would sit on the bag, place-order, pinned ADD and account-form buttons
-  const inPurchase = /\/(cart|checkout|products|account\/(login|new|forgot|reset))(\/|$)/.test(usePathname() ?? "");
+  const inPurchase = /\/(cart|checkout|products|account)(\/|$)/.test(usePathname() ?? "");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
