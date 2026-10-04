@@ -299,9 +299,16 @@ function ColorChips({
       style={{ background: s.hex }}
     />
   );
+  // one row on a phone card: six squares fit the full card width; with more, five and a +N
+  const shown = swatches.length > 6 ? 5 : 6;
   return (
-    <span className="-ms-1.5 mt-1 flex flex-wrap items-center" role={onPick ? "group" : undefined} aria-label={swatches.map((s) => s.name).join(", ")}>
-      {swatches.slice(0, 6).map((s) =>
+    // the row sits below the quick-add +, so it may use the card's full width (cancels the pe-10)
+    <span
+      className="-me-10 -ms-1.5 mt-1 flex items-center"
+      role={onPick ? "group" : undefined}
+      aria-label={swatches.map((s) => s.name).join(", ")}
+    >
+      {swatches.slice(0, shown).map((s) =>
         onPick ? (
           // 28px tap target around a 10px square
           <button
@@ -321,7 +328,7 @@ function ColorChips({
           </span>
         ),
       )}
-      {swatches.length > 6 && <span className="type-meta ms-1 text-muted-foreground">+{swatches.length - 6}</span>}
+      {swatches.length > shown && <span className="type-meta ms-1 text-muted-foreground">+{swatches.length - shown}</span>}
     </span>
   );
 }
