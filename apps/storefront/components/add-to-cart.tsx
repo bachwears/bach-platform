@@ -12,6 +12,7 @@ import { addToCart } from "../lib/cart";
 import { usePdpColour } from "./pdp-colour";
 import { WISHLIST_EVENT } from "./pdp-topbar";
 import { lhref, useLocale } from "../lib/locale-client";
+import { availableFirst } from "../lib/sizes";
 
 export interface PdpVariant {
   id: string;
@@ -20,6 +21,8 @@ export interface PdpVariant {
   color_en: string;
   color_ar?: string | null;
   available: number;
+  /** a size this colour isn't made in — listed crossed out, never addable */
+  missing?: boolean;
 }
 
 // Category codes whose sizing follows the customer's saved bottoms size; anything
@@ -35,13 +38,6 @@ function sizeSlot(categoryCodes: string[], variants: PdpVariant[]): SizeSlot | n
   return categoryCodes.some((c) => BOTTOMS.has(c)) ? "size_bottom" : "size_top";
 }
 
-const ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-const rank = (s: string) => {
-  const i = ORDER.indexOf(s.toUpperCase());
-  if (i >= 0) return i;
-  const n = Number(s);
-  return Number.isFinite(n) ? 100 + n : 999;
-};
 
 /**
  * Zara-style buy box: colour chips, then ADD opens a size sheet (bottom sheet on
@@ -59,7 +55,10 @@ export function AddToCart({
   shownColor = null,
   photoColors = [],
   initialColorCode = null,
+  sizeRun,
 }: {
+  /** every size the piece is listed in (the usual run included) */
+  sizeRun?: string[];
   variants: PdpVariant[];
   /** colour the main product photos show (color_en), if known */
   shownColor?: string | null;
@@ -106,10 +105,22 @@ export function AddToCart({
   useEffect(() => {
     setGalleryColor(pickedEn);
   }, [pickedEn, setGalleryColor]);
-  const sizes = useMemo(
-    () => variants.filter((v) => v.color_code === color).sort((a, b) => rank(a.size) - rank(b.size)),
-    [variants, color],
-  );
+  // The usual run is always listed: buyable sizes first, then sold-out and
+  // not-made sizes crossed out.
+  const sizes = useMemo(() => {
+    const own = variants.filter((v) => v.color_code === color);
+    const extra = (sizeRun ?? [])
+      .filter((s) => !own.some((v) => v.size === s))
+      .map((s): PdpVariant => ({
+        id: `missing-${s}`,
+        size: s,
+        color_code: color,
+        color_en: own[0]?.color_en ?? "",
+        available: 0,
+        missing: true,
+      }));
+    return availableFirst([...own, ...extra], (v) => v.available <= 0);
+  }, [variants, color, sizeRun]);
   const [sheet, setSheet] = useState(false);
   const [added, setAdded] = useState<PdpVariant | null>(null);
   const [alertFor, setAlertFor] = useState<PdpVariant | null>(null);
@@ -390,6 +401,7 @@ export function AddToCart({
                       <li key={v.id}>
                         <button
                           type="button"
+                          disabled={v.missing}
                           onClick={() => {
                             if (out) {
                               setAlertFor(v);
@@ -402,7 +414,9 @@ export function AddToCart({
                         >
                           <span className={`type-label ${out ? "line-through" : ""} ${isMine ? "font-medium" : ""}`}>{v.size}</span>
                           <span className="type-meta text-muted-foreground">
-                            {out
+                            {v.missing
+                              ? t(locale, "sf.shop.outOfStock")
+                              : out
                               ? t(locale, "sf.pdp.notifyShort")
                               : isMine
                                 ? t(locale, "sf.pdp.yourSizeTag")

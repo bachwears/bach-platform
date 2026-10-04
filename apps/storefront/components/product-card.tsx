@@ -7,6 +7,7 @@ import { t, type Locale } from "@bach/i18n";
 
 import { colorFill } from "../lib/colors";
 import { photoSrc } from "../lib/media";
+import { availableFirst } from "../lib/sizes";
 import { QuickShop, type QuickShopSize } from "./quick-shop";
 
 // two across on phones, four on desktop
@@ -27,6 +28,8 @@ export interface CardProduct {
   heroColor?: string | null;
   /** every active variant, for colour-aware quick add */
   variants?: Array<{ variantId: string; size: string; color: string; colorCode: string | null; soldOut?: boolean }>;
+  /** every size the piece is listed in (usual run included); missing ones show crossed out */
+  sizeRun?: string[];
 }
 
 function usd(cents: number) {
@@ -73,9 +76,19 @@ export function ProductCard({
     colourCode && colour !== product.heroColor ? `?color=${encodeURIComponent(colourCode)}` : ""
   }`;
 
+  // Every usual size is listed; ones this colour doesn't come in (or has sold out of)
+  // are crossed out after the buyable ones.
   const sizes: QuickShopSize[] =
     colour && variants.length
-      ? variants.filter((v) => v.color === colour).map(({ variantId, size, soldOut }) => ({ variantId, size, soldOut }))
+      ? availableFirst(
+          (product.sizeRun ?? [...new Set(variants.map((v) => v.size))]).map((size) => {
+            const v = variants.find((x) => x.color === colour && x.size === size);
+            return v
+              ? { variantId: v.variantId, size, soldOut: v.soldOut }
+              : { variantId: `missing-${size}`, size, soldOut: true };
+          }),
+          (s) => !!s.soldOut,
+        )
       : product.sizes ?? [];
   const showColour = colours.length > 1 ? colour : null;
 

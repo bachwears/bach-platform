@@ -12,6 +12,7 @@ import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard } from "../../../components/product-card";
 import { CARD_COLUMNS, toCardProduct, type CardRow } from "../../../lib/card";
+import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
 import { getLocale, lhref, pick } from "../../../lib/locale";
@@ -327,6 +328,7 @@ export default async function ProductPage({
             photoColors={[...(shownColor ? [shownColor] : []), ...Object.keys(colorGalleries)]}
             initialColorCode={linkedColor?.color_code ?? null}
             categoryCodes={lineage}
+            sizeRun={sizeRun(variants.map((v) => v.size), product.fit)}
             name={displayName}
             priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}

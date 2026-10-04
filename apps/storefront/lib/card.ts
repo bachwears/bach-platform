@@ -1,16 +1,12 @@
 import type { CardProduct } from "../components/product-card";
 import { hoverPhoto, type CardMedia } from "./media";
+import { sizeRank, sizeRun } from "./sizes";
+
+export { sizeRank };
 
 /** Most photos a card carries per colour — enough to swipe, light enough for long grids. */
 const MAX_PHOTOS = 5;
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-export const sizeRank = (s: string) => {
-  const i = SIZE_ORDER.indexOf(s.toUpperCase());
-  if (i >= 0) return i;
-  const n = Number(s);
-  return Number.isFinite(n) ? 100 + n : 999;
-};
 
 // extra photos are on the site only inside the 100..499 sort window (MGMT hides the rest)
 const onSite = (m: CardMedia) => m.kind !== "other" || (m.sort != null && m.sort >= 100 && m.sort < 500);
@@ -36,6 +32,7 @@ export interface CardRow {
   name_ar?: string | null;
   price_usd_cents: number;
   sale_price_usd_cents: number | null;
+  fit?: string | null;
   media_assets: CardMedia[] | null;
   product_variants: Array<{
     id?: string;
@@ -49,7 +46,7 @@ export interface CardRow {
 
 /** Columns a card needs from `products` (embed-ready). */
 export const CARD_COLUMNS =
-  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, inventory_levels(quantity, reserved))";
+  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, inventory_levels(quantity, reserved))";
 
 /**
  * A listing card from a product row: the photographed colour's photos to swipe,
@@ -98,5 +95,6 @@ export function toCardProduct(p: CardRow): CardProduct {
     photos,
     heroColor,
     variants,
+    sizeRun: sizeRun(variants.map((v) => v.size), p.fit),
   };
 }
