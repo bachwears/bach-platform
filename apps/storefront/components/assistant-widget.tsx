@@ -92,11 +92,11 @@ export function AssistantWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with us"
-          className={`fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center bg-foreground text-background transition-opacity hover:opacity-90 ${inPurchase ? "max-lg:hidden" : ""}`}
+          className={`assistant-fab fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center bg-foreground text-background transition-opacity hover:opacity-90 ${inPurchase ? "max-lg:hidden" : ""}`}
         ><MessageCircle className="h-5 w-5" strokeWidth={1.25} aria-hidden /></button>
       )}
       {open && (
-        <div className="fixed bottom-5 right-5 z-40 flex h-[28rem] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden border bg-background">
+        <div className="assistant-fab fixed bottom-5 right-5 z-40 flex h-[28rem] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden border bg-background">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div>
               <p className="type-heading">BACH</p>

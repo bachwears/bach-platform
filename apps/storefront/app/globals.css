@@ -149,3 +149,40 @@
   box-shadow: none;
   outline: none;
 }
+
+/* Phone tab bar (header-actions): keep page ends and the chat button clear of it. */
+@media (max-width: 767px) {
+  body:has([data-tabbar]) {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  body:has([data-tabbar]) .assistant-fab {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Home "scroll down" cue: a hairline with a dark segment that travels down it. */
+.scroll-cue {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 7rem;
+  overflow: hidden;
+  background: var(--border);
+}
+.scroll-cue::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 50%;
+  background: var(--foreground);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-cue::after {
+    animation: scroll-cue 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+}
+@keyframes scroll-cue {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}

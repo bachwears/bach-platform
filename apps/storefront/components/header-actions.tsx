@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search, User, X } from "lucide-react";
 import { t } from "@bach/i18n";
 
@@ -21,26 +21,44 @@ export interface NavCollection {
   label: string;
 }
 
+/** Photo tiles at the top of the menu (category banners, newest piece for New in). */
+export interface NavTile {
+  href: string;
+  label: string;
+  image: string;
+}
+
+// Phones get a bottom tab bar everywhere except where the bottom of the screen
+// already carries the purchase (product page ADD bar, bag total, checkout).
+const NO_TAB_BAR = [/^\/products\//, /^\/cart/, /^\/checkout/, /^\/confirmed/];
+
 type Mode = "light" | "dark";
 
 const two = (n: number) => String(n).padStart(2, "0");
 
 /**
  * Bar-less storefront header (Zara-style, BACH identity): menu + wordmark left,
- * text links on desktop / thin icons on phones right. The menu is one drawer
- * for every screen size, with numbered category groups.
+ * text links on desktop. Phones: wordmark on top and a bottom tab bar (home,
+ * menu, search, account, bag). The menu is one drawer for every screen size,
+ * with photo tiles and numbered category groups.
  */
 export function HeaderActions({
   groups,
   collections,
   hasSale,
+  tiles,
 }: {
   groups: NavGroup[];
   collections: NavCollection[];
   hasSale: boolean;
+  tiles: NavTile[];
 }) {
   const locale = useLocale();
+  const router = useRouter();
   const pathname = usePathname();
+  const path = pathname.replace(/^\/ar(?=\/|$)/, "") || "/";
+  const tabBar = !NO_TAB_BAR.some((r) => r.test(path));
+  const onBag = path.startsWith("/cart");
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<"categories" | "collections">("categories");
   const [mode, setMode] = useState<Mode>("light");
@@ -96,9 +114,29 @@ export function HeaderActions({
   const close = () => setMenuOpen(false);
   const textLink = "type-label py-2 text-foreground transition-opacity hover:opacity-60";
 
+  // The bag opens like a sheet on phones: a close X instead of the header.
+  function leaveBag() {
+    if (window.history.length > 1) router.back();
+    else router.push(lhref(locale, "/"));
+  }
+
   return (
     <>
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8">
+      {onBag && (
+        <div className="flex h-16 items-center px-4 md:hidden">
+          <button
+            type="button"
+            aria-label={t(locale, "sf.nav.close")}
+            className="-ms-2 grid h-11 w-11 place-items-center"
+            onClick={leaveBag}
+          >
+            <X className="h-6 w-6" strokeWidth={1} aria-hidden />
+          </button>
+        </div>
+      )}
+      <div
+        className={`mx-auto h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8 ${onBag ? "hidden md:flex" : "flex"}`}
+      >
         <div className="flex items-center gap-5">
           <button
             ref={menuBtnRef}
@@ -106,7 +144,7 @@ export function HeaderActions({
             aria-label={t(locale, "sf.nav.menu")}
             aria-expanded={menuOpen}
             aria-controls="site-menu"
-            className="-ms-2 grid h-11 w-11 place-items-center"
+            className={`-ms-2 h-11 w-11 place-items-center ${tabBar ? "hidden md:grid" : "grid"}`}
             onClick={() => setMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
@@ -134,8 +172,8 @@ export function HeaderActions({
           <CartLink variant="text" className={textLink} />
         </nav>
 
-        {/* Phones: thin icons. */}
-        <div className="flex items-center md:hidden">
+        {/* Phones without the tab bar: thin icons. */}
+        <div className={`items-center md:hidden ${tabBar ? "hidden" : "flex"}`}>
           <Link
             href={lhref(locale, "/search")}
             aria-label={t(locale, "sf.nav.searchOpen")}
@@ -151,7 +189,7 @@ export function HeaderActions({
       </div>
 
       {menuOpen && (
-        <div className="fixed inset-0 z-50">
+        <div className={`fixed inset-x-0 top-0 z-50 ${tabBar ? "bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0" : "bottom-0"}`}>
           <button
             type="button"
             tabIndex={-1}
@@ -164,7 +202,7 @@ export function HeaderActions({
             aria-label={t(locale, "sf.nav.menu")}
             className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e"
           >
-            <div className="flex h-16 shrink-0 items-center px-4 sm:px-8">
+            <div className={`h-16 shrink-0 items-center px-4 sm:px-8 ${tabBar ? "hidden md:flex" : "flex"}`}>
               <button
                 ref={closeRef}
                 type="button"
@@ -176,7 +214,7 @@ export function HeaderActions({
               </button>
             </div>
 
-            <div role="tablist" className="flex gap-6 px-4 pt-4 sm:px-8">
+            <div role="tablist" className={`flex gap-6 px-4 sm:px-8 ${tabBar ? "pt-8 md:pt-4" : "pt-4"}`}>
               {(["categories", "collections"] as const).map((k) => (
                 <button
                   key={k}
@@ -184,21 +222,40 @@ export function HeaderActions({
                   type="button"
                   aria-selected={tab === k}
                   onClick={() => setTab(k)}
-                  className={`type-label border-b pb-1 ${tab === k ? "border-foreground font-medium" : "border-transparent text-muted-foreground"}`}
+                  className={`type-display relative pb-2 text-[1.75rem] leading-none ${tab === k ? "" : "text-muted-foreground"}`}
                 >
                   {t(locale, k === "categories" ? "sf.nav.categories" : "sf.nav.collections")}
+                  {tab === k && <span aria-hidden className="absolute bottom-0 start-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-foreground" />}
                 </button>
               ))}
             </div>
 
+            {tab === "categories" && tiles.length > 0 && (
+              <ul className="mt-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden">
+                {tiles.map((tile) => (
+                  <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-36">
+                    <Link href={tile.href} onClick={close} className="block">
+                      <span className="block aspect-[3/4] overflow-hidden bg-secondary">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={tile.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                      </span>
+                      <span className="type-meta mt-2 block text-center">{tile.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {tab === "categories" ? (
               <ol className="flex-1 space-y-8 px-4 py-8 sm:px-8">
-                <li className="grid grid-cols-[2.25rem_1fr]">
-                  <span className="type-meta pt-2 text-muted-foreground">01</span>
+                <li className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-x-4">
+                  <span className="type-meta pt-2 text-muted-foreground">
+                    <span className="tabular-nums">|01|</span> {t(locale, "sf.nav.newIn")}
+                  </span>
                   <ul>
                     <li>
                       <Link href={lhref(locale, "/shop")} className={`${textLink} block`} onClick={close}>
-                        {t(locale, "sf.nav.newIn")}
+                        {t(locale, "sf.nav.viewAll")}
                       </Link>
                     </li>
                     {hasSale && (
@@ -211,30 +268,26 @@ export function HeaderActions({
                   </ul>
                 </li>
                 {groups.map((g, i) => (
-                  <li key={g.code ?? g.label} className="grid grid-cols-[2.25rem_1fr]">
-                    <span className="type-meta pt-2 text-muted-foreground">{two(i + 2)}</span>
-                    <div>
+                  <li key={g.code ?? g.label} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-x-4">
+                    <span className="type-meta pt-2 text-muted-foreground">
+                      <span className="tabular-nums">|{two(i + 2)}|</span> {g.label}
+                    </span>
+                    <ul>
                       {g.code ? (
-                        <Link
-                          href={lhref(locale, `/shop?cat=${g.code}`)}
-                          className="type-heading block py-2 text-muted-foreground hover:text-foreground"
-                          onClick={close}
-                        >
-                          {g.label}
-                        </Link>
-                      ) : (
-                        <p className="type-heading py-2 text-muted-foreground">{g.label}</p>
-                      )}
-                      <ul>
-                        {g.items.map((c) => (
-                          <li key={c.code}>
-                            <Link href={lhref(locale, `/shop?cat=${c.code}`)} className={`${textLink} block`} onClick={close}>
-                              {c.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                        <li>
+                          <Link href={lhref(locale, `/shop?cat=${g.code}`)} className={`${textLink} block`} onClick={close}>
+                            {t(locale, "sf.nav.viewAll")}
+                          </Link>
+                        </li>
+                      ) : null}
+                      {g.items.map((c) => (
+                        <li key={c.code}>
+                          <Link href={lhref(locale, `/shop?cat=${c.code}`)} className={`${textLink} block`} onClick={close}>
+                            {c.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ol>
@@ -283,6 +336,58 @@ export function HeaderActions({
           </nav>
         </div>
       )}
+
+      {tabBar && (
+        <nav
+          data-tabbar
+          aria-label={t(locale, "sf.nav.tabBar")}
+          className="fixed inset-x-0 bottom-0 z-[45] border-t bg-background pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+        >
+          <ul className="grid h-14 grid-cols-5 items-stretch">
+            <li>
+              <Link href={lhref(locale, "/")} aria-label={t(locale, "sf.nav.home")} className={tabItem(path === "/" && !menuOpen)} onClick={close}>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
+                  <path d="M4.5 20V10.5a7.5 6 0 0 1 15 0V20" />
+                </svg>
+              </Link>
+            </li>
+            <li>
+              <button
+                type="button"
+                aria-expanded={menuOpen}
+                aria-controls="site-menu"
+                className={tabItem(menuOpen)}
+                onClick={() => setMenuOpen((o) => !o)}
+              >
+                <span className="type-label">{t(locale, "sf.nav.menu")}</span>
+              </button>
+            </li>
+            <li>
+              <Link
+                href={lhref(locale, "/search")}
+                aria-label={t(locale, "sf.nav.searchOpen")}
+                className={tabItem(path.startsWith("/search") && !menuOpen)}
+                onClick={close}
+              >
+                <Search className="h-5 w-5" strokeWidth={1} aria-hidden />
+              </Link>
+            </li>
+            <li>
+              <AccountLink variant="text" fixedLabel="sf.nav.account" className={tabItem(path.startsWith("/account") && !menuOpen)} />
+            </li>
+            <li>
+              <CartLink variant="box" className={tabItem(false)} />
+            </li>
+          </ul>
+        </nav>
+      )}
     </>
   );
+}
+
+// Tab bar cell; the active one gets a small dot underneath.
+function tabItem(active: boolean) {
+  return `type-label relative flex h-full w-full items-center justify-center ${
+    active ? "after:absolute after:bottom-2 after:h-1 after:w-1 after:rounded-full after:bg-foreground" : ""
+  }`;
 }

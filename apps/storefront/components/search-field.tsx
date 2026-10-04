@@ -49,7 +49,7 @@ export function SearchField({ initial, placeholder }: { initial: string; placeho
         placeholder={placeholder}
         aria-label={placeholder}
         aria-busy={pending}
-        className="type-label h-12 w-full border-0 border-b border-foreground bg-transparent px-0 outline-none placeholder:text-muted-foreground"
+        className="type-label h-12 w-full border-0 border-b border-border bg-transparent px-0 text-center outline-none transition-colors placeholder:text-foreground focus:border-foreground"
       />
     </form>
   );

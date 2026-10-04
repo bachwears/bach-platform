@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Bookmark } from "lucide-react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
 import { t } from "@bach/i18n";
@@ -190,7 +191,7 @@ export default function CartPage() {
         setSuggested(
           ((data ?? []) as unknown as CardRow[])
             .filter((p) => p.media_assets.some((m) => m.kind === "front"))
-            .slice(0, 8)
+            .slice(0, 12)
             .map(toCard),
         ),
       );
@@ -198,7 +199,7 @@ export default function CartPage() {
 
   const lbp = rate ? `${Math.round((subtotal / 100) * rate).toLocaleString("en-US")} LBP` : null;
   const tabClass = (on: boolean) =>
-    `type-label pb-2 ${on ? "border-b border-foreground" : "text-muted-foreground hover:text-foreground"}`;
+    `type-label flex items-center gap-2 pb-2 ${on ? "font-semibold" : "text-muted-foreground hover:text-foreground"}`;
   const loginHref = lhref(locale, "/account/login");
 
   return (
@@ -208,7 +209,7 @@ export default function CartPage() {
         {notice ? <p className="mb-6 border border-foreground px-4 py-3 text-xs">{notice}</p> : null}
         <div role="tablist" className="flex gap-8">
           <button type="button" role="tab" aria-selected={tab === "bag"} className={tabClass(tab === "bag")} onClick={() => choose("bag")}>
-            {t(locale, "sf.cart.tabBag")} ({count})
+            {t(locale, "sf.cart.tabBag")} <span className="tabular-nums">({count})</span>
           </button>
           <button
             type="button"
@@ -218,17 +219,27 @@ export default function CartPage() {
             onClick={() => choose("favourites")}
           >
             {t(locale, "sf.cart.tabFav")}
+            <Bookmark className="h-4 w-4" strokeWidth={1.25} aria-hidden />
           </button>
         </div>
 
         {tab === "favourites" ? (
           <section className="mt-10" role="tabpanel">
             {signedIn === false ? (
-              <div>
-                <p className="type-label">{t(locale, "sf.cart.favSignIn")}</p>
-                <Link href={loginHref} className="type-label mt-6 inline-grid h-12 w-full max-w-xs place-items-center bg-foreground text-background">
+              <div className="pt-6">
+                <p className="text-sm">{t(locale, "sf.cart.favSignIn")}</p>
+                <Link
+                  href={loginHref}
+                  className="type-label mt-8 grid h-11 w-full max-w-60 place-items-center border border-foreground hover:bg-foreground hover:text-background"
+                >
                   {t(locale, "sf.cart.login")}
                 </Link>
+                <p className="mt-6 flex items-center gap-10 text-sm">
+                  <span>{t(locale, "sf.cart.noAccount")}</span>
+                  <Link href={lhref(locale, "/account/new")} className="type-label hover:opacity-60">
+                    {t(locale, "sf.cart.register")}
+                  </Link>
+                </p>
               </div>
             ) : favs == null ? null : favs.length === 0 ? (
               <p className="type-label">{t(locale, "sf.cart.favEmpty")}</p>
@@ -255,24 +266,27 @@ export default function CartPage() {
             )}
           </section>
         ) : !loaded ? null : bagEmpty ? (
-          <section className="mt-10" role="tabpanel">
-            <p className="type-label">{t(locale, "sf.cart.empty")}</p>
-            {signedIn === false ? (
-              <p className="type-meta mt-3 text-muted-foreground">
-                <Link href={loginHref} className="text-foreground underline underline-offset-4">
-                  {t(locale, "sf.cart.login")}
-                </Link>{" "}
-                {t(locale, "sf.cart.loginHint")}
-              </p>
-            ) : null}
+          <section role="tabpanel">
+            <div className="pb-20 pt-24">
+              <svg viewBox="0 0 24 28" className="h-9 w-8" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
+                <path d="M2.5 8.5h19v18h-19z" />
+                <path d="M8 8.5V6a4 4 0 0 1 8 0v2.5" />
+              </svg>
+              <p className="type-label mt-6">{t(locale, "sf.cart.empty")}</p>
+              <Link href={lhref(locale, "/shop")} className="mt-2 inline-block text-sm hover:opacity-60">
+                {t(locale, "sf.cart.emptyExplore")}
+              </Link>
+            </div>
             {suggested.length ? (
               <>
-                <h2 className="type-heading mb-6 mt-16">{t(locale, "sf.cart.mayLike")}</h2>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+                <h2 className="type-label mb-6">{t(locale, "sf.cart.mayLike")}</h2>
+                <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
                   {suggested.map((p) => (
-                    <ProductCard key={p.slug} product={p} locale={locale} />
+                    <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">
+                      <ProductCard product={p} locale={locale} variant="mini" />
+                    </li>
                   ))}
-                </div>
+                </ul>
               </>
             ) : null}
           </section>

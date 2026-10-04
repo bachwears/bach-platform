@@ -213,18 +213,23 @@ export default async function Home() {
         ) : null}
 
         {featured.length ? (
-          <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-8">
-            <div className="mb-6 flex items-baseline justify-between">
-              <h2 className="type-heading">{t(locale, "sf.nav.newIn")}</h2>
-              <Link href={lhref(locale, "/shop")} className="type-label underline underline-offset-4 hover:opacity-60">
-                {t(locale, "sf.nav.viewAll")}
-              </Link>
+          <section className="mx-auto max-w-[1440px] px-4 pb-20 sm:px-8">
+            {/* Editorial intro between the campaign and the newest pieces. */}
+            <div className="flex flex-col items-center py-24 text-center sm:py-32">
+              <h2 className="type-display text-5xl sm:text-6xl">{t(locale, "sf.home.theNew")}</h2>
+              <p className="type-meta mt-3">{t(locale, "sf.home.scrollDown")}</p>
+              <span aria-hidden className="scroll-cue mt-10" />
             </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {featured.map((p) => (
                 <ProductCard key={p.slug} product={p} locale={locale} />
               ))}
             </div>
+            <p className="mt-14 text-center">
+              <Link href={lhref(locale, "/shop")} className="type-label underline underline-offset-4 hover:opacity-60">
+                {t(locale, "sf.nav.viewAll")}
+              </Link>
+            </p>
           </section>
         ) : null}
       </main>

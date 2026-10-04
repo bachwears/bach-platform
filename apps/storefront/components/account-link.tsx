@@ -12,10 +12,13 @@ export function AccountLink({
   variant,
   className = "",
   children,
+  fixedLabel,
 }: {
   variant: "text" | "icon";
   className?: string;
   children?: React.ReactNode;
+  /** i18n key shown whatever the session (the phone tab bar always says "Account") */
+  fixedLabel?: string;
 }) {
   const locale = useLocale();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -29,7 +32,7 @@ export function AccountLink({
     return () => subscription.unsubscribe();
   }, []);
 
-  const label = t(locale, signedIn ? "sf.nav.account" : "sf.nav.login");
+  const label = t(locale, fixedLabel ?? (signedIn ? "sf.nav.account" : "sf.nav.login"));
   return (
     <Link
       href={lhref(locale, signedIn ? "/account" : "/account/login")}

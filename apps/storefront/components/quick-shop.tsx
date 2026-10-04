@@ -16,7 +16,16 @@ export interface QuickShopSize {
  * The + beside a card's name opens its sizes over the bottom of the photo;
  * picking one drops it in the bag. Works on touch as well as with a mouse.
  */
-export function QuickShop({ sizes, name }: { sizes: QuickShopSize[]; name: string }) {
+export function QuickShop({
+  sizes,
+  name,
+  align = "end",
+}: {
+  sizes: QuickShopSize[];
+  name: string;
+  /** "center": the + sits centred under the price (mini cards) */
+  align?: "end" | "center";
+}) {
   const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [added, setAdded] = useState<string | null>(null);
@@ -56,7 +65,7 @@ export function QuickShop({ sizes, name }: { sizes: QuickShopSize[]; name: strin
         aria-label={`${t(locale, "sf.shop.quickShop")}: ${name}`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="absolute end-0 top-[-0.6rem] grid h-10 w-10 place-items-center"
+        className={`absolute grid h-10 w-10 place-items-center ${align === "center" ? "start-1/2 top-5 -translate-x-1/2 rtl:translate-x-1/2" : "end-0 top-[-0.6rem]"}`}
       >
         {open ? <X className="h-4 w-4" strokeWidth={1.25} aria-hidden /> : <Plus className="h-4 w-4" strokeWidth={1.25} aria-hidden />}
       </button>

@@ -33,10 +33,13 @@ export function ProductCard({
   product,
   locale = "en",
   revealDelay,
+  variant = "full",
 }: {
   product: CardProduct;
   locale?: Locale;
   revealDelay?: number;
+  /** "mini": photo, price and + only (recommendation rows) */
+  variant?: "full" | "mini";
 }) {
   const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   // Product names stay English in every locale (founder decision 2026-09-07).
@@ -52,7 +55,11 @@ export function ProductCard({
         : {})}
     >
       {/* The photo repeats the name link below, so it stays out of the tab order and the accessibility tree. */}
-      <Link href={href} tabIndex={-1} aria-hidden className="relative block aspect-[3/4] overflow-hidden bg-secondary">
+      <Link
+        href={href}
+        {...(variant === "mini" ? { "aria-label": name } : { tabIndex: -1, "aria-hidden": true })}
+        className="relative block aspect-[3/4] overflow-hidden bg-secondary"
+      >
         {product.front ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -82,6 +89,14 @@ export function ProductCard({
         )}
       </Link>
 
+      {variant === "mini" ? (
+        <div className="relative mt-2 pb-12 text-center">
+          <p className="type-meta tabular-nums">
+            {usd(onSale ? product.sale_price_usd_cents! : product.price_usd_cents)}
+          </p>
+          {product.sizes?.length ? <QuickShop sizes={product.sizes} name={name} align="center" /> : null}
+        </div>
+      ) : (
       <div className="relative mt-3 pe-10">
         <Link href={href} className="block">
           <h3 className="type-meta line-clamp-2">{name}</h3>
@@ -100,6 +115,7 @@ export function ProductCard({
         <ColorChips colors={product.colors} />
         {product.sizes?.length ? <QuickShop sizes={product.sizes} name={name} /> : null}
       </div>
+      )}
     </div>
   );
 }

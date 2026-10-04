@@ -107,11 +107,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-[1440px] px-4 pb-20 pt-8 sm:px-8 sm:pt-12">
         <h1 className="sr-only">{t(locale, "sf.search.title")}</h1>
-        <div className="max-w-3xl">
+        <div className="mx-auto max-w-3xl pt-6 sm:pt-0">
           <SearchField initial={q} placeholder={t(locale, "sf.nav.searchPlaceholder")} />
         </div>
 
-        <nav aria-label={t(locale, "sf.search.categories")} className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+        <nav aria-label={t(locale, "sf.search.categories")} className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2">
           {(cats ?? []).map((c) => (
             <Link
               key={c.code}
@@ -123,8 +123,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           ))}
         </nav>
 
-        <div className="mb-6 mt-12 flex items-baseline justify-between gap-4">
-          <h2 className="type-heading" aria-live="polite">
+        <div className="mb-6 mt-16 flex items-baseline justify-between gap-4">
+          <h2 className="type-label" aria-live="polite">
             {words.length
               ? results.length === 1
                 ? t(locale, "sf.search.result")
