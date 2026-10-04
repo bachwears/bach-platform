@@ -22,16 +22,17 @@ export interface PdpVariant {
   available: number;
 }
 
-// Category codes whose sizing follows the customer's saved bottoms size; scarves
-// and hats are one-size accessories, so nothing is preselected for them.
+// Category codes whose sizing follows the customer's saved bottoms size; anything
+// under Accessories (scarves, hats…) is one-size, so nothing is preselected for it.
+// Matched against the product's category and every category above it.
 const BOTTOMS = new Set(["BTMS", "PNT", "JOG"]);
-const ONE_SIZE = new Set(["SCF", "HAT"]);
+const ONE_SIZE = new Set(["ACC", "SCF", "HAT"]);
 type SizeSlot = "size_top" | "size_bottom" | "size_shoe";
 
-function sizeSlot(categoryCode: string | null, variants: PdpVariant[]): SizeSlot | null {
-  if (categoryCode && ONE_SIZE.has(categoryCode)) return null;
+function sizeSlot(categoryCodes: string[], variants: PdpVariant[]): SizeSlot | null {
+  if (categoryCodes.some((c) => ONE_SIZE.has(c))) return null;
   if (variants.length && variants.every((v) => /^\d+$/.test(v.size))) return "size_shoe";
-  return categoryCode && BOTTOMS.has(categoryCode) ? "size_bottom" : "size_top";
+  return categoryCodes.some((c) => BOTTOMS.has(c)) ? "size_bottom" : "size_top";
 }
 
 const ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
@@ -51,7 +52,7 @@ const rank = (s: string) => {
 export function AddToCart({
   variants,
   productId,
-  categoryCode = null,
+  categoryCodes = [],
   name,
   priceLabel,
   sizeGuide,
@@ -67,7 +68,8 @@ export function AddToCart({
   /** colour to open on, from a shared ?color= link */
   initialColorCode?: string | null;
   productId: string;
-  categoryCode?: string | null;
+  /** the product's category code, then each category above it */
+  categoryCodes?: string[];
   name: string;
   priceLabel: string;
   sizeGuide?: React.ReactNode;
@@ -130,7 +132,7 @@ export function AddToCart({
       const { data: cid } = await supabase.rpc("my_customer_id");
       if (!cid) return;
       setCustomerId(cid as string);
-      const slot = sizeSlot(categoryCode, variants);
+      const slot = sizeSlot(categoryCodes, variants);
       if (slot) {
         void supabase
           .from("customers")
@@ -148,7 +150,7 @@ export function AddToCart({
       setSaved(!!w);
     }
     void init();
-    // variants and categoryCode are fixed per product page
+    // variants and categoryCodes are fixed per product page
   }, [productId]);
 
   // The phone product bar saves too: keep one state.

@@ -79,9 +79,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const all = ((data ?? []) as unknown as Row[]).filter(hasPhoto);
   // top-level categories that have something to show (themselves or a child)
   const shownCats = new Set(all.map((p) => p.category_id));
-  const topCats = (cats ?? []).filter(
-    (c) => !c.parent_id && (shownCats.has(c.id) || (cats ?? []).some((k) => k.parent_id === c.id && shownCats.has(k.id))),
-  );
+  const hasShown = (id: string, depth = 0): boolean =>
+    shownCats.has(id) || (depth < 5 && (cats ?? []).some((k) => k.parent_id === id && hasShown(k.id, depth + 1)));
+  const topCats = (cats ?? []).filter((c) => !c.parent_id && hasShown(c.id));
 
   // Every word must appear somewhere in the product: name, category,
   // collection, colour or SKU — so "black boots" and "BW-KN" both work.

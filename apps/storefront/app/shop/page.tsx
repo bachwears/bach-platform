@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
@@ -88,11 +89,20 @@ export default async function ShopPage({
     (p.media_assets ?? []).some((m) => m.kind === "front"),
   );
   const tree = catTree ?? [];
-  // A parent category code matches every child underneath it.
+  // A category code matches everything underneath it, at any depth
+  // (Shoes & Accessories → Shoes → Boots).
   const catCodes = (code: string) => {
     const set = new Set([code]);
+    const walk = (id: string) => {
+      for (const c of tree) {
+        if (c.parent_id === id && !set.has(c.code)) {
+          set.add(c.code);
+          walk(c.id);
+        }
+      }
+    };
     const node = tree.find((c) => c.code === code);
-    if (node) for (const c of tree) if (c.parent_id === node.id) set.add(c.code);
+    if (node) walk(node.id);
     return set;
   };
   const catMatch = cat ? catCodes(cat) : new Set<string>();
@@ -202,24 +212,34 @@ export default async function ShopPage({
     ? all.flatMap((p) => p.product_collections).find((pc) => pc.collections?.slug === col)?.collections?.name_en ?? col
     : null;
 
-  // Category context: node, its parent, and the tab strip of siblings.
+  // Category context: the node, its ancestors (breadcrumb, banner), and the tab
+  // strip — a category with sub-categories shows them; a leaf shows its siblings.
   const catNode = cat ? tree.find((c) => c.code === cat) : null;
-  const parentNode = catNode?.parent_id ? tree.find((c) => c.id === catNode.parent_id) : catNode && !catNode.parent_id ? catNode : null;
+  const ancestors: typeof tree = [];
+  for (let n = catNode; n?.parent_id; ) {
+    const up = tree.find((c) => c.id === n!.parent_id);
+    if (!up || ancestors.includes(up)) break;
+    ancestors.unshift(up);
+    n = up;
+  }
+  const hasChildren = (id: string) => tree.some((c) => c.parent_id === id);
+  const parentNode = catNode ? (hasChildren(catNode.id) ? catNode : ancestors[ancestors.length - 1] ?? catNode) : null;
   const codesWithProducts = new Set(all.map((p) => p.categories?.code).filter(Boolean));
+  const hasProducts = (code: string) => [...catCodes(code)].some((k) => codesWithProducts.has(k));
   const byRow = (a: { sort: number; name_en: string }, b: { sort: number; name_en: string }) =>
     a.sort - b.sort || a.name_en.localeCompare(b.name_en);
   const tabs: Array<{ code: string; label: string; active: boolean }> = parentNode
     ? [
         { code: parentNode.code, label: `${t(locale, "sf.shop.allProducts")} — ${pick(locale, parentNode.name_en, parentNode.name_ar)}`, active: cat === parentNode.code },
         ...tree
-          .filter((c) => c.parent_id === parentNode.id && codesWithProducts.has(c.code))
+          .filter((c) => c.parent_id === parentNode.id && hasProducts(c.code))
           .sort(byRow)
           .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar), active: cat === c.code })),
       ]
     : [
         { code: "", label: t(locale, "sf.shop.allProducts"), active: !cat },
         ...tree
-          .filter((c) => !c.parent_id && [...catCodes(c.code)].some((k) => codesWithProducts.has(k)))
+          .filter((c) => !c.parent_id && hasProducts(c.code))
           .sort(byRow)
           .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar), active: false })),
       ];
@@ -241,7 +261,7 @@ export default async function ShopPage({
     const { data: colRow } = await supabase.from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
     if (colRow?.cover_url) headerImage = { url: colRow.cover_url, mobile: null, alt: colRow.name_en };
   } else {
-    const src = [catNode, parentNode].find((n) => (n as Banner | null)?.banner_url) as Banner | undefined;
+    const src = [catNode, ...[...ancestors].reverse()].find((n) => (n as Banner | null)?.banner_url) as Banner | undefined;
     if (src) headerImage = { url: src.banner_url!, mobile: src.banner_mobile_url ?? null, alt: src.name_en };
   }
 
@@ -326,17 +346,17 @@ export default async function ShopPage({
                 {t(locale, "sf.shop.title")}
               </Link>
             </li>
-            {parentNode && (
-              <>
+            {ancestors.map((a) => (
+              <Fragment key={a.code}>
                 <li aria-hidden>/</li>
                 <li>
-                  <Link href={href({ cat: parentNode.code })} className="hover:text-foreground">
-                    {pick(locale, parentNode.name_en, parentNode.name_ar)}
+                  <Link href={href({ cat: a.code })} className="hover:text-foreground">
+                    {pick(locale, a.name_en, a.name_ar)}
                   </Link>
                 </li>
-              </>
-            )}
-            {catNode && catNode.parent_id && (
+              </Fragment>
+            ))}
+            {catNode && (
               <>
                 <li aria-hidden>/</li>
                 <li className="text-foreground">{pick(locale, catNode.name_en, catNode.name_ar)}</li>

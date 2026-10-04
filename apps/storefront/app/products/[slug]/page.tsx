@@ -132,6 +132,16 @@ export default async function ProductPage({
   const seasons = ((product.product_seasons as unknown as Array<{ season: string }>) ?? []).map((s) => s.season);
 
   const supabase = await supabaseServer();
+  // The category and every category above it (Boots → Shoes → Shoes & Accessories):
+  // a size guide or one-size rule set on a parent covers the labels under it.
+  const { data: catTree } = category
+    ? await supabase.from("categories").select("id, code, parent_id")
+    : { data: [] as Array<{ id: string; code: string; parent_id: string | null }> };
+  const lineage: string[] = [];
+  for (let n = (catTree ?? []).find((c) => c.code === category?.code); n && !lineage.includes(n.code); ) {
+    lineage.push(n.code);
+    n = (catTree ?? []).find((c) => c.id === n!.parent_id);
+  }
   const cardSelect =
     "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)";
 
@@ -161,10 +171,9 @@ export default async function ProductPage({
     category
       ? supabase
           .from("size_guides")
-          .select("name_en, name_ar, note_en, note_ar, headers_en, headers_ar, rows")
-          .contains("category_codes", [category.code])
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+          .select("name_en, name_ar, note_en, note_ar, headers_en, headers_ar, rows, category_codes")
+          .overlaps("category_codes", lineage.length ? lineage : [category.code])
+      : Promise.resolve({ data: [] }),
   ]);
 
   const lookIds = [...new Set((lookIdRows ?? []).map((r) => r.product_id))].filter((id) => id !== product.id);
@@ -204,7 +213,13 @@ export default async function ProductPage({
       .slice(0, 4);
   const related = firstFour(relatedRaw);
   const look = firstFour(lookRaw);
-  const guideRaw = guideRow as {
+  // the guide set on the nearest category wins (Boots' own guide over Shoes')
+  const guideRows = (guideRow ?? []) as Array<{ category_codes: string[] }>;
+  const nearest = (g: { category_codes: string[] }) => {
+    const i = lineage.findIndex((c) => g.category_codes.includes(c));
+    return i < 0 ? 99 : i;
+  };
+  const guideRaw = [...guideRows].sort((x, y) => nearest(x) - nearest(y))[0] as unknown as {
     name_en: string;
     name_ar: string;
     note_en: string | null;
@@ -212,7 +227,7 @@ export default async function ProductPage({
     headers_en: string[];
     headers_ar: string[];
     rows: string[][];
-  } | null;
+  } | undefined;
   const guide: SizeGuideData | null = guideRaw
     ? {
         name: pick(locale, guideRaw.name_en, guideRaw.name_ar),
@@ -329,7 +344,7 @@ export default async function ProductPage({
             shownColor={shownColor}
             photoColors={[...(shownColor ? [shownColor] : []), ...Object.keys(colorGalleries)]}
             initialColorCode={linkedColor?.color_code ?? null}
-            categoryCode={category?.code ?? null}
+            categoryCodes={lineage}
             name={displayName}
             priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}

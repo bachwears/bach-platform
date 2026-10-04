@@ -8,7 +8,7 @@ export default async function CategoriesPage() {
   const supabase = await supabaseServer();
   const { data } = await supabase
     .from("categories")
-    .select("id, code, name_en, name_ar, is_active, products(count)")
+    .select("id, code, name_en, name_ar, is_active, parent_id, products(count)")
     .order("sort")
     .order("code");
 
@@ -18,6 +18,7 @@ export default async function CategoriesPage() {
     name_en: c.name_en,
     name_ar: c.name_ar,
     is_active: c.is_active,
+    parent_id: c.parent_id,
     productCount: (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
   }));
 

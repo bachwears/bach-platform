@@ -14,6 +14,8 @@ export interface NavGroup {
   code: string | null;
   label: string;
   items: Array<{ code: string; label: string }>;
+  /** false hides the group's "View all" row */
+  viewAll?: boolean;
 }
 
 export interface NavCollection {
@@ -280,7 +282,7 @@ export function HeaderActions({
                       <span className="tabular-nums">|{two(i + 2)}|</span> {g.label}
                     </span>
                     <ul>
-                      {g.code ? (
+                      {g.code && g.viewAll !== false ? (
                         <li>
                           <Link href={lhref(locale, `/shop?cat=${g.code}`)} className={`${textLink} block`} onClick={close}>
                             {t(locale, "sf.nav.viewAll")}

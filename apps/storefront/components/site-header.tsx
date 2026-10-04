@@ -57,14 +57,25 @@ export async function SiteHeader() {
     const id = (f.products as unknown as { category_id: string | null } | null)?.category_id;
     if (id) shown.set(id, (shown.get(id) ?? 0) + 1);
   }
-  const count = (c: Cat) => shown.get(c.id) ?? 0;
+  // A category counts its own pieces plus everything underneath it
+  // (Shoes counts Boots, Sneakers…).
+  const count = (c: Cat, seen = new Set<string>()): number => {
+    if (seen.has(c.id)) return 0;
+    seen.add(c.id);
+    return (shown.get(c.id) ?? 0) + all.filter((k) => k.parent_id === c.id).reduce((n, k) => n + count(k, seen), 0);
+  };
   const groups: NavGroup[] = [];
   for (const parent of all.filter((c) => !c.parent_id)) {
-    const items = all
-      .filter((c) => c.parent_id === parent.id && count(c) > 0)
-      .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar) }));
+    const children = all.filter((c) => c.parent_id === parent.id && count(c) > 0);
+    const items = children.map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar) }));
     if (items.length) {
-      groups.push({ code: parent.code, label: pick(locale, parent.name_en, parent.name_ar), items });
+      groups.push({
+        code: parent.code,
+        label: pick(locale, parent.name_en, parent.name_ar),
+        items,
+        // a group of sub-groups (Shoes, Accessories) lists just those — each opens its own tabs
+        viewAll: !children.some((c) => all.some((k) => k.parent_id === c.id)),
+      });
     }
   }
   // Ungrouped leaf categories (no parent, own products) still get listed.
