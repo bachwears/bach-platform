@@ -35,7 +35,7 @@ export function hoverPhoto(media: CardMedia[]): string | null {
 // Which shot best stands for a piece in a small thumbnail: the product front,
 // then a worn shot, then the back — never a close-up or detail if avoidable.
 const thumbRank = (m: CardMedia) => {
-  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path)?.[1];
+  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path)?.[1];
   if (m.kind === "front" || view === "front") return 0;
   if (m.kind === "side" || view === "model") return 1;
   if (m.kind === "back" || view === "back") return 2;

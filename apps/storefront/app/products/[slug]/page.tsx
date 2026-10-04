@@ -109,7 +109,7 @@ export default async function ProductPage({
   // Slot kinds say it for the main photos; extra photos carry the view in their file name.
   // Order: the main worn shot, the product front and back, more worn shots, close-ups, details.
   const viewRank = (m: { kind: string; storage_path: string }) => {
-    const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path);
+    const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path);
     const view = hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
     if (view === "model") return hit?.[2] ? 3 : 0;
     return ({ front: 1, back: 2, "model-zoom": 4, detail: 5 } as Record<string, number>)[view] ?? 6;

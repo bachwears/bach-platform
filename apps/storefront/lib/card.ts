@@ -14,7 +14,7 @@ const onSite = (m: CardMedia) => m.kind !== "other" || (m.sort != null && m.sort
 // Card order: the product shot first (listings stay calm and consistent), then back,
 // worn shots, close-ups, details. Slot kinds say the view; extras carry it in the file name.
 const cardRank = (m: CardMedia) => {
-  const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path);
+  const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path);
   const view = hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
   if (view === "model") return hit?.[2] ? 3 : 2;
   return ({ front: 0, back: 1, "model-zoom": 4, detail: 5 } as Record<string, number>)[view] ?? 6;

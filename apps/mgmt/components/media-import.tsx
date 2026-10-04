@@ -190,7 +190,7 @@ export function MediaImport() {
           .eq("product_id", productId)
           .like("storage_path", `%/${p.sku}/${tag}-%`);
         if (candErr) throw new Error(candErr.message);
-        const exact = new RegExp(`/${tag.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}-\\d+-\\d+\\.webp$`);
+        const exact = new RegExp(`/${tag.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}-(?:\\d+|v2[0-9a-f]+)-\\d+\\.webp$`);
         const staleIds = (cands ?? []).filter((r) => exact.test(r.storage_path ?? "")).map((r) => r.id);
         if (staleIds.length) await supabase.from("media_assets").delete().in("id", staleIds);
         if (kind !== "other") await supabase.from("media_assets").delete().eq("product_id", productId).eq("kind", kind);
