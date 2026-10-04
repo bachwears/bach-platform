@@ -22,7 +22,7 @@ export default async function HelpPage() {
         </div>
         <div className="space-y-4">
           {(articles ?? []).map((a) => (
-            <details key={a.slug} className="rounded-lg border p-4">
+            <details key={a.slug} id={a.slug} className="scroll-mt-24 rounded-lg border p-4">
               <summary className="cursor-pointer font-medium">{a.title_ar}</summary>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{a.body_ar}</p>
             </details>

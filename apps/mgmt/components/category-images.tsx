@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 export interface CategoryImageRow {
@@ -172,13 +173,14 @@ function ImageSlot({
       return;
     }
     const publicUrl = supabase.storage.from("product-media").getPublicUrl(path).data.publicUrl;
-    const { error } = await supabase
+    const { data: changed, error } = await supabase
       .from("categories")
       .update({ [target.column]: publicUrl })
-      .eq("id", row.id);
+      .eq("id", row.id)
+      .select("id");
     setBusy(false);
-    if (error) {
-      setErr(`ما مشي الحفظ: ${error.message}`);
+    if (error || !changed?.length) {
+      setErr(error ? `ما مشي الحفظ: ${error.message}` : NOT_SAVED);
       return;
     }
     setDraft(null);
@@ -190,12 +192,14 @@ function ImageSlot({
     if (!window.confirm(`أكيد بدك تشيل صورة ${target.label} لـ ${row.name_ar}؟`)) return;
     setBusy(true);
     setErr("");
-    const { error } = await supabaseBrowser()
+    const { data: changed, error } = await supabaseBrowser()
       .from("categories")
       .update({ [target.column]: null })
-      .eq("id", row.id);
+      .eq("id", row.id)
+      .select("id");
     setBusy(false);
     if (error) setErr(`ما مشي: ${error.message}`);
+    else if (!changed?.length) setErr(NOT_SAVED);
     else {
       setMsg("انشالت.");
       router.refresh();

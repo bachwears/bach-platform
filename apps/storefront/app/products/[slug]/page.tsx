@@ -34,7 +34,7 @@ async function getProduct(slug: string) {
   const { data } = await supabase
     .from("products")
     .select(
-      "id, slug, name_en, name_ar, description_en, description_ar, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(*), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, inventory_levels(quantity, reserved))",
+      "id, slug, name_en, name_ar, description_en, description_ar, meta_title_en, meta_description_en, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(*), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, inventory_levels(quantity, reserved))",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -51,10 +51,13 @@ export async function generateMetadata({
   const [product, locale] = await Promise.all([getProduct(slug), getLocale()]);
   if (!product) return { title: "BACH Wears" };
   const name = product.name_en; // product names stay English in every locale
+  // MGMT's SEO fields win when set; otherwise name + description
   return {
-    title: locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`,
+    title: product.meta_title_en || (locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`),
     description:
-      pick(locale, product.description_en ?? "", product.description_ar) || `${name} by BACH Wears.`,
+      product.meta_description_en ||
+      pick(locale, product.description_en ?? "", product.description_ar) ||
+      `${name} by BACH Wears.`,
     alternates: {
       canonical: lhref(locale, `/products/${slug}`),
     },

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
+import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 /**
@@ -27,13 +28,15 @@ export function PhotoColor({
     setValue(next);
     setMsg("");
     setErr("");
-    const { error } = await supabaseBrowser()
+    const { data: changed, error } = await supabaseBrowser()
       .from("media_assets")
       .update({ color_en: next || null })
       .eq("product_id", productId)
       // only the four main photos; each extra colour keeps its own tag
-      .in("kind", ["front", "back", "side", "closeup"]);
+      .in("kind", ["front", "back", "side", "closeup"])
+      .select("id");
     if (error) setErr(`ما مشي الحفظ: ${error.message}`);
+    else if (!changed?.length) setErr(NOT_SAVED);
     else setMsg("انحفظ.");
   }
 

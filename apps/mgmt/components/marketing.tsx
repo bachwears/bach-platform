@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { NOT_SAVED } from "../lib/access";
 import { Select } from "@bach/ui/components/select";
 
 const SEASONS: Array<[string, string]> = [
@@ -101,9 +102,14 @@ export function Marketing() {
 
   async function flipSeason(s: string) {
     setBusy(true);
-    const { error: err } = await supabase.from("merchandising_settings").update({ active_season: s, updated_at: new Date().toISOString() }).eq("id", true);
+    const { data: changed, error: err } = await supabase
+      .from("merchandising_settings")
+      .update({ active_season: s, updated_at: new Date().toISOString() })
+      .eq("id", true)
+      .select("id");
     setBusy(false);
     if (err) fail(`ما مشي التبديل: ${err.message}`);
+    else if (!changed?.length) fail(NOT_SAVED);
     else {
       setSeason(s);
       flash("الموسم تبدّل — المتجر صار يقدّم هالموسم.");

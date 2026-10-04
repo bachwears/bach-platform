@@ -6,6 +6,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { NOT_SAVED } from "../lib/access";
 import { Label } from "@bach/ui/components/label";
 
 export interface Variant {
@@ -68,7 +69,8 @@ export function VariantManager({
 
   async function toggleActive(v: Variant) {
     const supabase = supabaseBrowser();
-    await supabase.from("product_variants").update({ is_active: !v.is_active }).eq("id", v.id);
+    const { data: changed } = await supabase.from("product_variants").update({ is_active: !v.is_active }).eq("id", v.id).select("id");
+    if (!changed?.length) window.alert(NOT_SAVED);
     router.refresh();
   }
 

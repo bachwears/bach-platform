@@ -9,6 +9,8 @@ import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
 import { Textarea } from "@bach/ui/components/textarea";
 
+import { NOT_SAVED } from "../lib/access";
+
 export interface Category {
   id: string;
   name_ar: string;
@@ -27,7 +29,23 @@ export interface ProductValues {
   description_en: string;
   description_ar: string;
   fit: string;
+  material_en: string;
+  care_en: string;
+  meta_title_en: string;
+  meta_description_en: string;
+  /** comma-separated product_seasons values */
+  seasons: string;
 }
+
+// The fits the catalogue actually uses (shown as-is on the product page).
+const FITS = ["Slim fit", "Regular fit", "Oversized", "Baggy fit", "One size", "True to size"];
+const SEASONS: Array<[string, string]> = [
+  ["winter", "شتوي"],
+  ["spring", "ربيعي"],
+  ["summer", "صيفي"],
+  ["autumn", "خريفي"],
+  ["all_season", "كل المواسم"],
+];
 
 const EMPTY: ProductValues = {
   name_en: "",
@@ -40,6 +58,11 @@ const EMPTY: ProductValues = {
   description_en: "",
   description_ar: "",
   fit: "",
+  material_en: "",
+  care_en: "",
+  meta_title_en: "",
+  meta_description_en: "",
+  seasons: "",
 };
 
 function slugify(s: string) {
@@ -98,7 +121,22 @@ export function ProductForm({
       description_en: values.description_en || null,
       description_ar: null,
       fit: values.fit || null,
+      material_en: values.material_en.trim() || null,
+      care_en: values.care_en.trim() || null,
+      meta_title_en: values.meta_title_en.trim() || null,
+      meta_description_en: values.meta_description_en.trim() || null,
     };
+    const wantSeasons = values.seasons.split(",").filter(Boolean);
+    // product_seasons is a plain list per product: replace it with what's ticked
+    async function saveSeasons(productId: string) {
+      const { error: delErr } = await supabase.from("product_seasons").delete().eq("product_id", productId);
+      if (delErr) return delErr.message;
+      if (!wantSeasons.length) return null;
+      const { error: insErr } = await supabase
+        .from("product_seasons")
+        .insert(wantSeasons.map((season) => ({ product_id: productId, season })));
+      return insErr?.message ?? null;
+    }
 
     if (isNew) {
       const { data, error: insertError } = await supabase
@@ -115,17 +153,26 @@ export function ProductForm({
         setBusy(false);
         return;
       }
+      const seasonErr = await saveSeasons(data.id);
+      if (seasonErr) setError("المنتج انعمل بس المواسم ما انحفظت: " + seasonErr);
       router.replace(`/products/${data.id}`);
       router.refresh();
       return;
     }
 
-    const { error: updateError } = await supabase
+    const { data: changed, error: updateError } = await supabase
       .from("products")
       .update(row)
-      .eq("id", initial!.id!);
-    if (updateError) {
-      setError("ما قدرنا نحفظ التعديلات: " + updateError.message);
+      .eq("id", initial!.id!)
+      .select("id");
+    if (updateError || !changed?.length) {
+      setError(updateError ? "ما قدرنا نحفظ التعديلات: " + updateError.message : NOT_SAVED);
+      setBusy(false);
+      return;
+    }
+    const seasonErr = await saveSeasons(initial!.id!);
+    if (seasonErr) {
+      setError("التعديلات انحفظت بس المواسم لا: " + seasonErr);
       setBusy(false);
       return;
     }
@@ -187,15 +234,70 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="space-y-2 sm:max-w-xs">
-        <Label htmlFor="fit">القَصّة (fit)</Label>
-        <Select id="fit" value={values.fit} onChange={(e) => set("fit", e.target.value)}>
-          <option value="">—</option>
-          <option value="slim">Slim</option>
-          <option value="regular">Regular</option>
-          <option value="relaxed">Relaxed</option>
-        </Select>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="fit">القَصّة (fit)</Label>
+          <Select id="fit" value={values.fit} onChange={(e) => set("fit", e.target.value)}>
+            <option value="">—</option>
+            {[...FITS, ...(values.fit && !FITS.includes(values.fit) ? [values.fit] : [])].map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="material">الخامة (Material، بالإنكليزي)</Label>
+          <Input id="material" dir="ltr" placeholder="Cotton blend" value={values.material_en} onChange={(e) => set("material_en", e.target.value)} />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="care">العناية (Care، بالإنكليزي)</Label>
+          <Textarea id="care" dir="ltr" rows={2} placeholder="Machine wash cold. Do not bleach." value={values.care_en} onChange={(e) => set("care_en", e.target.value)} />
+        </div>
       </div>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">المواسم</legend>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {SEASONS.map(([key, label]) => {
+            const on = values.seasons.split(",").includes(key);
+            return (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={on}
+                  onChange={() => {
+                    const list = values.seasons.split(",").filter(Boolean);
+                    set("seasons", (on ? list.filter((x) => x !== key) : [...list, key]).join(","));
+                  }}
+                />
+                {label}
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">تبديل موسم المتجر والحملات بيشتغلوا على هالمواسم.</p>
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">Google (SEO)</legend>
+        <div className="space-y-2">
+          <Label htmlFor="meta_title">العنوان بنتائج البحث</Label>
+          <Input id="meta_title" dir="ltr" maxLength={70} placeholder={`${values.name_en || "Product"} | BACH Wears`} value={values.meta_title_en} onChange={(e) => set("meta_title_en", e.target.value)} />
+          <p className={`text-xs ${values.meta_title_en.length > 60 ? "text-amber-600" : "text-muted-foreground"}`} dir="ltr">
+            {values.meta_title_en.length} / 60
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="meta_desc">الوصف بنتائج البحث</Label>
+          <Textarea id="meta_desc" dir="ltr" rows={2} maxLength={200} value={values.meta_description_en} onChange={(e) => set("meta_description_en", e.target.value)} />
+          <p className={`text-xs ${values.meta_description_en.length > 160 ? "text-amber-600" : "text-muted-foreground"}`} dir="ltr">
+            {values.meta_description_en.length} / 160
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">إذا فاضيين، Google بياخد اسم المنتج والوصف.</p>
+      </fieldset>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {saved ? <p className="text-sm text-brand-brass">انحفظ ✓</p> : null}

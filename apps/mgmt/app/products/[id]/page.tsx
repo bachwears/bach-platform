@@ -17,7 +17,7 @@ export default async function EditProductPage({
   const supabase = await supabaseServer();
 
   const [{ data: product }, { data: categories }, { data: variants }, { data: media }] = await Promise.all([
-    supabase.from("products").select("*").eq("id", id).single(),
+    supabase.from("products").select("*, product_seasons(season)").eq("id", id).single(),
     supabase.from("categories").select("id, name_ar, code").eq("is_active", true).order("sort"),
     supabase
       .from("product_variants")
@@ -65,6 +65,11 @@ export default async function EditProductPage({
               description_en: product.description_en ?? "",
               description_ar: product.description_ar ?? "",
               fit: product.fit ?? "",
+              material_en: product.material_en ?? "",
+              care_en: product.care_en ?? "",
+              meta_title_en: product.meta_title_en ?? "",
+              meta_description_en: product.meta_description_en ?? "",
+              seasons: ((product.product_seasons as Array<{ season: string }> | null) ?? []).map((x) => x.season).join(","),
             }}
           />
         </div>

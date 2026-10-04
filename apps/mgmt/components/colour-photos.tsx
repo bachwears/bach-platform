@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
+import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 interface Photo {
@@ -45,9 +46,10 @@ export function ColourPhotos({ photos, heroColor }: { photos: Photo[]; heroColor
     const next = shown(p.sort)
       ? 500 + ((p.sort ?? 0) % 100)
       : Math.min(499, Math.max(199, ...group.filter((g) => shown(g.sort)).map((g) => g.sort ?? 0)) + 1);
-    const { error } = await supabaseBrowser().from("media_assets").update({ sort: next }).eq("id", p.id);
+    const { data: changed, error } = await supabaseBrowser().from("media_assets").update({ sort: next }).eq("id", p.id).select("id");
     setBusy(null);
     if (error) setErr(`ما مشي التغيير: ${error.message}`);
+    else if (!changed?.length) setErr(NOT_SAVED);
     else router.refresh();
   }
 

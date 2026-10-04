@@ -1,4 +1,7 @@
+import { supabaseServer } from "@bach/supabase/server";
 import { PortalNav, type PortalNavItem } from "@bach/ui/components/portal-nav";
+
+import { canOpen } from "../lib/access";
 
 // 16 screens don't fit one row — BOSS-style condensed top level with
 // role-shaped dropdown groups. Orders stays inline: it's the daily door.
@@ -47,10 +50,25 @@ const ITEMS: PortalNavItem[] = [
     links: [
       { href: "/complaints", label: "الشكاوى" },
       { href: "/help", label: "مساعدة" },
+      { href: "/help-articles", label: "تعديل المساعدة" },
     ],
   },
 ];
 
-export function Nav() {
-  return <PortalNav title="Management" items={ITEMS} logoutLabel="تسجيل الخروج" />;
+/** The menu shows each role only the screens it can use (lib/access.ts). */
+export async function Nav() {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    : { data: null };
+  const role = profile?.role ?? null;
+  const items = ITEMS.flatMap((item): PortalNavItem[] => {
+    if (!("links" in item)) return canOpen(item.href, role) ? [item] : [];
+    const links = item.links.filter((l) => canOpen(l.href, role));
+    return links.length ? [{ ...item, links }] : [];
+  });
+  return <PortalNav title="Management" items={items} logoutLabel="تسجيل الخروج" />;
 }

@@ -6,6 +6,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { NOT_SAVED } from "../lib/access";
 import { Label } from "@bach/ui/components/label";
 
 export interface CategoryRow {
@@ -50,7 +51,8 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
 
   async function toggleActive(c: CategoryRow) {
     const supabase = supabaseBrowser();
-    await supabase.from("categories").update({ is_active: !c.is_active }).eq("id", c.id);
+    const { data: changed } = await supabase.from("categories").update({ is_active: !c.is_active }).eq("id", c.id).select("id");
+    if (!changed?.length) window.alert(NOT_SAVED);
     router.refresh();
   }
 

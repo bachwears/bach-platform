@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Select } from "@bach/ui/components/select";
+import { NOT_SAVED } from "../lib/access";
 import { Textarea } from "@bach/ui/components/textarea";
 
 const STATUS_AR: Record<string, string> = {
@@ -69,17 +70,19 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
 
   async function setStatus(id: string, status: string) {
     setBusy(true);
-    const { error: err } = await supabase.from("complaints").update({ status }).eq("id", id);
+    const { data: changed, error: err } = await supabase.from("complaints").update({ status }).eq("id", id).select("id");
     setBusy(false);
     if (err) setError(`ما مشي التحديث: ${err.message}`);
+    else if (!changed?.length) setError(NOT_SAVED);
     else void load();
   }
 
   async function assignToMe(id: string) {
     setBusy(true);
-    const { error: err } = await supabase.from("complaints").update({ assigned_to: myId }).eq("id", id);
+    const { data: changed, error: err } = await supabase.from("complaints").update({ assigned_to: myId }).eq("id", id).select("id");
     setBusy(false);
     if (err) setError(`ما مشي التعيين: ${err.message}`);
+    else if (!changed?.length) setError(NOT_SAVED);
     else void load();
   }
 

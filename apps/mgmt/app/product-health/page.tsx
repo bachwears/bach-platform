@@ -63,7 +63,7 @@ export default async function ProductHealthPage({
             <p className="mt-1 font-mono text-2xl font-semibold">{score}%</p>
             <p className="text-xs text-muted-foreground">{clean} منتج مكتمل من {products.length}</p>
           </div>
-          <Stat label="فيها نواقص أساسية" value={String(critical)} sub="صور، مقاسات، وصف عربي، فئة" tone="bad" />
+          <Stat label="فيها نواقص أساسية" value={String(critical)} sub="صور، مقاسات، فاريانت، فئة" tone="bad" />
           <Stat
             label="فيها نواقص ثانوية بس"
             value={String(perProduct.filter((r) => r.issues.length > 0).length - critical)}

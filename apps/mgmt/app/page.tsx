@@ -3,6 +3,7 @@ import { supabaseServer } from "@bach/supabase/server";
 
 import { Dashboard } from "../components/dashboard";
 import { MissingPhotosAlert } from "../components/missing-photos-alert";
+import { canOpen } from "../lib/access";
 import { Nav } from "../components/nav";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -15,10 +16,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const DASHBOARD_ROLES = new Set(["super_admin", "store_manager"]);
-const CATALOG_ROLES = new Set(["super_admin", "store_manager", "inventory_manager", "marketing_manager"]);
+const CATALOG_ROLES = new Set(["super_admin", "store_manager", "marketing_manager"]);
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
-  const { days: daysParam } = await searchParams;
+export default async function Home({ searchParams }: { searchParams: Promise<{ days?: string; denied?: string }> }) {
+  const { days: daysParam, denied } = await searchParams;
   const days = [7, 30, 90].includes(parseInt(daysParam ?? "", 10)) ? parseInt(daysParam!, 10) : 30;
 
   const supabase = await supabaseServer();
@@ -32,6 +33,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       <div className="print:hidden">
         <Nav />
       </div>
+      {denied ? (
+        <div role="alert" className="mx-auto mt-6 max-w-6xl rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm print:hidden">
+          دورك ({ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}) ما بيسمح بفتح هالصفحة: <span dir="ltr">{denied}</span>. إذا لازمتك، احكي السوبر أدمن.
+        </div>
+      ) : null}
       {CATALOG_ROLES.has(profile?.role ?? "") ? (
         <div className="mx-auto max-w-6xl px-4 pt-6 print:hidden">
           <MissingPhotosAlert />
@@ -49,9 +55,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
               دورك: {ROLE_LABELS[profile?.role ?? ""] ?? profile?.role} — اختار من فوق شو بدك تدير.
             </p>
           </div>
-          <Link href="/products" className="inline-block underline underline-offset-4">
-            إدارة المنتجات
-          </Link>
+          {canOpen("/products", profile?.role) ? (
+            <Link href="/products" className="inline-block underline underline-offset-4">
+              إدارة المنتجات
+            </Link>
+          ) : null}
         </main>
       )}
     </div>

@@ -6,6 +6,7 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Textarea } from "@bach/ui/components/textarea";
 
+import { NOT_SAVED } from "../lib/access";
 import { fmt } from "../lib/time";
 
 const STATUS_AR: Record<string, string> = {
@@ -77,8 +78,9 @@ export function ReturnsRequestsQueue() {
   async function setStatus(r: RequestRow, status: string) {
     const patch: Record<string, unknown> = { status, staff_notes: notes[r.id] ?? r.staff_notes };
     if (status === "approved" || status === "rejected") patch.decided_at = new Date().toISOString();
-    const { error: err } = await supabaseBrowser().from("return_requests").update(patch).eq("id", r.id);
+    const { data: changed, error: err } = await supabaseBrowser().from("return_requests").update(patch).eq("id", r.id).select("id");
     if (err) setError("ما انحفظ التغيير — جرّب مرة تانية.");
+    else if (!changed?.length) setError(NOT_SAVED);
     else void load();
   }
 

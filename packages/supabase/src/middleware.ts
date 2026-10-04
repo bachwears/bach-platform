@@ -5,8 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * Session refresh + auth gate for the staff apps (POS / MGMT):
  * - unauthenticated -> /login
  * - must_change_password -> /change-password (CLAUDE.md forced first-login change)
+ * - canOpen (optional): a role check per path; refused paths go to /?denied=<path>
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  canOpen?: (path: string, role: string | null) => boolean,
+) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -49,13 +53,20 @@ export async function updateSession(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("must_change_password")
+    .select("must_change_password, role")
     .eq("id", user.id)
     .single();
 
   if (profile?.must_change_password && path !== "/change-password") {
     const url = request.nextUrl.clone();
     url.pathname = "/change-password";
+    return NextResponse.redirect(url);
+  }
+
+  if (canOpen && path !== "/" && !canOpen(path, (profile as { role?: string | null } | null)?.role ?? null)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.search = `?denied=${encodeURIComponent(path)}`;
     return NextResponse.redirect(url);
   }
 

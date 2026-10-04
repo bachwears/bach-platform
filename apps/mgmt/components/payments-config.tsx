@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 
+import { NOT_SAVED } from "../lib/access";
 import { Banknote, CreditCard, Smartphone, Truck } from "lucide-react";
 
 const KIND_META: Record<string, { icon: typeof Banknote; note: string }> = {
@@ -56,12 +57,14 @@ export function PaymentsConfig() {
     }
     setBusy(true);
     setError("");
-    const { error: err } = await supabase
+    const { data: changed, error: err } = await supabase
       .from("payment_methods")
       .update({ is_enabled: !m.is_enabled, updated_at: new Date().toISOString() })
-      .eq("id", m.id);
+      .eq("id", m.id)
+      .select("id");
     setBusy(false);
     if (err) setError(`ما مشي التغيير: ${err.message}`);
+    else if (!changed?.length) setError(NOT_SAVED);
     else void load();
   }
 
