@@ -88,18 +88,27 @@ export default async function ProductPage({
   // The colour the main photos show (set in MGMT); preselected in the buy box.
   const shownColor = (media.find((m) => m.kind === "front") ?? media[0])?.color_en ?? null;
   const toImage = (m: { kind: string; storage_path: string }): GalleryImage => ({ kind: m.kind, url: m.storage_path });
+  // Opening a piece shows it worn first: model, then the product shots, then close-ups.
+  // Slot kinds say it for the main photos; extra photos carry the view in their file name.
+  const viewRank = (m: { kind: string; storage_path: string }) => {
+    const tag = /\/(front|back|model-zoom|model|detail)(?:-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path)?.[1];
+    const view = tag ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
+    return ({ model: 0, front: 1, back: 2, "model-zoom": 3, detail: 4 } as Record<string, number>)[view] ?? 5;
+  };
+  const wornFirst = <T extends { kind: string; storage_path: string }>(list: T[]) =>
+    list.map((m, i) => ({ m, i })).sort((a, b) => viewRank(a.m) - viewRank(b.m) || a.i - b.i).map((x) => x.m);
   const extras = media
     .filter((m) => m.kind === "other" && m.color_en && SHOWN_EXTRA(m.sort))
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
-  const gallery = [
+  const gallery = wornFirst([
     ...(["front", "back", "side", "closeup"]
       .map((kind) => media.find((m) => m.kind === kind))
       .filter(Boolean) as Array<{ kind: string; storage_path: string }>),
     ...extras.filter((m) => m.color_en === shownColor),
-  ].map(toImage);
+  ]).map(toImage);
   // Every other colour with photos of its own gets its own gallery.
   const colorGalleries: Record<string, GalleryImage[]> = {};
-  for (const m of extras) {
+  for (const m of wornFirst(extras)) {
     if (m.color_en === shownColor) continue;
     (colorGalleries[m.color_en!] ??= []).push(toImage(m));
   }
@@ -263,7 +272,16 @@ export default async function ProductPage({
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">
           {gallery.length ? (
-            <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} />
+            <>
+              {/* desktop: every photo, two-up, beside the sticky buy box */}
+              <div className="hidden lg:block">
+                <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} />
+              </div>
+              {/* phones: the first (worn) photo, then the buy box; the rest follow further down */}
+              <div className="lg:hidden">
+                <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} layout="lead" end={1} />
+              </div>
+            </>
           ) : (
             <div className="grid aspect-[3/4] place-items-center bg-secondary p-6 text-center">
               <span className="type-meta text-muted-foreground">{t(locale, "sf.pdp.photoSoon")}</span>
@@ -346,6 +364,11 @@ export default async function ProductPage({
             ) : null}
           </dl>
           <PdpAccordion locale={locale} />
+          {gallery.length > 1 || Object.keys(colorGalleries).length ? (
+            <div className="-mx-4 mt-10 lg:hidden">
+              <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} layout="stack" start={1} />
+            </div>
+          ) : null}
         </div>
       </main>
       </PdpColourProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import { photoSrc } from "../lib/media";
@@ -11,15 +11,25 @@ export interface GalleryImage {
 }
 
 /**
- * PDP photos: a full-bleed sideways swipe with a 1 / n counter on phones (the
- * buy box follows the first photo), a two-up grid on desktop.
- * Tapping a photo opens it full screen (arrow keys / on-screen arrows move,
- * Esc or backdrop closes). No hover zoom.
+ * PDP photos. "grid": two-up (desktop). "lead": the first photo alone, under the
+ * header, with the buy box right after it (phones). "stack": the remaining photos
+ * one under another further down the page (phones). start/end pick the slice;
+ * the full-screen viewer (tap a photo; arrows / Esc) always walks every photo.
  */
-export function PdpGallery({ images, name }: { images: GalleryImage[]; name: string }) {
+export function PdpGallery({
+  images,
+  name,
+  layout = "grid",
+  start = 0,
+  end,
+}: {
+  images: GalleryImage[];
+  name: string;
+  layout?: "grid" | "lead" | "stack";
+  start?: number;
+  end?: number;
+}) {
   const [open, setOpen] = useState<number | null>(null);
-  const [shown, setShown] = useState(0);
-  const track = useRef<HTMLDivElement>(null);
 
   const step = useCallback(
     (delta: number) => {
@@ -43,45 +53,39 @@ export function PdpGallery({ images, name }: { images: GalleryImage[]; name: str
     };
   }, [open, step]);
 
+  const slice = images.slice(start, end);
+  if (!slice.length) return null;
+
   return (
     <>
-      <div className="relative">
-      <div
-        ref={track}
-        onScroll={() => {
-          const el = track.current;
-          if (el && el.clientWidth) setShown(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
-        }}
-        className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:grid lg:snap-none lg:grid-cols-2 lg:gap-2 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
-      >
-        {images.map((m, i) => (
-          <button
-            key={m.url}
-            type="button"
-            onClick={() => setOpen(i)}
-            className="block w-full shrink-0 snap-center cursor-zoom-in bg-secondary"
-            aria-label={`${name} — ${m.kind}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              {...photoSrc(m.url, "(min-width: 1024px) 33vw, 100vw")}
-              alt={`${name} — ${m.kind}`}
-              loading={i < 2 ? "eager" : "lazy"}
-              draggable={false}
-              decoding="async"
-              className="aspect-[3/4] w-full object-cover"
-            />
-          </button>
-        ))}
-      </div>
-      {images.length > 1 && (
-        <p
-          aria-hidden
-          className="type-meta pointer-events-none absolute bottom-3 start-4 tabular-nums text-white mix-blend-difference lg:hidden"
-        >
-          {shown + 1} / {images.length}
-        </p>
-      )}
+      <div className={layout === "grid" ? "grid grid-cols-2 gap-2" : "grid gap-0.5"}>
+        {slice.map((m, k) => {
+          const i = start + k;
+          return (
+            <button
+              key={m.url}
+              type="button"
+              onClick={() => setOpen(i)}
+              className="block w-full cursor-zoom-in bg-secondary"
+              aria-label={`${name} — ${m.kind}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...photoSrc(m.url, layout === "grid" ? "(min-width: 1024px) 33vw, 100vw" : "100vw")}
+                alt={`${name} — ${m.kind}`}
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : undefined}
+                draggable={false}
+                decoding="async"
+                className={
+                  layout === "lead"
+                    ? "aspect-[3/4] max-h-[66dvh] w-full object-cover object-[center_20%]"
+                    : "aspect-[3/4] w-full object-cover"
+                }
+              />
+            </button>
+          );
+        })}
       </div>
 
       {open != null && images[open] && (

@@ -27,13 +27,28 @@ export function PdpColourGallery({
   hero,
   galleries,
   name,
+  layout = "grid",
+  start,
+  end,
 }: {
   hero: GalleryImage[];
   /** color_en → that colour's photos (hero colour excluded) */
   galleries: Record<string, GalleryImage[]>;
   name: string;
+  layout?: "grid" | "lead" | "stack";
+  start?: number;
+  end?: number;
 }) {
   const { color } = usePdpColour();
   const own = color ? galleries[color] : undefined;
-  return <PdpGallery key={own ? color : "hero"} images={own ?? hero} name={color && own ? `${name} — ${color}` : name} />;
+  return (
+    <PdpGallery
+      key={own ? color : "hero"}
+      images={own ?? hero}
+      name={color && own ? `${name} — ${color}` : name}
+      layout={layout}
+      start={start}
+      end={end}
+    />
+  );
 }
