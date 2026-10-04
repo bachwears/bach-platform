@@ -420,5 +420,8 @@
   "sf.cart.noAccount": "Don't have an account?",
   "sf.cart.register": "Register",
   "sf.home.theNew": "The New",
-  "sf.home.scrollDown": "Scroll down"
+  "sf.home.scrollDown": "Scroll down",
+  "sf.confirmed.deliverTo": "Delivery to",
+  "sf.confirmed.trackLink": "Track this order",
+  "sf.confirmed.paidWallet": "Paid from your wallet"
 }

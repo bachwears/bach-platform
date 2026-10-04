@@ -16,6 +16,7 @@ interface SummaryLine {
   color: string;
   quantity: number;
   lineTotal: number;
+  image?: string | null;
 }
 
 function usd(cents: number) {
@@ -54,7 +55,7 @@ export default function CheckoutPage() {
       const [{ data }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
-          .select("id, size, color_en, color_ar, is_active, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status)")
+          .select("id, size, color_en, color_ar, is_active, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, media_assets(kind, storage_path, color_en, sort))")
           .in("id", cart.map((l) => l.variantId)),
         supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
@@ -75,11 +76,24 @@ export default function CheckoutPage() {
         cart.flatMap((l) => {
           const v = (data ?? []).find((x) => x.id === l.variantId) as Record<string, unknown> | undefined;
           if (!sellable(v) || !v) return [];
-          const p = v.products as { name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null };
+          const p = v.products as {
+            name_en: string;
+            name_ar: string | null;
+            price_usd_cents: number;
+            sale_price_usd_cents: number | null;
+            media_assets?: Array<{ kind: string; storage_path: string; color_en: string | null; sort: number | null }>;
+          };
           const price = Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
           const name = p.name_en; // product names stay English in every locale
           const color = (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string;
-          return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity }];
+          // a photo in the bought colour when there is one, else the main photo
+          const media = p.media_assets ?? [];
+          const onSite = (m: (typeof media)[number]) => m.kind !== "other" || (m.sort != null && m.sort >= 100 && m.sort < 500);
+          const image =
+            (media.find((m) => m.kind === "front" && m.color_en === v.color_en) ??
+              media.find((m) => m.color_en === v.color_en && onSite(m)) ??
+              media.find((m) => m.kind === "front"))?.storage_path ?? null;
+          return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity, image }];
         }),
       );
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
@@ -208,6 +222,20 @@ export default function CheckoutPage() {
       sessionStorage.setItem(
         "bach-checkout-info",
         JSON.stringify({ name: name.trim(), phone, email: email.trim(), city: city.trim(), address: address.trim() }),
+      );
+      // what the confirmation page shows back (this browser only)
+      sessionStorage.setItem(
+        "bach-last-order",
+        JSON.stringify({
+          n: data![0].order_number,
+          lines: summary,
+          total,
+          discount: promoDiscount,
+          rate,
+          city: city.trim(),
+          address: address.trim(),
+          wallet: payMethod === "wallet",
+        }),
       );
     } catch {
       /* storage unavailable */

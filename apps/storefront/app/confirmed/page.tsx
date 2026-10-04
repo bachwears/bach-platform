@@ -3,6 +3,7 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
+import { OrderRecap } from "../../components/order-recap";
 import { getLocale, lhref } from "../../lib/locale";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default async function ConfirmedPage({
   return (
     <div className="min-h-dvh bg-background">
       <main className="form-underline mx-auto grid max-w-xl place-items-center px-4 pb-24 pt-16 text-center sm:pt-24">
-        <div>
+        <div className="w-full">
           <p className="type-meta text-muted-foreground">
             {t(locale, "sf.confirmed.eyebrow")}
           </p>
@@ -43,10 +44,11 @@ export default async function ConfirmedPage({
             <p className="text-xs text-muted-foreground">
               {t(locale, user ? "sf.confirmed.trackSignedIn" : "sf.confirmed.track")}
             </p>
-            <Link href={lhref(locale, "/shop")} className="inline-block text-sm underline underline-offset-4">
+            <Link href={lhref(locale, "/shop")} className="type-label inline-block underline underline-offset-4 hover:opacity-60">
               {t(locale, "sf.confirmed.continue")}
             </Link>
           </div>
+          {n ? <OrderRecap n={n} /> : null}
         </div>
       </main>
     </div>
