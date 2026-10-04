@@ -17,21 +17,27 @@ export function ScrollToShop({ href, title, cue }: { href: string; title: string
     const el = end.current;
     if (!el) return;
     let armed = false;
+    let visible = false;
     let gone = false;
-    const arm = () => {
-      armed = true;
-    };
     const go = () => {
-      if (gone) return;
+      if (gone || !armed || !visible) return;
       gone = true;
       router.push(href);
     };
+    const arm = () => {
+      armed = true;
+      go();
+    };
     window.addEventListener("wheel", arm, { passive: true });
+    window.addEventListener("touchstart", arm, { passive: true });
     window.addEventListener("touchmove", arm, { passive: true });
     window.addEventListener("keydown", arm);
+    // after a touch or wheel, the scroll itself can be what brings the strip in
+    window.addEventListener("scroll", go, { passive: true });
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e?.isIntersecting && armed) go();
+        visible = !!e?.isIntersecting;
+        go();
       },
       { threshold: 0.6 },
     );
@@ -39,8 +45,10 @@ export function ScrollToShop({ href, title, cue }: { href: string; title: string
     return () => {
       io.disconnect();
       window.removeEventListener("wheel", arm);
+      window.removeEventListener("touchstart", arm);
       window.removeEventListener("touchmove", arm);
       window.removeEventListener("keydown", arm);
+      window.removeEventListener("scroll", go);
     };
   }, [href, router]);
 
