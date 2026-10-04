@@ -88,8 +88,31 @@ export default function CheckoutPage() {
       const { data: pm } = await supabase.from("payment_methods").select("kind").eq("is_enabled", true).in("kind", ["cod", "stripe"]);
       void supabase.auth.getUser().then(async ({ data: u }) => {
         if (!u.user) return;
-        const { data: c } = await supabase.from("customers").select("balance_usd_cents").eq("auth_user_id", u.user.id).maybeSingle();
+        const { data: c } = await supabase
+          .from("customers")
+          .select("id, full_name, phone, email, balance_usd_cents")
+          .eq("auth_user_id", u.user.id)
+          .maybeSingle();
         setWalletBalance(c?.balance_usd_cents ?? 0);
+        // Signed in: start from the account details and the last delivery address.
+        // Only empty fields are filled, so nothing the shopper already typed is replaced.
+        const { data: last } = c
+          ? await supabase
+              .from("orders")
+              .select("ship_city, ship_address")
+              .eq("customer_id", c.id)
+              .eq("channel", "online")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
+        const fill = (set: (fn: (cur: string) => string) => void, value?: string | null) =>
+          value && set((cur) => cur || value);
+        fill(setName, c?.full_name);
+        fill(setPhone, c?.phone);
+        fill(setEmail, c?.email ?? u.user.email);
+        fill(setCity, last?.ship_city);
+        fill(setAddress, last?.ship_address);
       });
       const kinds = (pm ?? []).map((x) => x.kind);
       if (kinds.length) setMethods(kinds.sort());
@@ -216,7 +239,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <main className="mx-auto max-w-[1440px] px-4 pb-16 pt-8 sm:px-8">
+      <main data-checkout className="mx-auto max-w-[1440px] px-4 pb-16 pt-8 sm:px-8">
         <h1 className="type-heading">{t(locale, "sf.co.title")}</h1>
         <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.co.sub")}</p>
         {notice ? <p className="mt-4 border border-foreground px-4 py-3 text-xs">{notice}</p> : null}

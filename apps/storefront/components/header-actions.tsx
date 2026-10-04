@@ -59,6 +59,8 @@ export function HeaderActions({
   const path = pathname.replace(/^\/ar(?=\/|$)/, "") || "/";
   const tabBar = !NO_TAB_BAR.some((r) => r.test(path));
   const onBag = path.startsWith("/cart");
+  // Checkout keeps only the wordmark: no menu or links to wander off to.
+  const focus = path.startsWith("/checkout");
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<"categories" | "collections">("categories");
   const [mode, setMode] = useState<Mode>("light");
@@ -144,7 +146,7 @@ export function HeaderActions({
             aria-label={t(locale, "sf.nav.menu")}
             aria-expanded={menuOpen}
             aria-controls="site-menu"
-            className={`-ms-2 h-11 w-11 place-items-center ${tabBar ? "hidden md:grid" : "grid"}`}
+            className={`-ms-2 h-11 w-11 place-items-center ${focus ? "hidden" : tabBar ? "hidden md:grid" : "grid"}`}
             onClick={() => setMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
@@ -158,7 +160,7 @@ export function HeaderActions({
         </div>
 
         {/* Desktop: text links. */}
-        <nav aria-label={t(locale, "sf.nav.account")} className="hidden items-center gap-7 md:flex">
+        <nav aria-label={t(locale, "sf.nav.account")} className={`hidden items-center gap-7 ${focus ? "" : "md:flex"}`}>
           <Link
             href={lhref(locale, "/search")}
             className="type-label w-36 border-b border-foreground pb-1 text-start"
@@ -173,7 +175,7 @@ export function HeaderActions({
         </nav>
 
         {/* Phones without the tab bar: thin icons. */}
-        <div className={`items-center md:hidden ${tabBar ? "hidden" : "flex"}`}>
+        <div className={`items-center md:hidden ${tabBar || focus ? "hidden" : "flex"}`}>
           <Link
             href={lhref(locale, "/search")}
             aria-label={t(locale, "sf.nav.searchOpen")}

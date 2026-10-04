@@ -191,3 +191,8 @@
 body:has(#site-menu) .assistant-fab {
   display: none;
 }
+
+/* Checkout is distraction-free: no site footer under the form. */
+body:has([data-checkout]) footer {
+  display: none;
+}
