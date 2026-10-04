@@ -1,12 +1,15 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
+import { supabasePublic } from "@bach/supabase/public";
 import { t } from "@bach/i18n";
 
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { toCardProduct } from "../../lib/card";
+import { getShopCatalog } from "../../lib/cached";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
@@ -95,19 +98,7 @@ export default async function ShopPage({
   const sale = params.sale === "1";
 
   const locale = await getLocale();
-  const supabase = await supabaseServer();
-  const [{ data }, { data: merch }, { data: catTree }] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active, inventory_levels(quantity, reserved)), product_collections(collections(slug, name_en))",
-      )
-      .eq("status", "published")
-      .order("created_at", { ascending: false }),
-    supabase.from("merchandising_settings").select("active_season").maybeSingle(),
-    // "*" so banner_mobile_url is picked up whether or not its migration has landed
-    supabase.from("categories").select("*"),
-  ]);
+  const { data, merch, catTree } = await getShopCatalog();
   // Pieces without a front photo stay off the storefront until they are shot
   // (MGMT flags them under Product Data Health).
   const all = ((data ?? []) as unknown as ShopProduct[]).filter((p) =>
@@ -222,6 +213,8 @@ export default async function ShopPage({
   // Category context: the node, its ancestors (breadcrumb, banner), and the tab
   // strip — a category with sub-categories shows them; a leaf shows its siblings.
   const catNode = cat ? tree.find((c) => c.code === cat) : null;
+  // a made-up or retired category code is a missing page, not an empty shop
+  if (cat && !catNode) notFound();
   const ancestors: typeof tree = [];
   for (let n = catNode; n?.parent_id; ) {
     const up = tree.find((c) => c.id === n!.parent_id);
@@ -265,7 +258,7 @@ export default async function ShopPage({
   type Banner = { banner_url?: string | null; banner_mobile_url?: string | null; name_en: string };
   let headerImage: { url: string; mobile: string | null; alt: string } | null = null;
   if (col) {
-    const { data: colRow } = await supabase.from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
+    const { data: colRow } = await supabasePublic().from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
     if (colRow?.cover_url) headerImage = { url: colRow.cover_url, mobile: null, alt: colRow.name_en };
   } else {
     const src = [catNode, ...[...ancestors].reverse()].find((n) => (n as Banner | null)?.banner_url) as Banner | undefined;
@@ -422,8 +415,9 @@ export default async function ShopPage({
             data-density="standard"
             className="mt-4 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4 data-[density=large]:grid-cols-1 lg:data-[density=large]:grid-cols-2"
           >
-            {cards.map((p) => (
-              <ProductCard key={p.slug} product={p} locale={locale} />
+            {cards.map((p, i) => (
+              // the first row (2 on phones, 4 on desktop) is what the shopper sees first
+              <ProductCard key={p.slug} product={p} locale={locale} priority={i < 4} />
             ))}
           </div>
         ) : (

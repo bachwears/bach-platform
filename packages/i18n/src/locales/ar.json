@@ -433,5 +433,10 @@
   "sf.cart.freeDelivery": "التوصيل مجاني",
   "sf.shop.outOfStock": "نفدت الكمية",
   "sf.co.loadError": "ما قدرنا نحمّل الكيس هلّق. تأكّد من الاتصال وحدّث الصفحة.",
-  "sf.co.walletDiscount": "مكافأة المحفظة (10%)"
+  "sf.co.walletDiscount": "مكافأة المحفظة (10%)",
+  "sf.pdp.wishError": "ما قدرنا نحدّث قائمة المفضّلة — جرّب مرة تانية.",
+  "sf.pdp.wishErrorShort": "ما انحفظ — جرّب كمان مرة",
+  "sf.trackOrder.numberPh": "مثلاً 1024",
+  "sf.meta.searchDescription": "فتّش بتشكيلة BACH Wears الرجالية بالاسم أو الفئة أو اللون — قمصان، كنزات، بناطيل، أحذية وإكسسوارات.",
+  "sf.meta.helpDescription": "أجوبة عن الطلب، الدفع عند الاستلام، التوصيل بكل لبنان، المرتجع والتبديل، وحسابك على BACH Wears."
 }

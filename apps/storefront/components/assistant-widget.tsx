@@ -44,9 +44,34 @@ export function AssistantWidget() {
   // on phones the launcher would sit on the bag, place-order, pinned ADD and account-form buttons
   const inPurchase = /\/(cart|checkout|products|account)(\/|$)/.test(usePathname() ?? "");
 
+  // Phones/tablets: the launcher steps aside while the shopper scrolls down
+  // through photos and comes back on the way up (or near the top), so it never
+  // parks on the corner of a product card.
+  const [tucked, setTucked] = useState(false);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
+
+  useEffect(() => {
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        if (y < 120 || y < last - 8) setTucked(false);
+        else if (y > last + 8) setTucked(true);
+        if (Math.abs(y - last) > 8) last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   async function send() {
     const text = input.trim();
@@ -92,8 +117,10 @@ export function AssistantWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with us"
-          className={`assistant-fab fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center bg-foreground text-background transition-opacity hover:opacity-90 ${inPurchase ? "max-lg:hidden" : ""}`}
-        ><MessageCircle className="h-5 w-5" strokeWidth={1.25} aria-hidden /></button>
+          className={`assistant-fab fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center bg-foreground text-background transition-[opacity,transform] duration-300 hover:opacity-90 motion-reduce:transition-none max-lg:right-3 max-lg:h-10 max-lg:w-10 ${
+            tucked ? "max-lg:pointer-events-none max-lg:translate-y-3 max-lg:opacity-0 max-lg:focus-visible:pointer-events-auto max-lg:focus-visible:translate-y-0 max-lg:focus-visible:opacity-100" : ""
+          } ${inPurchase ? "max-lg:hidden" : ""}`}
+        ><MessageCircle className="h-5 w-5 max-lg:h-4 max-lg:w-4" strokeWidth={1.25} aria-hidden /></button>
       )}
       {open && (
         <div className="assistant-fab fixed bottom-5 right-5 z-40 flex h-[28rem] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden border bg-background">

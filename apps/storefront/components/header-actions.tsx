@@ -208,7 +208,9 @@ export function HeaderActions({
             aria-label={t(locale, "sf.nav.menu")}
             className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e"
           >
-            <div className={`h-16 shrink-0 items-center px-4 sm:px-8 ${tabBar ? "hidden md:flex" : "flex"}`}>
+            {/* Close X on every screen — on phones the MENU tab also toggles, but it
+                sits at the bottom where nobody looks for a way out. */}
+            <div className="flex h-16 shrink-0 items-center px-4 sm:px-8">
               <button
                 ref={closeRef}
                 type="button"
@@ -222,7 +224,7 @@ export function HeaderActions({
 
             <div
               role="tablist"
-              className={`flex shrink-0 gap-6 overflow-x-auto whitespace-nowrap px-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden ${tabBar ? "pt-8 md:pt-4" : "pt-4"}`}
+              className="flex shrink-0 gap-6 overflow-x-auto whitespace-nowrap px-4 pt-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden"
             >
               {(["categories", "collections"] as const).map((k) => (
                 <button

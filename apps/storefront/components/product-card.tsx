@@ -12,6 +12,13 @@ import { QuickShop, type QuickShopSize } from "./quick-shop";
 
 // two across on phones, four on desktop
 const CARD_SIZES = "(min-width: 1024px) 25vw, 50vw";
+// The shop's large-photo view (data-density="large" on the grid): one across on
+// phones, two on desktop. A single wider default (e.g. 34vw / 100vw) would make
+// every standard-view card on 3x phones and 2x desktops pull the 1600w file
+// instead of the 800w one — roughly 3x the bytes for the common case. Instead the
+// card follows the grid's density attribute; changing `sizes` makes the browser
+// re-pick from the srcset, so only large-view visitors fetch the bigger files.
+const LARGE_SIZES = "(min-width: 1024px) 50vw, 100vw";
 
 export interface CardProduct {
   slug: string;
@@ -47,12 +54,15 @@ export function ProductCard({
   locale = "en",
   revealDelay,
   variant = "full",
+  priority = false,
 }: {
   product: CardProduct;
   locale?: Locale;
   revealDelay?: number;
   /** "mini": photo, price and + only (recommendation rows) */
   variant?: "full" | "mini";
+  /** above the fold (first row of a grid): load the first photo eagerly, at high priority */
+  priority?: boolean;
 }) {
   const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   // Product names stay English in every locale (founder decision 2026-09-07).
@@ -99,7 +109,7 @@ export function ProductCard({
         ? { "data-reveal": "", style: { ["--anim-delay" as string]: `${revealDelay}ms` } }
         : {})}
     >
-      <CardPhotos key={colour ?? ""} photos={photos} hover={hover} href={href} name={name} mini={variant === "mini"} locale={locale} />
+      <CardPhotos key={colour ?? ""} photos={photos} hover={hover} href={href} name={name} mini={variant === "mini"} locale={locale} priority={priority} />
 
       {variant === "mini" ? (
         <div className="relative mt-2 pb-12 text-center">
@@ -140,6 +150,7 @@ function CardPhotos({
   name,
   mini,
   locale,
+  priority,
 }: {
   photos: string[];
   hover: string | null;
@@ -147,9 +158,22 @@ function CardPhotos({
   name: string;
   mini: boolean;
   locale: Locale;
+  priority: boolean;
 }) {
   const strip = useRef<HTMLAnchorElement>(null);
   const [at, setAt] = useState(0);
+  // Inside a grid with a density switch (the shop), follow it for `sizes`.
+  const [large, setLarge] = useState(false);
+  useEffect(() => {
+    const grid = strip.current?.closest("[data-density]");
+    if (!grid) return;
+    const sync = () => setLarge(grid.getAttribute("data-density") === "large");
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(grid, { attributes: true, attributeFilter: ["data-density"] });
+    return () => mo.disconnect();
+  }, []);
+  const sizes = large ? LARGE_SIZES : CARD_SIZES;
   // With a mouse the hover photo already shows on the first slide, so it isn't
   // repeated in the swipe; touch screens have no hover and keep every photo.
   const [mouse, setMouse] = useState(false);
@@ -190,9 +214,10 @@ function CardPhotos({
             <span key={src} className="relative h-full w-full shrink-0 snap-start snap-always">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                {...photoSrc(src, CARD_SIZES)}
+                {...photoSrc(src, sizes)}
                 alt=""
-                loading="lazy"
+                loading={priority && i === 0 ? "eager" : "lazy"}
+                fetchPriority={priority && i === 0 ? "high" : undefined}
                 decoding="async"
                 draggable={false}
                 className={`absolute inset-0 h-full w-full object-cover ${
@@ -205,7 +230,7 @@ function CardPhotos({
                 // mouse only: a lazy display:none image is never fetched on touch screens
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  {...photoSrc(hover, CARD_SIZES)}
+                  {...photoSrc(hover, sizes)}
                   alt=""
                   loading="lazy"
                   decoding="async"

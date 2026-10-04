@@ -29,6 +29,8 @@ ENV NODE_ENV=production \
 COPY --from=build /app/apps/${APP}/.next/standalone ./
 COPY --from=build /app/apps/${APP}/.next/static ./apps/${APP}/.next/static
 COPY --from=build /app/apps/${APP}/public ./apps/${APP}/public
+# Next writes its data cache (cached catalogue reads) under .next/cache at runtime
+RUN mkdir -p ./apps/${APP}/.next/cache && chown -R node:node ./apps/${APP}/.next/cache
 
 USER node
 EXPOSE 3000

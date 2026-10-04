@@ -10,6 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return {
     title: locale === "ar" ? "مركز المساعدة — باخ ويرز" : "Help Center — BACH Wears",
+    description: t(locale, "sf.meta.helpDescription"),
     alternates: { canonical: lhref(locale, "/help") },
   };
 }

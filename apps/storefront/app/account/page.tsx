@@ -89,6 +89,7 @@ export default function AccountPage() {
   const [userEmail, setUserEmail] = useState("");
   const [bdayInput, setBdayInput] = useState("");
   const [bdayMsg, setBdayMsg] = useState("");
+  const [consentError, setConsentError] = useState(false);
   const [orders, setOrders] = useState<MyOrder[]>([]);
   const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
   const [loaded, setLoaded] = useState(false);
@@ -312,12 +313,26 @@ export default function AccountPage() {
                     disabled={!customer?.id}
                     onChange={async (e) => {
                       const next = e.target.checked;
-                      setCustomer({ ...customer!, marketing_consent: next });
-                      await supabaseBrowser().from("customers").update({ marketing_consent: next }).eq("id", customer!.id!);
+                      setConsentError(false);
+                      setCustomer((c) => (c ? { ...c, marketing_consent: next } : c));
+                      const { error } = await supabaseBrowser()
+                        .from("customers")
+                        .update({ marketing_consent: next })
+                        .eq("id", customer!.id!);
+                      // consent must show what's actually stored: undo on failure
+                      if (error) {
+                        setCustomer((c) => (c ? { ...c, marketing_consent: !next } : c));
+                        setConsentError(true);
+                      }
                     }}
                   />
                   {t(locale, "sf.acct.offersLabel")}
                 </label>
+                {consentError && (
+                  <p role="alert" className="mt-2 text-xs text-destructive">
+                    {t(locale, "sf.acct.saveFailed")}
+                  </p>
+                )}
               </div>
             </div>
           </Row>

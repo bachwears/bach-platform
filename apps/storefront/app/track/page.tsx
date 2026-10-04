@@ -101,8 +101,11 @@ export default function TrackOrderPage() {
               className={INPUT}
               value={number}
               onChange={(e) => setNumber(e.target.value)}
+              name="order-number"
               inputMode="numeric"
-              placeholder="10"
+              autoComplete="off"
+              enterKeyHint="next"
+              placeholder={t(locale, "sf.trackOrder.numberPh")}
               dir="ltr"
             />
           </label>
@@ -112,8 +115,11 @@ export default function TrackOrderPage() {
               className={INPUT}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              type="tel"
+              name="tel"
               inputMode="tel"
               autoComplete="tel"
+              enterKeyHint="go"
               placeholder="+961 71 000 000"
               dir="ltr"
             />

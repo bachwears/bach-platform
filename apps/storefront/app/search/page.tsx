@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return {
     title: `${t(locale, "sf.search.title")} — BACH Wears`,
+    description: t(locale, "sf.meta.searchDescription"),
     // results pages are thin, query-driven duplicates of /shop
     robots: { index: false, follow: true },
     alternates: { canonical: lhref(locale, "/search") },
@@ -34,6 +35,51 @@ interface Row {
 
 
 const toCard = (p: Row): CardProduct => toCardProduct(p);
+
+/** Optimal-string-alignment (Damerau–Levenshtein) distance, giving up past `max`. */
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev2: number[] = [];
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let d = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + cost);
+      // a swapped pair of letters ("chelsae") counts as one edit
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d = Math.min(d, prev2[j - 2]! + 1);
+      cur.push(d);
+      best = Math.min(best, d);
+    }
+    if (best > max) return max + 1;
+    prev2 = prev;
+    prev = cur;
+  }
+  return prev[b.length]!;
+}
+
+// Typos allowed per query word: none under 4 letters, one from 4, two from 7.
+const allowedTypos = (w: string) => (w.length >= 7 ? 2 : w.length >= 4 ? 1 : 0);
+
+/**
+ * How a query word matches a product: 0 = exact (substring of the haystack),
+ * 1..2 = typos against a name / category / colour word (or the start of one,
+ * for a half-typed word), null = no match.
+ */
+function wordMatch(w: string, hay: string, tokens: string[]): number | null {
+  if (hay.includes(w)) return 0;
+  const k = allowedTypos(w);
+  if (!k) return null;
+  let best: number | null = null;
+  for (const tok of tokens) {
+    let d = editDistance(w, tok, k);
+    if (d > k && tok.length > w.length) d = editDistance(w, tok.slice(0, w.length), k);
+    if (d <= k && (best == null || d < best)) best = d;
+    if (best === 1) break;
+  }
+  return best;
+}
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q: raw = "" } = await searchParams;
@@ -60,28 +106,49 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const topCats = (cats ?? []).filter((c) => !c.parent_id && hasShown(c.id));
 
   // Every word must appear somewhere in the product: name, category,
-  // collection, colour or SKU — so "black boots" and "BW-KN" both work.
+  // collection, colour or SKU — so "black boots" and "BW-KN" both work. A word
+  // nothing contains may still match a name / category / colour word with a
+  // typo or two ("chelsae" → Chelsea). Words that do hit exactly somewhere stay
+  // exact, so "coat" never pulls in "cotton".
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-  const results = words.length
-    ? all
-        .filter((p) => {
-          const hay = [
-            p.name_en,
-            p.categories?.name_en ?? "",
-            ...p.product_collections.map((c) => c.collections?.name_en ?? ""),
-            ...p.product_variants.filter((v) => v.is_active).flatMap((v) => [v.color_en, v.sku ?? ""]),
-          ]
-            .join(" ")
-            .toLowerCase();
-          return words.every((w) => hay.includes(w));
-        })
-        // name hits first
-        .sort(
-          (a, b) =>
-            Number(!words.every((w) => a.name_en.toLowerCase().includes(w))) -
-            Number(!words.every((w) => b.name_en.toLowerCase().includes(w))),
-        )
+  const indexed = words.length
+    ? all.map((p) => {
+        const active = p.product_variants.filter((v) => v.is_active);
+        const hay = [
+          p.name_en,
+          p.categories?.name_en ?? "",
+          ...p.product_collections.map((c) => c.collections?.name_en ?? ""),
+          ...active.flatMap((v) => [v.color_en, v.sku ?? ""]),
+        ]
+          .join(" ")
+          .toLowerCase();
+        const tokens = [
+          ...new Set(
+            [p.name_en, p.categories?.name_en ?? "", ...active.map((v) => v.color_en)]
+              .join(" ")
+              .toLowerCase()
+              .split(/[^\p{L}\p{N}]+/u)
+              .filter((x) => x.length >= 3),
+          ),
+        ];
+        return { p, hay, tokens };
+      })
     : [];
+  const fuzzy = new Set(words.filter((w) => !indexed.some((x) => x.hay.includes(w))));
+  const scored = indexed.flatMap(({ p, hay, tokens }) => {
+    let typos = 0;
+    for (const w of words) {
+      const d = fuzzy.has(w) ? wordMatch(w, hay, tokens) : hay.includes(w) ? 0 : null;
+      if (d == null) return [];
+      typos += d;
+    }
+    const name = p.name_en.toLowerCase();
+    return [{ p, typos, nameHit: words.every((w) => name.includes(w)) }];
+  });
+  // exact before fuzzy, then name hits first (stable sort keeps newest first within ties)
+  const results = scored
+    .sort((a, b) => a.typos - b.typos || Number(!a.nameHit) - Number(!b.nameHit))
+    .map((r) => r.p);
   const suggested = all.slice(0, 8);
   const shown = (words.length ? results : suggested).map(toCard);
 

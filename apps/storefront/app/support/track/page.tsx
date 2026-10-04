@@ -69,7 +69,9 @@ function TrackForm() {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+961 71 000 000"
+          type="tel"
           inputMode="tel"
+          autoComplete="tel"
           dir="ltr"
           className="min-w-[200px] flex-1"
           onKeyDown={(e) => e.key === "Enter" && void track()}

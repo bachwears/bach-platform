@@ -1,44 +1,12 @@
-import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
 import { HeaderActions, type NavGroup, type NavTile } from "./header-actions";
 import { getLocale, lhref, pick } from "../lib/locale";
+import { getNavData } from "../lib/cached";
 
 export async function SiteHeader() {
   const locale = await getLocale();
-  const supabase = await supabaseServer();
-  const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }, { data: fronts }] = await Promise.all([
-    supabase
-      .from("categories")
-      // "*" brings the banner columns (banner_mobile_url may be missing on older schemas)
-      .select("*")
-      .eq("is_active", true)
-      .order("sort")
-      .order("name_en"),
-    supabase
-      .from("collections")
-      .select("slug, name_en, name_ar, sort")
-      .eq("is_active", true)
-      .order("sort")
-      .order("name_en"),
-    supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .not("sale_price_usd_cents", "is", null),
-    supabase
-      .from("products")
-      .select("media_assets(kind, storage_path)")
-      .eq("status", "published")
-      .order("created_at", { ascending: false })
-      .limit(20),
-    // the shop only lists photographed pieces, so the menu counts those
-    supabase
-      .from("media_assets")
-      .select("products!inner(category_id, status)")
-      .eq("kind", "front")
-      .eq("products.status", "published"),
-  ]);
+  const { cats, cols, saleCount, newest, fronts } = await getNavData();
 
   // Parent categories are menu groups; children with published products are
   // the links. A parent with nothing published disappears.

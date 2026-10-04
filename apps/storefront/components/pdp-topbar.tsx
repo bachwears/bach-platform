@@ -23,6 +23,7 @@ export function PdpTopBar({ productId, name }: { productId: string; name: string
   const [signedIn, setSignedIn] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -62,11 +63,22 @@ export function PdpTopBar({ productId, name }: { productId: string; name: string
       return;
     }
     const next = !saved;
+    const announce = (v: boolean) =>
+      window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: { productId, saved: v } }));
+    setFailed(false);
     setSaved(next);
-    window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: { productId, saved: next } }));
+    announce(next);
     const supabase = supabaseBrowser();
-    if (next) await supabase.from("wishlists").insert({ customer_id: customerId, product_id: productId });
-    else await supabase.from("wishlists").delete().eq("customer_id", customerId).eq("product_id", productId);
+    const { error } = next
+      ? await supabase.from("wishlists").insert({ customer_id: customerId, product_id: productId })
+      : await supabase.from("wishlists").delete().eq("customer_id", customerId).eq("product_id", productId);
+    // 23505: already saved elsewhere — keep it; anything else rolls back
+    if (error && error.code !== "23505") {
+      setSaved(!next);
+      announce(!next);
+      setFailed(true);
+      setTimeout(() => setFailed(false), 3000);
+    }
   }
 
   async function share() {
@@ -91,7 +103,13 @@ export function PdpTopBar({ productId, name }: { productId: string; name: string
         <X className="h-6 w-6" strokeWidth={1} aria-hidden />
       </button>
       <div className="flex items-center">
-        {copied ? <span className="type-meta me-1 text-muted-foreground">{t(locale, "sf.pdp.linkCopied")}</span> : null}
+        {failed ? (
+          <span role="alert" className="type-meta me-1 text-destructive">
+            {t(locale, "sf.pdp.wishErrorShort")}
+          </span>
+        ) : copied ? (
+          <span className="type-meta me-1 text-muted-foreground">{t(locale, "sf.pdp.linkCopied")}</span>
+        ) : null}
         <button
           type="button"
           aria-pressed={saved}

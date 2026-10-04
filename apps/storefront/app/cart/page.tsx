@@ -63,6 +63,7 @@ export default function CartPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [favs, setFavs] = useState<Array<{ productId: string; card: CardProduct }> | null>(null);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [favError, setFavError] = useState(false);
 
   useEffect(() => onCartChange(() => setLines(readCart())), []);
 
@@ -113,12 +114,13 @@ export default function CartPage() {
           media_assets: Array<{ kind: string; storage_path: string; color_en: string | null; sort: number | null }>;
         };
         if (p.status !== "published") continue;
-        const lvl = (v.inventory_levels as Array<{ quantity: number; reserved: number }>)[0];
+        // One row per branch: sum them, as the cards and the product page do.
+        const levels = (v.inventory_levels as Array<{ quantity: number; reserved: number }> | null) ?? [];
         map[v.id as string] = {
           id: v.id as string,
           size: v.size as string,
           color_en: (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string,
-          available: lvl ? lvl.quantity - lvl.reserved : 0,
+          available: levels.reduce((n, l) => n + l.quantity - l.reserved, 0),
           price: Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents),
           name: p.name_en, // product names stay English in every locale
           // opens the product on the colour in the bag
@@ -241,25 +243,42 @@ export default function CartPage() {
             ) : favs == null ? null : favs.length === 0 ? (
               <p className="type-label">{t(locale, "sf.cart.favEmpty")}</p>
             ) : (
-              <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
-                {favs.map((f) => (
-                  <div key={f.productId}>
-                    <ProductCard product={f.card} locale={locale} />
-                    <button
-                      type="button"
-                      className="type-meta mt-3 underline underline-offset-4 hover:opacity-60"
-                      onClick={async () => {
-                        setFavs((cur) => (cur ?? []).filter((x) => x.productId !== f.productId));
-                        if (customerId) {
-                          await supabaseBrowser().from("wishlists").delete().eq("customer_id", customerId).eq("product_id", f.productId);
-                        }
-                      }}
-                    >
-                      {t(locale, "sf.cart.remove")}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <>
+                {favError ? (
+                  <p role="alert" className="type-meta mb-6 text-destructive">
+                    {t(locale, "sf.pdp.wishError")}
+                  </p>
+                ) : null}
+                <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+                  {favs.map((f) => (
+                    <div key={f.productId}>
+                      <ProductCard product={f.card} locale={locale} />
+                      <button
+                        type="button"
+                        className="type-meta mt-3 underline underline-offset-4 hover:opacity-60"
+                        onClick={async () => {
+                          const before = favs;
+                          setFavError(false);
+                          setFavs((cur) => (cur ?? []).filter((x) => x.productId !== f.productId));
+                          if (!customerId) return;
+                          const { error } = await supabaseBrowser()
+                            .from("wishlists")
+                            .delete()
+                            .eq("customer_id", customerId)
+                            .eq("product_id", f.productId);
+                          // put the piece back where it was if the delete didn't go through
+                          if (error) {
+                            setFavs(before);
+                            setFavError(true);
+                          }
+                        }}
+                      >
+                        {t(locale, "sf.cart.remove")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </section>
         ) : !loaded ? null : bagEmpty ? (

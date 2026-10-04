@@ -89,15 +89,39 @@ export default function SupportPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </Field>
             <Field label={t(locale, "sf.support.phone")}>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" dir="ltr" placeholder="+961 71 000 000" />
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                dir="ltr"
+                placeholder="+961 71 000 000"
+              />
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t(locale, "sf.support.email")}>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" dir="ltr" />
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                dir="ltr"
+              />
             </Field>
             <Field label={t(locale, "sf.support.orderNo")}>
-              <Input value={orderNo} onChange={(e) => setOrderNo(e.target.value)} inputMode="numeric" dir="ltr" placeholder="#" />
+              <Input
+                value={orderNo}
+                onChange={(e) => setOrderNo(e.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                dir="ltr"
+                placeholder={t(locale, "sf.trackOrder.numberPh")}
+              />
             </Field>
           </div>
           <Field label={t(locale, "sf.support.subject")}>

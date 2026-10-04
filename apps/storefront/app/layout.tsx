@@ -7,7 +7,6 @@ import "./globals.css";
 
 import { AssistantWidget } from "../components/assistant-widget";
 import { SpinWheel } from "../components/spin-wheel";
-import { supabaseServer } from "@bach/supabase/server";
 import { ScrollReveal } from "../components/scroll-reveal";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
@@ -15,6 +14,7 @@ import { FooterGate } from "../components/footer-gate";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import { ThemeScript } from "@bach/ui/components/theme-script";
+import { getSiteContent } from "../lib/cached";
 import { getLocale } from "../lib/locale";
 
 const interTight = Inter_Tight({
@@ -58,9 +58,7 @@ export const metadata: Metadata = {
 // Latin renders in Inter Tight; Arabic glyphs fall through to IBM Plex Sans Arabic —
 // the stack order flips per locale so each script leads with its own face.
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const supabase = await supabaseServer();
-  const { data: wheelRow } = await supabase.from("site_content").select("value").eq("key", "wheel").maybeSingle();
-  const wheel = (wheelRow?.value ?? {}) as { enabled?: boolean; title?: string; sub?: string };
+  const wheel = ((await getSiteContent()).wheel ?? {}) as { enabled?: boolean; title?: string; sub?: string };
   const locale = await getLocale();
   const stack =
     locale === "ar"

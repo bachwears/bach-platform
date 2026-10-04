@@ -22,6 +22,15 @@ const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 const firstName = (p: Payload) => String(p.customer_name ?? "").trim().split(/\s+/)[0] ?? "";
+/** A link from the payload only if it points at our own site — never an outside address. */
+const ownLink = (link: unknown) => {
+  try {
+    const u = new URL(String(link ?? ""), SITE);
+    return u.origin === SITE ? u.toString() : `${SITE}/shop`;
+  } catch {
+    return `${SITE}/shop`;
+  }
+};
 const track = (p: Payload) => `${SITE}/track?n=${encodeURIComponent(String(p.order_number ?? ""))}`;
 
 interface EventDesign {
@@ -117,7 +126,7 @@ const EVENTS: Record<string, EventDesign> = {
       ["Size", String(p.size ?? "")],
       ["Colour", String(p.color ?? "")],
     ],
-    cta: (p) => ({ label: "Shop now", url: String(p.link ?? `${SITE}/shop`) }),
+    cta: (p) => ({ label: "Shop now", url: ownLink(p.link) }),
   },
   birthday_today: {
     eyebrow: () => "Happy birthday",

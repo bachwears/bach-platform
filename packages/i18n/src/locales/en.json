@@ -433,5 +433,10 @@
   "sf.cart.freeDelivery": "Free delivery included",
   "sf.shop.outOfStock": "Out of stock",
   "sf.co.loadError": "We couldn't load your bag just now. Check your connection and refresh the page.",
-  "sf.co.walletDiscount": "Wallet reward (10%)"
+  "sf.co.walletDiscount": "Wallet reward (10%)",
+  "sf.pdp.wishError": "Could not update your wishlist — try again.",
+  "sf.pdp.wishErrorShort": "Not saved — try again",
+  "sf.trackOrder.numberPh": "e.g. 1024",
+  "sf.meta.searchDescription": "Search BACH Wears menswear by name, category or colour — shirts, knitwear, trousers, shoes and accessories.",
+  "sf.meta.helpDescription": "Answers on ordering, cash on delivery, delivery across Lebanon, returns and exchanges, and your BACH Wears account."
 }

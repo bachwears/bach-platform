@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseServer } from "@bach/supabase/server";
+import { getHomeCollections, getSiteContent } from "../lib/cached";
 import { t } from "@bach/i18n";
 
 import { ScrollToShop } from "../components/scroll-to-shop";
@@ -18,27 +18,16 @@ interface HeroContent {
 
 export default async function Home() {
   const locale = await getLocale();
-  const supabase = await supabaseServer();
   // MGMT-editable hero copy; the shipped defaults stay as fallback so a
   // missing row (or table) can never blank the homepage.
-  const { data: contentRows } = await supabase
-    .from("site_content")
-    .select("key, value")
-    .in("key", ["home_hero", "home_banner"]);
-  const hero: HeroContent = (contentRows?.find((r) => r.key === "home_hero")?.value as HeroContent) ?? {};
-  const banner = (contentRows?.find((r) => r.key === "home_banner")?.value ?? {}) as {
+  const [content, collections] = await Promise.all([getSiteContent(), getHomeCollections()]);
+  const hero: HeroContent = (content.home_hero as HeroContent) ?? {};
+  const banner = (content.home_banner ?? {}) as {
     enabled?: boolean;
     text?: string;
     cta_label?: string;
     cta_href?: string;
   };
-  const { data: collectionRows } = await supabase
-    .from("collections")
-    .select("slug, name_en, description_en, cover_url")
-    .eq("is_active", true)
-    .not("cover_url", "is", null)
-    .order("sort");
-  const collections = collectionRows ?? [];
   const orgLd = {
     "@context": "https://schema.org",
     "@type": "Organization",

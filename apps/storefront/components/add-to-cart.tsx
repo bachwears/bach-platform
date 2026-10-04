@@ -126,6 +126,7 @@ export function AddToCart({
   const [alertFor, setAlertFor] = useState<PdpVariant | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [wishError, setWishError] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyState, setNotifyState] = useState<"idle" | "done" | "error">("idle");
@@ -225,13 +226,20 @@ export function AddToCart({
       return;
     }
     const supabase = supabaseBrowser();
-    window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: { productId, saved: !saved } }));
-    if (saved) {
-      setSaved(false);
-      await supabase.from("wishlists").delete().eq("customer_id", customerId).eq("product_id", productId);
-    } else {
-      setSaved(true);
-      await supabase.from("wishlists").insert({ customer_id: customerId, product_id: productId });
+    const next = !saved;
+    const announce = (v: boolean) =>
+      window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: { productId, saved: v } }));
+    setWishError(false);
+    setSaved(next);
+    announce(next);
+    const { error } = next
+      ? await supabase.from("wishlists").insert({ customer_id: customerId, product_id: productId })
+      : await supabase.from("wishlists").delete().eq("customer_id", customerId).eq("product_id", productId);
+    // 23505: already saved (e.g. from another tab) — the state is right as it is
+    if (error && error.code !== "23505") {
+      setSaved(!next);
+      announce(!next);
+      setWishError(true);
     }
   }
 
@@ -376,6 +384,11 @@ export function AddToCart({
           <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} strokeWidth={1.25} aria-hidden />
         </button>
       </div>
+      {wishError && (
+        <p role="alert" className="type-meta hidden text-destructive md:block">
+          {t(locale, "sf.pdp.wishError")}
+        </p>
+      )}
 
       {sheet && (
         <>
