@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { t, type Locale } from "@bach/i18n";
@@ -121,7 +121,7 @@ export function ProductCard({
 
 /** The card's photo strip: native sideways scroll with snap, a thin position bar, hover arrows. */
 function CardPhotos({
-  photos,
+  photos: all,
   hover,
   href,
   name,
@@ -137,6 +137,17 @@ function CardPhotos({
 }) {
   const strip = useRef<HTMLAnchorElement>(null);
   const [at, setAt] = useState(0);
+  // With a mouse the hover photo already shows on the first slide, so it isn't
+  // repeated in the swipe; touch screens have no hover and keep every photo.
+  const [mouse, setMouse] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setMouse(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const photos = mouse && hover ? all.filter((src, i) => i === 0 || src !== hover) : all;
   const many = photos.length > 1;
 
   const go = (step: number) => {
