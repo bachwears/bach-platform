@@ -10,6 +10,7 @@ import { t } from "@bach/i18n";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto, hoverPhoto } from "../../lib/media";
+import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface Detail {
@@ -69,6 +70,7 @@ export default function CartPage() {
   const [lines, setLines] = useState(readCart());
   const [details, setDetails] = useState<Record<string, Detail>>({});
   const [rate, setRate] = useState<number | null>(null);
+  const deliveryRule = useDeliveryRule();
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState("");
   const [suggested, setSuggested] = useState<CardProduct[]>([]);
@@ -198,7 +200,8 @@ export default function CartPage() {
       );
   }, [bagEmpty, suggested.length]);
 
-  const lbp = rate ? `${Math.round((subtotal / 100) * rate).toLocaleString("en-US")} LBP` : null;
+  const delivery = deliveryFor(subtotal, deliveryRule);
+  const lbp = rate ? `${Math.round(((subtotal + delivery) / 100) * rate).toLocaleString("en-US")} LBP` : null;
   const tabClass = (on: boolean) =>
     `type-label flex items-center gap-2 pb-2 ${on ? "font-semibold" : "text-muted-foreground hover:text-foreground"}`;
   const loginHref = lhref(locale, "/account/login");
@@ -356,9 +359,14 @@ export default function CartPage() {
                 <div className="lg:space-y-2">
                   <p className="type-label flex justify-between gap-6 tabular-nums">
                     <span>{t(locale, "sf.cart.total")}</span>
-                    <span>{usd(subtotal)}</span>
+                    <span>{usd(subtotal + delivery)}</span>
                   </p>
                   {lbp ? <p className="type-meta text-muted-foreground tabular-nums lg:text-end">{lbp}</p> : null}
+                  <p className="type-meta text-muted-foreground lg:mt-2">
+                    {delivery
+                      ? t(locale, "sf.cart.withDelivery", { v: usd(delivery), f: usd(deliveryRule.freeOver) })
+                      : t(locale, "sf.cart.freeDelivery")}
+                  </p>
                   <p className="type-meta mt-4 hidden normal-case text-muted-foreground lg:block">{t(locale, "sf.cart.codNote")}</p>
                 </div>
                 {overStock ? (

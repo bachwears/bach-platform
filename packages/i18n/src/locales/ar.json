@@ -100,7 +100,7 @@
   "sf.home.headline": "البس عن قصد.",
   "sf.home.sub": "أناقة رجالية مدروسة، معمولة لتدوم أكتر من موسم.",
   "sf.cart.inLbp": "بالليرة اللبنانية",
-  "sf.cart.codNote": "الدفع عند الاستلام · أجرة التوصيل بتنحسب مع شركة التوصيل.",
+  "sf.cart.codNote": "الدفع كاش عند الاستلام، دولار أو ليرة.",
   "sf.cart.onlyStock": "بقي {n} بالمخزون فقط",
   "sf.co.title": "إتمام الطلب",
   "sf.co.sub": "الدفع عند الاستلام. منتصل فيك لنأكّد قبل الشحن.",
@@ -127,7 +127,7 @@
   "sf.co.consent": "بتسجيل الطلب بتوافق نتواصل معك لتنسيق التوصيل.",
   "sf.co.promoDiscount": "خصم الكود",
   "sf.co.total": "المجموع",
-  "sf.co.cashNote": "الدفع كاش لما يوصل طلبك.",
+  "sf.co.cashNote": "بتدفع كاش لما يوصل طلبك، مع التوصيل.",
   "sf.co.editBag": "عدّل الشنتة",
   "sf.confirmed.title": "وصلنا طلبك",
   "sf.confirmed.sub": "رقم الطلب",
@@ -425,5 +425,10 @@
   "sf.confirmed.trackLink": "تابع هالطلب",
   "sf.confirmed.paidWallet": "مدفوع من محفظتك",
   "sf.pdp.share": "شارك",
-  "sf.pdp.linkCopied": "انسخ الرابط"
+  "sf.pdp.linkCopied": "انسخ الرابط",
+  "sf.co.delivery": "التوصيل",
+  "sf.co.deliveryFree": "مجاني",
+  "sf.co.freeFrom": "التوصيل مجاني من {v}",
+  "sf.cart.withDelivery": "مع توصيل {v} · مجاني من {f}",
+  "sf.cart.freeDelivery": "التوصيل مجاني"
 }

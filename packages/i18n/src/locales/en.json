@@ -100,7 +100,7 @@
   "sf.home.headline": "Dress with intent.",
   "sf.home.sub": "Considered menswear, built to last beyond the season.",
   "sf.cart.inLbp": "In LBP",
-  "sf.cart.codNote": "Cash on delivery · Delivery fee settled with the courier.",
+  "sf.cart.codNote": "Cash on delivery, in USD or LBP.",
   "sf.cart.onlyStock": "Only {n} in stock",
   "sf.co.title": "Checkout",
   "sf.co.sub": "Cash on delivery. We'll call to confirm before dispatch.",
@@ -127,7 +127,7 @@
   "sf.co.consent": "By placing an order you agree to be contacted for delivery coordination.",
   "sf.co.promoDiscount": "Promo discount",
   "sf.co.total": "Total",
-  "sf.co.cashNote": "Paid in cash when your order arrives.",
+  "sf.co.cashNote": "Paid in cash when your order arrives, delivery included.",
   "sf.co.editBag": "Edit bag",
   "sf.confirmed.title": "Order received",
   "sf.confirmed.sub": "Order number",
@@ -425,5 +425,10 @@
   "sf.confirmed.trackLink": "Track this order",
   "sf.confirmed.paidWallet": "Paid from your wallet",
   "sf.pdp.share": "Share",
-  "sf.pdp.linkCopied": "Link copied"
+  "sf.pdp.linkCopied": "Link copied",
+  "sf.co.delivery": "Delivery",
+  "sf.co.deliveryFree": "Free",
+  "sf.co.freeFrom": "Free delivery from {v}",
+  "sf.cart.withDelivery": "Includes {v} delivery · free from {f}",
+  "sf.cart.freeDelivery": "Free delivery included"
 }

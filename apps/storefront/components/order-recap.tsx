@@ -12,6 +12,8 @@ interface Recap {
   lines: Array<{ name: string; size: string; color: string; quantity: number; lineTotal: number; image?: string | null }>;
   total: number;
   discount: number;
+  /** delivery fee charged (cents); missing on recaps saved before the fee existed */
+  delivery?: number;
   rate: number | null;
   city: string;
   address: string;
@@ -77,6 +79,12 @@ export function OrderRecap({ n }: { n: string }) {
         <p className="type-meta mt-4 flex justify-between text-muted-foreground">
           <span>{t(locale, "sf.co.promoDiscount")}</span>
           <span className="tabular-nums">−{usd(recap.discount)}</span>
+        </p>
+      ) : null}
+      {recap.delivery != null ? (
+        <p className="type-meta mt-3 flex justify-between">
+          <span>{t(locale, "sf.co.delivery")}</span>
+          <span className="tabular-nums">{recap.delivery ? usd(recap.delivery) : t(locale, "sf.co.deliveryFree")}</span>
         </p>
       ) : null}
       <p className="type-label mt-4 flex justify-between">

@@ -9,6 +9,7 @@ import { t } from "@bach/i18n";
 
 import { clearCart, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto } from "../../lib/media";
+import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface SummaryLine {
@@ -41,6 +42,7 @@ export default function CheckoutPage() {
   const [methods, setMethods] = useState<string[]>(["cod"]);
   const [payMethod, setPayMethod] = useState("cod");
   const [walletBalance, setWalletBalance] = useState(0);
+  const deliveryRule = useDeliveryRule();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -138,7 +140,10 @@ export default function CheckoutPage() {
         ? Math.round((subtotal * promoState.value) / 100)
         : Math.min(promoState.value, subtotal)
       : 0;
-  const total = subtotal - promoDiscount;
+  const delivery = deliveryFor(subtotal - promoDiscount, deliveryRule);
+  const total = subtotal - promoDiscount + delivery;
+  // wallet payers get 10% off the pieces; delivery is paid in full
+  const walletPays = Math.round((subtotal - promoDiscount) * 0.9) + delivery;
   const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && city.trim() && address.trim();
@@ -228,6 +233,7 @@ export default function CheckoutPage() {
           lines: summary,
           total,
           discount: promoDiscount,
+          delivery,
           rate,
           city: city.trim(),
           address: address.trim(),
@@ -318,13 +324,13 @@ export default function CheckoutPage() {
             <Step n={3} title={t(locale, "sf.co.payment")}>
               <div role="radiogroup" aria-label={t(locale, "sf.co.payment")} className="border-t">
                 {methods.length > 1 &&
-                  walletBalance >= Math.round(total * 0.9) &&
+                  walletBalance >= walletPays &&
                   walletBalance > 0 &&
                   payOption(
                     "wallet",
                     "Pay from wallet — 10% off",
                     <span dir="ltr">
-                      Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${(Math.round(total * 0.9) / 100).toFixed(2)}
+                      Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${(walletPays / 100).toFixed(2)}
                     </span>,
                   )}
                 {methods.includes("cod") && payOption("cod", t(locale, "sf.co.cod"), t(locale, "sf.co.codSub"))}
@@ -417,6 +423,15 @@ export default function CheckoutPage() {
                 <span className="tabular-nums">- {usd(promoDiscount)}</span>
               </p>
             )}
+            <p className="type-meta mt-3 flex justify-between">
+              <span>{t(locale, "sf.co.delivery")}</span>
+              <span className="tabular-nums">{delivery ? usd(delivery) : t(locale, "sf.co.deliveryFree")}</span>
+            </p>
+            {delivery ? (
+              <p className="type-meta mt-1 text-muted-foreground">
+                {t(locale, "sf.co.freeFrom", { v: usd(deliveryRule.freeOver) })}
+              </p>
+            ) : null}
             <p className="type-label mt-4 flex justify-between border-t pt-4">
               <span>{t(locale, "sf.co.total")}</span>
               <span className="tabular-nums">{usd(total)}</span>

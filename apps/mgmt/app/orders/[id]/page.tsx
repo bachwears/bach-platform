@@ -159,6 +159,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <Row label="المجموع" value={usd(order.subtotal_usd_cents)} />
             {order.discount_usd_cents > 0 && <Row label="الخصم" value={`- ${usd(order.discount_usd_cents)}`} />}
             {order.tva_usd_cents > 0 && <Row label="TVA" value={usd(order.tva_usd_cents)} />}
+            {(order as { delivery_usd_cents?: number }).delivery_usd_cents ? (
+              <Row label="التوصيل" value={usd((order as { delivery_usd_cents?: number }).delivery_usd_cents!)} />
+            ) : null}
             <div className="flex justify-between border-t pt-2 font-semibold">
               <span>الإجمالي</span>
               <span className="font-mono">
