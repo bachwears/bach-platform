@@ -36,7 +36,7 @@ export default function TrackOrderPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [order, setOrder] = useState<Tracked | null>(null);
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get("n")?.replace(/\D/g, "") ?? "";
@@ -80,7 +80,7 @@ export default function TrackOrderPage() {
         <h1 className="type-heading">{t(locale, "sf.trackOrder.title")}</h1>
         <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.trackOrder.sub")}</p>
         {/* the account shortcut is for guests; a signed-in customer came from there */}
-        {!signedIn ? (
+        {signedIn === false ? (
           <p className="mt-4 text-xs">
             <Link href={lhref(locale, "/account?open=orders")} className="underline underline-offset-4">
               {t(locale, "sf.trackOrder.account")}
