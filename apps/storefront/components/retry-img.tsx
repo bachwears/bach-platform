@@ -17,6 +17,24 @@ export function RetryImg(props: React.ImgHTMLAttributes<HTMLImageElement> & { sr
   const { src, srcSet, onError, ...rest } = props;
   const [attempt, setAttempt] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const img = useRef<HTMLImageElement>(null);
+
+  const retry = () => {
+    setAttempt((a) => {
+      if (a >= TRIES) return a;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setAttempt(a + 1), 600 * (a + 1));
+      return a;
+    });
+  };
+
+  // A photo that failed before the page's script woke up (server-rendered, first
+  // row, eager) fired its error event before React listened: catch it on mount.
+  useEffect(() => {
+    const el = img.current;
+    if (el && el.complete && el.naturalWidth === 0 && el.currentSrc) retry();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // a new photo (colour switch) starts fresh
   useEffect(() => {
@@ -30,6 +48,7 @@ export function RetryImg(props: React.ImgHTMLAttributes<HTMLImageElement> & { sr
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     <img
       {...rest}
+      ref={img}
       src={bust(src, attempt)}
       srcSet={srcSet?.split(", ").map((part) => {
         const [url, w] = part.split(" ");
@@ -37,8 +56,7 @@ export function RetryImg(props: React.ImgHTMLAttributes<HTMLImageElement> & { sr
       }).join(", ")}
       onError={(e) => {
         onError?.(e);
-        if (attempt >= TRIES) return;
-        timer.current = setTimeout(() => setAttempt((a) => a + 1), 600 * (attempt + 1));
+        retry();
       }}
     />
   );
