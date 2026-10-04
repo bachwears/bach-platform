@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const two = (n: number) => String(n).padStart(2, "0");
 
 /**
- * Full-screen editorial slides under the header, swiped sideways (scroll-snap),
+ * Full-screen editorial slides under the header (and above the phone tab bar), swiped sideways (scroll-snap),
  * with arrows on desktop, arrow keys, and a 01 / 08 counter. No autoplay.
  * Slides are server-rendered children; this only adds the navigation.
  */
@@ -50,7 +50,7 @@ export function HomeSlides({ children, labels }: { children: React.ReactNode[]; 
         ref={track}
         onScroll={onScroll}
         tabIndex={0}
-        className="flex h-[calc(100dvh-4rem)] min-h-[520px] snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] focus-visible:outline-none [&::-webkit-scrollbar]:hidden"
+        className="flex h-[calc(100dvh-4rem)] min-h-[520px] max-md:h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom,0px))] snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] focus-visible:outline-none [&::-webkit-scrollbar]:hidden"
       >
         {children.map((slide, i) => (
           <div
