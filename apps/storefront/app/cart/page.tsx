@@ -291,7 +291,7 @@ export default function CartPage() {
             ) : null}
           </section>
         ) : (
-          <section className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px]" role="tabpanel">
+          <section className="mt-8 grid gap-10 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0" role="tabpanel">
             <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
               {rows.map(({ line, d }) => (
                 <li key={line.variantId} className="flex gap-4 sm:block">
@@ -348,9 +348,9 @@ export default function CartPage() {
               ))}
             </ul>
 
-            {/* Total: a side column on desktop; on phones a bar that stays at the
-                bottom of the screen while the lines scroll, then settles under them. */}
-            <aside className="sticky bottom-0 z-30 -mx-4 border-t bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:-mx-8 sm:px-8 lg:bottom-auto lg:top-24 lg:mx-0 lg:h-fit lg:self-start lg:border lg:p-6">
+            {/* Total: a side column on desktop; on phones a bar fixed to the bottom
+                of the screen (the list keeps room for it underneath). */}
+            <aside className="fixed inset-x-0 bottom-0 z-30 border-t bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:px-8 lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-24 lg:h-fit lg:self-start lg:border lg:p-6">
               <div className="flex items-center justify-between gap-4 lg:block">
                 <div className="lg:space-y-2">
                   <p className="type-label flex justify-between gap-6 tabular-nums">
