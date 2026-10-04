@@ -230,7 +230,7 @@ export default async function ShopPage({
     a.sort - b.sort || a.name_en.localeCompare(b.name_en);
   const tabs: Array<{ code: string; label: string; active: boolean }> = parentNode
     ? [
-        { code: parentNode.code, label: `${t(locale, "sf.shop.allProducts")} — ${pick(locale, parentNode.name_en, parentNode.name_ar)}`, active: cat === parentNode.code },
+        { code: parentNode.code, label: t(locale, "sf.nav.viewAll"), active: cat === parentNode.code },
         ...tree
           .filter((c) => c.parent_id === parentNode.id && hasProducts(c.code))
           .sort(byRow)
@@ -333,7 +333,9 @@ export default async function ShopPage({
         </picture>
       ) : null}
       <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-6 sm:px-8">
-        <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
+        {/* Inside a category the shopper already knows where they are: breadcrumb,
+            title and count stay for search engines and screen readers only. */}
+        <nav aria-label="Breadcrumb" className={cat ? "sr-only" : "type-meta text-muted-foreground"}>
           <ol className="flex flex-wrap items-center gap-1.5">
             <li>
               <Link href={lhref(locale, "/")} className="hover:text-foreground">
@@ -365,10 +367,10 @@ export default async function ShopPage({
           </ol>
         </nav>
 
-        <h1 className="type-display mt-6 text-[34px] sm:text-5xl" style={{ textWrap: "balance" }}>
+        <h1 className={cat ? "sr-only" : "type-display mt-6 text-[34px] sm:text-5xl"} style={{ textWrap: "balance" }}>
           {title}
         </h1>
-        <p className="type-meta mt-3 text-muted-foreground">
+        <p className={cat ? "sr-only" : "type-meta mt-3 text-muted-foreground"}>
           {cards.length} {cards.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
           {(activeFilters > 0 || cat) && (
             <>
@@ -380,7 +382,7 @@ export default async function ShopPage({
           )}
         </p>
 
-        <div className="-mx-4 mt-6 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
+        <div className={`-mx-4 overflow-x-auto ${cat ? "" : "mt-6"} px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden`}>
           <div className="flex gap-6 whitespace-nowrap">
             {tabs.map((tab) => (
               <Link
