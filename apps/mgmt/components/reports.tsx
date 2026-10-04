@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { fetchAllPages } from "../lib/fetch-all";
 import { addDays, beirutMidnightOf, beirutStamp, beirutYmd } from "../lib/time";
 
 function csvEscape(v: unknown): string {
@@ -59,12 +60,16 @@ export function Reports() {
 
   async function exportOrders(): Promise<number> {
     const { fromIso, toIso } = range();
-    const { data, error: err } = await supabase
-      .from("orders")
-      .select("number, created_at, channel, status, payment_method, ship_name, ship_phone, ship_city, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, total_usd_cents, lbp_per_usd, customers(full_name, phone)")
-      .gte("created_at", fromIso)
-      .lt("created_at", toIso)
-      .order("created_at");
+    const { data, error: err } = await fetchAllPages((a, b) =>
+      supabase
+        .from("orders")
+        .select("number, created_at, channel, status, payment_method, ship_name, ship_phone, ship_city, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, total_usd_cents, lbp_per_usd, customers(full_name, phone)")
+        .gte("created_at", fromIso)
+        .lt("created_at", toIso)
+        .order("created_at")
+        .order("id")
+        .range(a, b),
+    );
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((o) => {
       const cust = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
@@ -93,11 +98,15 @@ export function Reports() {
 
   async function exportItems(): Promise<number> {
     const { fromIso, toIso } = range();
-    const { data, error: err } = await supabase
-      .from("order_items")
-      .select("sku, name_en, size, color_en, quantity, unit_price_usd_cents, line_total_usd_cents, orders!inner(number, created_at, channel, status)")
-      .gte("orders.created_at", fromIso)
-      .lt("orders.created_at", toIso);
+    const { data, error: err } = await fetchAllPages((a, b) =>
+      supabase
+        .from("order_items")
+        .select("sku, name_en, size, color_en, quantity, unit_price_usd_cents, line_total_usd_cents, orders!inner(number, created_at, channel, status)")
+        .gte("orders.created_at", fromIso)
+        .lt("orders.created_at", toIso)
+        .order("id")
+        .range(a, b),
+    );
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((i) => {
       const o = i.orders as unknown as { number: number; created_at: string; channel: string; status: string };
@@ -112,9 +121,9 @@ export function Reports() {
   async function exportDailyJournal(): Promise<number> {
     const { fromIso, toIso } = range();
     const [{ data: orders, error: e1 }, { data: pays, error: e2 }, { data: rets, error: e3 }] = await Promise.all([
-      supabase.from("orders").select("created_at, channel, status, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, total_usd_cents").gte("created_at", fromIso).lt("created_at", toIso).neq("status", "cancelled"),
-      supabase.from("order_payments").select("currency, method, amount_minor, created_at").gte("created_at", fromIso).lt("created_at", toIso),
-      supabase.from("order_returns").select("created_at, credit_usd_cents, order_return_payments(direction, currency, amount_minor)").gte("created_at", fromIso).lt("created_at", toIso),
+      fetchAllPages((a, b) => supabase.from("orders").select("created_at, channel, status, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, total_usd_cents").gte("created_at", fromIso).lt("created_at", toIso).neq("status", "cancelled").order("id").range(a, b)),
+      fetchAllPages((a, b) => supabase.from("order_payments").select("currency, method, amount_minor, created_at").gte("created_at", fromIso).lt("created_at", toIso).order("id").range(a, b)),
+      fetchAllPages((a, b) => supabase.from("order_returns").select("created_at, credit_usd_cents, order_return_payments(direction, currency, amount_minor)").gte("created_at", fromIso).lt("created_at", toIso).order("id").range(a, b)),
     ]);
     if (e1 || e2 || e3) throw new Error((e1 ?? e2 ?? e3)!.message);
     const days = new Map<string, { orders: number; gross: number; disc: number; tva: number; total: number; cashUsd: number; cashLbp: number; codUsd: number; codLbp: number; outUsd: number; outLbp: number }>();
@@ -192,10 +201,14 @@ export function Reports() {
   }
 
   async function exportCustomers(): Promise<number> {
-    const { data, error: err } = await supabase
-      .from("customers")
-      .select("full_name, phone, email, birthday, marketing_consent, created_at, orders(total_usd_cents, status)")
-      .order("created_at");
+    const { data, error: err } = await fetchAllPages((a, b) =>
+      supabase
+        .from("customers")
+        .select("full_name, phone, email, birthday, marketing_consent, created_at, orders(total_usd_cents, status)")
+        .order("created_at")
+        .order("id")
+        .range(a, b),
+    );
     if (err) throw new Error(err.message);
     const rows = (data ?? []).map((c) => {
       const orders = (c.orders as Array<{ total_usd_cents: number; status: string }>) ?? [];

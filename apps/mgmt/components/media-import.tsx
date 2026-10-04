@@ -182,7 +182,17 @@ export function MediaImport() {
         }
         bitmap.close();
         // re-uploading the same file name replaces that photo instead of adding a copy
-        await supabase.from("media_assets").delete().eq("product_id", productId).like("storage_path", `%/${p.sku}/${tag}-%`);
+        // exact tag only: a plain LIKE on `front-%` would also hit `front-2-…` (and `model-%` hits
+        // `model-zoom-…`), deleting sibling views uploaded earlier in this same batch
+        const { data: cands, error: candErr } = await supabase
+          .from("media_assets")
+          .select("id, storage_path")
+          .eq("product_id", productId)
+          .like("storage_path", `%/${p.sku}/${tag}-%`);
+        if (candErr) throw new Error(candErr.message);
+        const exact = new RegExp(`/${tag.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}-\\d+-\\d+\\.webp$`);
+        const staleIds = (cands ?? []).filter((r) => exact.test(r.storage_path ?? "")).map((r) => r.id);
+        if (staleIds.length) await supabase.from("media_assets").delete().in("id", staleIds);
         if (kind !== "other") await supabase.from("media_assets").delete().eq("product_id", productId).eq("kind", kind);
         const { error: insErr } = await supabase.from("media_assets").insert({
           product_id: productId,

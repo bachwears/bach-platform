@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { PrintButton } from "./print-button";
+import { fetchAllPages } from "../lib/fetch-all";
 import { addDays, beirutDayStart, beirutYmd, fmt } from "../lib/time";
 
 interface DashOrder {
@@ -35,21 +36,34 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   const from = beirutDayStart(days);
 
   const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ] = await Promise.all([
-    supabase
-      .from("orders")
-      .select(
-        "id, channel, status, created_at, subtotal_usd_cents, discount_usd_cents, total_usd_cents, order_items(quantity, line_total_usd_cents, name_en, product_variants(products(cost_usd_cents, categories(name_ar))))",
-      )
-      .gte("created_at", from.toISOString())
-      .not("status", "in", '("cancelled")'),
-    supabase
-      .from("order_payments")
-      .select("currency, method, amount_minor, orders!inner(created_at, status)")
-      .gte("orders.created_at", from.toISOString()),
-    supabase
-      .from("order_returns")
-      .select("credit_usd_cents, kind")
-      .gte("created_at", from.toISOString()),
+    // paged: PostgREST max_rows would otherwise cap long windows at 1000 rows
+    fetchAllPages((a, b) =>
+      supabase
+        .from("orders")
+        .select(
+          "id, channel, status, created_at, subtotal_usd_cents, discount_usd_cents, total_usd_cents, order_items(quantity, line_total_usd_cents, name_en, product_variants(products(cost_usd_cents, categories(name_ar))))",
+        )
+        .gte("created_at", from.toISOString())
+        .not("status", "in", '("cancelled")')
+        .order("id")
+        .range(a, b),
+    ),
+    fetchAllPages((a, b) =>
+      supabase
+        .from("order_payments")
+        .select("currency, method, amount_minor, orders!inner(created_at, status)")
+        .gte("orders.created_at", from.toISOString())
+        .order("id")
+        .range(a, b),
+    ),
+    fetchAllPages((a, b) =>
+      supabase
+        .from("order_returns")
+        .select("credit_usd_cents, kind")
+        .gte("created_at", from.toISOString())
+        .order("id")
+        .range(a, b),
+    ),
     supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", from.toISOString()),
     supabase.from("customers").select("id", { count: "exact", head: true }),
     supabase

@@ -48,9 +48,12 @@ export function FulfillmentQueue() {
   const [orders, setOrders] = useState<QueueOrder[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // a failed load used to look like "no orders" — the team would think everything shipped
+  const [loadError, setLoadError] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from("orders")
       .select(
         "id, number, status, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity)",
@@ -58,7 +61,13 @@ export function FulfillmentQueue() {
       .eq("channel", "online")
       .in("status", ["pending", "confirmed", "picking", "packed", "shipped", "delivered"])
       .order("created_at", { ascending: true });
-    setOrders((data ?? []) as unknown as QueueOrder[]);
+    if (err || !data) {
+      setLoadError(`ما قدرنا نحمّل الطلبات: ${err?.message ?? "خطأ بالاتصال"}`);
+      return;
+    }
+    setLoadError("");
+    setLoaded(true);
+    setOrders(data as unknown as QueueOrder[]);
   }, [supabase]);
 
   useEffect(() => {
@@ -82,8 +91,18 @@ export function FulfillmentQueue() {
   return (
     <div className="space-y-4">
       {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {loadError && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          <span>{loadError}</span>
+          <Button size="sm" variant="outline" onClick={() => void load()}>
+            جرّب مرة تانية
+          </Button>
+        </div>
+      )}
       {orders.length === 0 ? (
-        <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر.</p>
+        loaded && !loadError ? (
+          <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر.</p>
+        ) : null
       ) : (
         orders.map((o) => (
           <div key={o.id} className="space-y-3 rounded-lg border p-4">

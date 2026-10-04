@@ -6,6 +6,7 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { NOT_SAVED } from "../lib/access";
 
 const BUCKET = "product-media";
 const KINDS: Array<{ value: string; label: string }> = [
@@ -187,8 +188,11 @@ export function MediaMatch() {
     if (!product) return;
     if (!confirm("نحذف هالصورة من المنتج؟ (الملف بيضل بالستورج)")) return;
     setBusy(true);
+    setErr("");
     try {
-      await supabase.from("media_assets").delete().eq("id", row.id);
+      const { data: gone, error } = await supabase.from("media_assets").delete().eq("id", row.id).select("id");
+      if (error) setErr(`ما انحذفت الصورة: ${error.message}`);
+      else if (!gone?.length) setErr(NOT_SAVED);
       await openProduct(product);
     } finally {
       setBusy(false);

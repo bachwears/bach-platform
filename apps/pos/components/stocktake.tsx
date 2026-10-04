@@ -148,7 +148,8 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
   }
 
   async function runSearch(text: string, exact: boolean) {
-    const q = text.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const q = text.trim().replace(/[,()%*\\]/g, " ").trim();
     if (!q) return;
     const select = "id, sku, size, color_en, products!inner(name_en)";
     if (exact) {
@@ -237,7 +238,15 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                 variant="ghost"
                 onClick={async () => {
                   if (takeId && window.confirm("إلغاء جلسة الجرد؟ العدّات بتنحذف.")) {
-                    await supabase.rpc("stocktake_cancel", { p_stocktake_id: takeId });
+                    const { error: err } = await supabase.rpc("stocktake_cancel", { p_stocktake_id: takeId });
+                    if (err) {
+                      setError(
+                        err.message.includes("manager")
+                          ? "بس المدير فيه يلغي جلسة الجرد."
+                          : `ما انلغت جلسة الجرد: ${err.message}`,
+                      );
+                      return;
+                    }
                     window.location.reload();
                   }
                 }}

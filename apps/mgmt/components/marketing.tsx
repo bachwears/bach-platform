@@ -178,7 +178,13 @@ export function Marketing() {
   }
 
   async function togglePromo(p: Promo) {
-    await supabase.from("promocodes").update({ is_enabled: !p.is_enabled, updated_at: new Date().toISOString() }).eq("id", p.id);
+    const { data: changed, error: err } = await supabase
+      .from("promocodes")
+      .update({ is_enabled: !p.is_enabled, updated_at: new Date().toISOString() })
+      .eq("id", p.id)
+      .select("id");
+    if (err) fail(`ما انحفظ التغيير: ${err.message}`);
+    else if (!changed?.length) fail(NOT_SAVED);
     void load();
   }
 
@@ -197,7 +203,9 @@ export function Marketing() {
   }
 
   async function togglePopup(p: Popup) {
-    await supabase.from("popups").update({ is_active: !p.is_active }).eq("id", p.id);
+    const { data: changed, error: err } = await supabase.from("popups").update({ is_active: !p.is_active }).eq("id", p.id).select("id");
+    if (err) fail(`ما انحفظ التغيير: ${err.message}`);
+    else if (!changed?.length) fail(NOT_SAVED);
     void load();
   }
 

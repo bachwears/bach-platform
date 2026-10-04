@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 
+import { fetchLatestRate, RATE_CHANGED_MSG } from "../lib/rate";
+
 interface OrderItem {
   id: string;
   variant_id: string;
@@ -62,8 +64,9 @@ function lbp(n: number): string {
   return `${Math.round(n).toLocaleString("en-US")} ل.ل`;
 }
 
-export function Returns({ branchId, branchName, rate }: { branchId: string; branchName: string; rate: number }) {
+export function Returns({ branchId, branchName, rate: initialRate }: { branchId: string; branchName: string; rate: number }) {
   const supabase = supabaseBrowser();
+  const [rate, setRate] = useState(initialRate);
   const [invoice, setInvoice] = useState("");
   const [order, setOrder] = useState<LoadedOrder | null>(null);
   const [retQty, setRetQty] = useState<Record<string, number>>({});
@@ -87,6 +90,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     setOrder(null);
     setRetQty({});
     setNewCart([]);
+    setToWallet(false);
     const num = parseInt(invoice.replace(/[^0-9]/g, ""), 10);
     if (!num) {
       setError("اكتب رقم الفاتورة (أرقام بس).");
@@ -153,7 +157,8 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
   const canSubmit = !busy && anyReturn && settled && (mode === "return" || newCart.length > 0);
 
   async function search(text: string) {
-    const q = text.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const q = text.trim().replace(/[,()%*\\]/g, " ").trim();
     if (q.length < 2) {
       setResults([]);
       return;
@@ -198,6 +203,15 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     const cash: Array<{ currency: string; amount_minor: number }> = [];
     if (payUsdCents > 0) cash.push({ currency: "USD", amount_minor: payUsdCents });
     if (payLbpAmt > 0) cash.push({ currency: "LBP", amount_minor: payLbpAmt });
+
+    // The rate may have changed in MGMT since this page loaded — settle at the current one.
+    const latestRate = await fetchLatestRate(supabase);
+    if (latestRate != null && latestRate !== rate) {
+      setRate(latestRate);
+      setBusy(false);
+      setError(RATE_CHANGED_MSG);
+      return;
+    }
 
     if (mode === "return") {
       const useWallet = toWallet && !!order.customer_id;
@@ -259,6 +273,7 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
     setNewCart([]);
     setPayUsd("");
     setPayLbp("");
+    setToWallet(false);
   }
 
   if (slip) {

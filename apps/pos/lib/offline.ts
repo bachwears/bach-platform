@@ -173,48 +173,79 @@ export function enqueueSale(sale: QueuedSale) {
   writeQueue([...readQueue(), sale]);
 }
 
+type SyncResult = { synced: number; failed: number; remaining: number };
+
+// Single-flight: mount, the `online` event and the "sync now" button can all fire at once.
+let syncInFlight: Promise<SyncResult> | null = null;
+
 /**
  * Replay queued sales. Returns counts; stops on connectivity errors,
  * marks business rejections as failed (kept for manager review).
+ * Each outcome is applied to a fresh read of the queue, so sales enqueued
+ * while a sync is running are never overwritten.
  */
-export async function syncQueue(supabase: SupabaseClient): Promise<{ synced: number; failed: number; remaining: number }> {
-  let synced = 0;
-  let failed = 0;
-  const queue = readQueue();
-  const keep: QueuedSale[] = [];
-  for (const sale of queue) {
-    if (sale.status === "failed") {
-      keep.push(sale);
-      failed += 1;
-      continue;
-    }
-    const { error } = await supabase.rpc("pos_checkout", {
-      p_branch_id: sale.branchId,
-      p_items: sale.items,
-      p_payments: sale.payments,
-      p_discount_basis_points: sale.discountBp,
-      p_acting_cashier: sale.actingCashier,
-      p_client_ref: sale.clientRef,
+export function syncQueue(supabase: SupabaseClient): Promise<SyncResult> {
+  if (!syncInFlight) {
+    syncInFlight = runSync(supabase).finally(() => {
+      syncInFlight = null;
     });
-    if (!error) {
+  }
+  return syncInFlight;
+}
+
+function applyOutcome(clientRef: string, outcome: { synced: true } | { failReason: string }) {
+  const current = readQueue();
+  writeQueue(
+    "synced" in outcome
+      ? current.filter((s) => s.clientRef !== clientRef)
+      : current.map((s) => (s.clientRef === clientRef ? { ...s, status: "failed" as const, failReason: outcome.failReason } : s)),
+  );
+}
+
+function summary(synced: number): SyncResult {
+  const q = readQueue();
+  return { synced, failed: q.filter((s) => s.status === "failed").length, remaining: q.length };
+}
+
+async function runSync(supabase: SupabaseClient): Promise<SyncResult> {
+  let synced = 0;
+  const pending = readQueue().filter((s) => s.status === "pending");
+  for (const sale of pending) {
+    let error: { message?: string; code?: string } | null = null;
+    try {
+      ({ error } = await supabase.rpc("pos_checkout", {
+        p_branch_id: sale.branchId,
+        p_items: sale.items,
+        p_payments: sale.payments,
+        p_discount_basis_points: sale.discountBp,
+        p_acting_cashier: sale.actingCashier,
+        p_client_ref: sale.clientRef,
+      }));
+    } catch {
+      error = { message: "Failed to fetch" };
+    }
+    // 23505 on client_ref: a concurrent replay already landed this exact sale.
+    if (!error || error.code === "23505") {
+      applyOutcome(sale.clientRef, { synced: true });
       synced += 1;
       continue;
     }
     const message = error.message ?? "";
     const isNetwork = /fetch|network|failed to|load failed/i.test(message) && !/insufficient|invalid|not allowed|exception/i.test(message);
     if (isNetwork) {
-      // Still offline: keep this and everything after it, untouched.
-      keep.push(sale);
-      const idx = queue.indexOf(sale);
-      keep.push(...queue.slice(idx + 1).filter((s) => s !== sale));
-      writeQueue(keep);
-      return { synced, failed, remaining: keep.length };
+      // Still offline: leave this and everything after it untouched.
+      return summary(synced);
     }
-    keep.push({ ...sale, status: "failed", failReason: message });
-    failed += 1;
+    applyOutcome(sale.clientRef, { failReason: message });
   }
-  writeQueue(keep);
-  return { synced, failed, remaining: keep.length };
+  return summary(synced);
+}
+
+/** Put a failed sale back in line for the next sync. */
+export function retryQueued(clientRef: string) {
+  writeQueue(
+    readQueue().map((s) => (s.clientRef === clientRef ? { ...s, status: "pending" as const, failReason: undefined } : s)),
+  );
 }
 
 export function removeFromQueue(clientRef: string) {

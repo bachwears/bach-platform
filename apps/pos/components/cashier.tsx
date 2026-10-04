@@ -1,6 +1,6 @@
 "use client";
 
-import { Cake, Clock, Pause, User, WifiOff } from "lucide-react";
+import { AlertTriangle, Cake, Clock, Pause, User, WifiOff } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -17,11 +17,15 @@ import {
   decrementCatalog,
   enqueueSale,
   readCatalog,
+  type QueuedSale,
   readQueue,
   refreshCatalog,
+  removeFromQueue,
+  retryQueued,
   searchCatalog,
   syncQueue,
 } from "../lib/offline";
+import { fetchLatestRate, RATE_CHANGED_MSG } from "../lib/rate";
 
 interface CartLine {
   variantId: string;
@@ -61,7 +65,7 @@ export function Cashier({
   branchName,
   role,
   currentUser,
-  rate,
+  rate: initialRate,
   tva,
 }: {
   branchId: string;
@@ -79,7 +83,9 @@ export function Cashier({
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [aliases, setAliases] = useState<BarcodeAlias[]>([]);
   const [online, setOnline] = useState(true);
+  const [rate, setRate] = useState(initialRate);
   const [queueCount, setQueueCount] = useState(0);
+  const [failedSales, setFailedSales] = useState<QueuedSale[]>([]);
   const [syncMsg, setSyncMsg] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [discountPct, setDiscountPct] = useState("");
@@ -139,13 +145,20 @@ export function Cashier({
 
   async function resumeSale(p: { id: string; cart: CartLine[]; customer_id: string | null }) {
     if (cart.length) return;
+    // Claim it first: only the device whose delete actually removed the row gets the cart,
+    // so two tills can't both resume the same parked sale.
+    const { data: claimed, error: claimErr } = await supabase.from("parked_sales").delete().eq("id", p.id).select("id");
+    void loadParked();
+    if (claimErr || !claimed?.length) {
+      setError("ما قدرنا نفتح هالبيع المركون — يمكن انفتح من جهاز تاني أو انمحى.");
+      return;
+    }
+    setError("");
     setCart(p.cart);
     if (p.customer_id) {
       const { data } = await supabase.from("customers").select("id, full_name, phone").eq("id", p.customer_id).maybeSingle();
       if (data) void attachCustomer(data);
     }
-    await supabase.from("parked_sales").delete().eq("id", p.id);
-    void loadParked();
   }
 
   async function openSwitcher() {
@@ -171,13 +184,19 @@ export function Cashier({
 
   useEffect(() => searchRef.current?.focus(), [receipt]);
 
+  const refreshQueueState = useCallback(() => {
+    const q = readQueue();
+    setQueueCount(q.length);
+    setFailedSales(q.filter((s) => s.status === "failed"));
+  }, []);
+
   const doSync = useCallback(async () => {
     if (readQueue().filter((q) => q.status === "pending").length === 0) {
-      setQueueCount(readQueue().length);
+      refreshQueueState();
       return;
     }
     const res = await syncQueue(supabase);
-    setQueueCount(res.remaining);
+    refreshQueueState();
     if (res.synced > 0) {
       setSyncMsg(`تزامنت ${res.synced} مبيعات ✓`);
       void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
@@ -187,11 +206,26 @@ export function Cashier({
       setSyncMsg(`${res.failed} مبيعات ما قبلها السيرفر — راجع المدير.`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId]);
+  }, [branchId, refreshQueueState]);
+
+  function retryFailed(clientRef: string) {
+    retryQueued(clientRef);
+    refreshQueueState();
+    void doSync();
+  }
+
+  function discardFailed(sale: QueuedSale) {
+    const ok = window.confirm(
+      `أكيد بدك تشيل البيع OFFLINE-${sale.clientRef.slice(0, 8).toUpperCase()} (${usd(sale.totalUsdCents)}) من الطابور؟ ما رح يتسجّل بالسيستم وما فيك ترجّعه.`,
+    );
+    if (!ok) return;
+    removeFromQueue(sale.clientRef);
+    refreshQueueState();
+  }
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setQueueCount(readQueue().length);
+    refreshQueueState();
     const cached = readCatalog(branchId);
     if (cached) {
       setCatalog(cached.items);
@@ -281,7 +315,8 @@ export function Cashier({
   }
 
   async function searchCustomers(q: string) {
-    const t = q.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const t = q.trim().replace(/[,()%*\\]/g, " ").trim();
     if (t.length < 3) {
       setCustResults([]);
       return;
@@ -413,7 +448,7 @@ export function Cashier({
       decrementCatalog(branchId, cart.map((l) => ({ variantId: l.variantId, quantity: l.quantity })));
       const cached = readCatalog(branchId);
       if (cached) setCatalog(cached.items);
-      setQueueCount(readQueue().length);
+      refreshQueueState();
       setOnline(false);
       finishSale(null, clientRef.slice(0, 8).toUpperCase());
     };
@@ -425,6 +460,16 @@ export function Cashier({
         return;
       }
       queueOffline();
+      return;
+    }
+
+    // The rate may have changed in MGMT since this page loaded — coverage, change and
+    // the receipt must use the rate the server will record.
+    const latestRate = await fetchLatestRate(supabase);
+    if (latestRate != null && latestRate !== rate) {
+      setRate(latestRate);
+      setBusy(false);
+      setError(RATE_CHANGED_MSG);
       return;
     }
 
@@ -545,6 +590,38 @@ export function Cashier({
             زامن الآن
           </Button>
         </p>
+      )}
+      {failedSales.length > 0 && (
+        <div className="space-y-2 rounded-md border border-destructive/50 px-4 py-3 text-sm">
+          <p className="font-medium text-destructive">
+            <AlertTriangle className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+            {failedSales.length} مبيعات أوفلاين رفضها السيرفر — راجعها مع المدير.
+          </p>
+          <ul className="divide-y">
+            {failedSales.map((s) => (
+              <li key={s.clientRef} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0">
+                  <span className="font-mono">OFFLINE-{s.clientRef.slice(0, 8).toUpperCase()}</span>
+                  {" · "}
+                  <span className="font-mono">{usd(s.totalUsdCents)}</span>
+                  {" · "}
+                  <span className="text-muted-foreground">{new Date(s.at).toLocaleString("en-GB")}</span>
+                  <span className="block break-words text-xs text-muted-foreground" dir="ltr">
+                    {s.failReason ?? ""}
+                  </span>
+                </span>
+                <span className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => retryFailed(s.clientRef)}>
+                    جرّب مرة تانية
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => discardFailed(s)}>
+                    شيل
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {syncMsg && <p className="rounded-md border px-4 py-2 text-sm text-green-600 dark:text-green-400">{syncMsg}</p>}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">

@@ -45,7 +45,8 @@ export function LabelPrinting() {
   const stock = STOCKS.find((s) => s.key === stockKey)!;
 
   async function search(text: string) {
-    const q = text.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const q = text.trim().replace(/[,()%*\\]/g, " ").trim();
     if (q.length < 2) {
       setResults([]);
       return;

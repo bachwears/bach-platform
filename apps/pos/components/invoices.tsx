@@ -33,7 +33,8 @@ export function Invoices() {
 
   async function search(text: string) {
     setQ(text);
-    const t = text.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const t = text.trim().replace(/[,()%*\\]/g, " ").trim();
     if (t.length < 2) {
       setRows([]);
       setSearched(false);

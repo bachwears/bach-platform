@@ -110,7 +110,8 @@ export function Purchasing({ branchId }: { branchId: string }) {
   }
 
   async function searchVariants(text: string) {
-    const q = text.trim();
+    // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
+    const q = text.trim().replace(/[,()%*\\]/g, " ").trim();
     if (q.length < 2) {
       setResults([]);
       return;
@@ -171,14 +172,17 @@ export function Purchasing({ branchId }: { branchId: string }) {
       })),
       p_note: poNote.trim() || null,
     });
+    let placeErr: { message: string } | null = null;
     if (!err && placeNow && data?.[0]) {
-      await supabase.rpc("po_place", { p_po_id: data[0].po_id });
+      ({ error: placeErr } = await supabase.rpc("po_place", { p_po_id: data[0].po_id }));
     }
     setBusy(false);
     if (err) {
       setError(`ما انعمل الطلب: ${err.message}`);
       return;
     }
+    // the PO exists either way — clear the form, but say it stayed a draft
+    if (placeErr) setError(`انحفظ الطلب كمسودة بس ما انبعت: ${placeErr.message}`);
     setLines([]);
     setPoNote("");
     void load();
@@ -346,7 +350,14 @@ export function Purchasing({ branchId }: { branchId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   {po.status === "draft" && (
-                    <Button size="sm" onClick={async () => { await supabase.rpc("po_place", { p_po_id: po.id }); void load(); }}>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        const { error: err } = await supabase.rpc("po_place", { p_po_id: po.id });
+                        setError(err ? `ما انبعت الطلب: ${err.message}` : "");
+                        void load();
+                      }}
+                    >
                       أرسل الطلب
                     </Button>
                   )}
@@ -356,7 +367,8 @@ export function Purchasing({ branchId }: { branchId: string }) {
                       variant="ghost"
                       onClick={async () => {
                         if (window.confirm("إلغاء طلب الشراء؟")) {
-                          await supabase.rpc("po_cancel", { p_po_id: po.id });
+                          const { error: err } = await supabase.rpc("po_cancel", { p_po_id: po.id });
+                          setError(err ? `ما انلغى الطلب: ${err.message}` : "");
                           void load();
                         }
                       }}
