@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { t } from "@bach/i18n";
 
@@ -58,15 +57,15 @@ export default function ForgotPasswordPage() {
                 />
               </label>
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button className="type-label h-12 w-full" disabled={!canSend} onClick={() => void send()}>
+              <button type="button" className="type-label h-12 w-full bg-foreground text-background hover:opacity-90 disabled:opacity-40" disabled={!canSend} onClick={() => void send()}>
                 {busy ? t(locale, "sf.forgot.sending") : t(locale, "sf.forgot.send")}
-              </Button>
+              </button>
             </div>
           </>
         )}
         <Link
           href={lhref(locale, "/account/login")}
-          className="mt-6 inline-block py-2 text-sm underline underline-offset-4"
+          className="type-meta mt-8 inline-block py-2 text-muted-foreground underline underline-offset-4 hover:text-foreground"
         >
           {t(locale, "sf.forgot.back")}
         </Link>

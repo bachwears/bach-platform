@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { t } from "@bach/i18n";
 
@@ -76,7 +75,7 @@ export default function ResetPasswordPage() {
         {state === "invalid" && (
           <div className="mt-4 space-y-3">
             <p className="text-muted-foreground">{t(locale, "sf.reset.invalid")}</p>
-            <Link href={lhref(locale, "/account/forgot")} className="inline-block py-2 text-sm underline underline-offset-4">
+            <Link href={lhref(locale, "/account/forgot")} className="type-meta inline-block py-2 text-muted-foreground underline underline-offset-4 hover:text-foreground">
               {t(locale, "sf.reset.again")}
             </Link>
           </div>
@@ -107,9 +106,9 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-destructive">{t(locale, "sf.new.noMatch")}</p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="type-label h-12 w-full" disabled={!canSave} onClick={() => void save()}>
+            <button type="button" className="type-label h-12 w-full bg-foreground text-background hover:opacity-90 disabled:opacity-40" disabled={!canSave} onClick={() => void save()}>
               {busy ? t(locale, "sf.reset.saving") : t(locale, "sf.reset.save")}
-            </Button>
+            </button>
           </div>
         )}
       </main>
