@@ -79,7 +79,7 @@ export function PdpGallery({
                 decoding="async"
                 className={
                   layout === "lead"
-                    ? "aspect-[3/4] max-h-[66dvh] w-full object-cover object-[center_20%]"
+                    ? "aspect-[3/4] max-h-[60dvh] w-full object-cover object-[center_20%]"
                     : "aspect-[3/4] w-full object-cover"
                 }
               />

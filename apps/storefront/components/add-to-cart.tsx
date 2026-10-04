@@ -221,7 +221,7 @@ export function AddToCart({
   const addLabel = soldOutEverywhere ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className="mt-6 space-y-5 lg:mt-8 lg:space-y-6">
       {colors.length > 1 && (
         <div>
           <p className="type-meta text-muted-foreground">

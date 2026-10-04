@@ -90,10 +90,12 @@ export default async function ProductPage({
   const toImage = (m: { kind: string; storage_path: string }): GalleryImage => ({ kind: m.kind, url: m.storage_path });
   // Opening a piece shows it worn first: model, then the product shots, then close-ups.
   // Slot kinds say it for the main photos; extra photos carry the view in their file name.
+  // Order: the main worn shot, the product front and back, more worn shots, close-ups, details.
   const viewRank = (m: { kind: string; storage_path: string }) => {
-    const tag = /\/(front|back|model-zoom|model|detail)(?:-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path)?.[1];
-    const view = tag ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
-    return ({ model: 0, front: 1, back: 2, "model-zoom": 3, detail: 4 } as Record<string, number>)[view] ?? 5;
+    const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path);
+    const view = hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
+    if (view === "model") return hit?.[2] ? 3 : 0;
+    return ({ front: 1, back: 2, "model-zoom": 4, detail: 5 } as Record<string, number>)[view] ?? 6;
   };
   const wornFirst = <T extends { kind: string; storage_path: string }>(list: T[]) =>
     list.map((m, i) => ({ m, i })).sort((a, b) => viewRank(a.m) - viewRank(b.m) || a.i - b.i).map((x) => x.m);
@@ -289,8 +291,8 @@ export default async function ProductPage({
           )}
         </div>
 
-        <div className="px-4 pt-6 lg:sticky lg:top-24 lg:self-start lg:px-0 lg:pt-0">
-          <nav aria-label="Breadcrumb" className="type-meta text-muted-foreground">
+        <div className="px-4 pt-4 lg:sticky lg:top-24 lg:self-start lg:px-0 lg:pt-0">
+          <nav aria-label="Breadcrumb" className="type-meta hidden text-muted-foreground lg:block">
             <Link href={lhref(locale, "/shop")} className="hover:text-foreground">
               {t(locale, "sf.nav.shop")}
             </Link>
@@ -303,7 +305,7 @@ export default async function ProductPage({
               </>
             )}
           </nav>
-          <h1 className="type-label mt-4 text-[15px] leading-snug">{displayName}</h1>
+          <h1 className="type-label text-[15px] leading-snug lg:mt-4">{displayName}</h1>
           <p className="type-label mt-2 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums">
             {onSale ? (
               <>
@@ -315,8 +317,9 @@ export default async function ProductPage({
             )}
           </p>
 
+          {/* phones: name, price, colours and ADD share the first screen with the photo; the description follows */}
           {displayDescription ? (
-            <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{displayDescription}</p>
+            <p className="mt-6 hidden text-sm leading-relaxed text-muted-foreground lg:block">{displayDescription}</p>
           ) : null}
 
           <AddToCart
@@ -342,6 +345,9 @@ export default async function ProductPage({
               <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />
             </div>
           )}
+          {displayDescription ? (
+            <p className="mt-8 text-sm leading-relaxed text-muted-foreground lg:hidden">{displayDescription}</p>
+          ) : null}
 
           <dl className="mt-10 border-t">
             {product.fit ? (
