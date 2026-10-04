@@ -6,18 +6,30 @@ import { Button } from "@bach/ui/components/button";
 
 const RENDITIONS = [1600, 800, 400];
 // {CODE}_{view}[-n].jpg — view words the photo team uses, mapped to the gallery slots:
-// front / back = product only (listing + hover), model = worn, model-zoom = worn close.
-// side / closeup are the older names for model / model-zoom and still work.
-const FILE_RE = /^(.+)_(front|back|model-zoom|model|side|closeup|detail)(?:-(\d+))?\.(jpe?g|png|webp)$/i;
+// front / back = product only (listing + hover), model-front / model-back = worn,
+// facing / turned away, model-zoom = worn close. model (direction unknown), side and
+// closeup are older names and still work.
+const FILE_RE = /^(.+)_(front|back|model-front|model-back|model-zoom|model|side|closeup|detail)(?:-(\d+))?\.(jpe?g|png|webp)$/i;
 const VIEW_KIND: Record<string, string> = {
   front: "front",
   back: "back",
+  "model-front": "side",
   model: "side",
   side: "side",
   "model-zoom": "closeup",
   closeup: "closeup",
 };
-const VIEW_SORT: Record<string, number> = { front: 0, back: 1, model: 2, side: 2, "model-zoom": 3, closeup: 3, detail: 4 };
+const VIEW_SORT: Record<string, number> = {
+  front: 0,
+  back: 1,
+  "model-front": 2,
+  model: 2,
+  side: 2,
+  "model-back": 3,
+  "model-zoom": 4,
+  closeup: 4,
+  detail: 5,
+};
 
 interface FileResult {
   name: string;
@@ -120,7 +132,7 @@ export function MediaImport() {
       const t = byColor.get(hit.color) ?? { files: 0, front: false, model: false };
       t.files += 1;
       if (p.n === 1 && p.view === "front") t.front = true;
-      if (p.n === 1 && (p.view === "model" || p.view === "side")) t.model = true;
+      if (p.n === 1 && (p.view === "model-front" || p.view === "model" || p.view === "side")) t.model = true;
       byColor.set(hit.color, t);
       tally.set(hit.productId, byColor);
     }
@@ -228,10 +240,10 @@ export function MediaImport() {
       >
         <p className="font-medium">اسحب الصور لهون أو دوس لتختار</p>
         <p className="text-sm text-muted-foreground" dir="ltr">
-          BW-SWT-109-LGR_front.jpg · _back · _model · _model-zoom · _model-2 · _detail
+          BW-SWT-109-LGR_front.jpg · _back · _model-front · _model-back · _model-zoom · _model-front-2 · _detail
         </p>
         <p className="text-xs text-muted-foreground">
-          الاسم = كود المنتج + كود اللون الظاهر بالصورة + نوع الصورة. front / back = القطعة لحالها (قدّام / ورا)، model = ع الموديل، model-zoom = ع الموديل عن قرب. منعمل تحويل WebP و٣ قياسات (1600 / 800 / 400) بالمتصفح قبل الرفع.
+          الاسم = كود المنتج + كود اللون الظاهر بالصورة + نوع الصورة. front / back = القطعة لحالها (قدّام / ورا)، model-front / model-back = ع الموديل (قدّام / ورا)، model-zoom = ع الموديل عن قرب. منعمل تحويل WebP و٣ قياسات (1600 / 800 / 400) بالمتصفح قبل الرفع.
         </p>
         <input
           ref={inputRef}

@@ -4,22 +4,21 @@ import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 
-/** Words for what a photo shows, for alt text: slot kind, or the view in an extra photo's file name. */
+/** Words for what a photo shows, for alt text. */
 function viewLabel(m: { kind: string; url: string }) {
-  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-[^/]+\.webp$/.exec(m.url)?.[1] ?? m.kind;
   return (
     ({
       front: "front view",
       back: "back view",
       model: "worn",
-      side: "worn",
+      "model-front": "worn, front",
+      "model-back": "worn, back",
       "model-zoom": "worn, close-up",
-      closeup: "worn, close-up",
       detail: "detail",
-    } as Record<string, string>)[view] ?? "photo"
+    } as Record<string, string>)[photoView(m).view] ?? "photo"
   );
 }
-import { photoSrc } from "../lib/media";
+import { photoSrc, photoView } from "../lib/media";
 
 export interface GalleryImage {
   kind: string;

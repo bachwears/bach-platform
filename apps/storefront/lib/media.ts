@@ -8,6 +8,22 @@ export function photoSrc(url: string, sizes: string): { src: string; srcSet?: st
   return { src: url, srcSet: `${base}400.webp 400w, ${base}800.webp 800w, ${url} 1600w`, sizes };
 }
 
+/**
+ * What a photo shows, from its storage file name (`{CODE}/{view}[-n]-{stamp}-{w}.webp`)
+ * or, for older slot rows, its kind. Views: front / back = product only;
+ * model-front / model-back = worn, facing / turned away; model = worn (older,
+ * direction unknown); model-zoom = worn close-up; detail.
+ */
+export function photoView(m: { kind: string; storage_path?: string; url?: string }): { view: string; numbered: boolean } {
+  const hit = /\/(front|back|model-front|model-back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(
+    m.storage_path ?? m.url ?? "",
+  );
+  return {
+    view: hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind,
+    numbered: Boolean(hit?.[2]),
+  };
+}
+
 export interface CardMedia {
   kind: string;
   storage_path: string;
@@ -35,12 +51,8 @@ export function hoverPhoto(media: CardMedia[]): string | null {
 // Which shot best stands for a piece in a small thumbnail: the product front,
 // then a worn shot, then the back — never a close-up or detail if avoidable.
 const thumbRank = (m: CardMedia) => {
-  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path)?.[1];
-  if (m.kind === "front" || view === "front") return 0;
-  if (m.kind === "side" || view === "model") return 1;
-  if (m.kind === "back" || view === "back") return 2;
-  if (m.kind === "closeup" || view === "model-zoom") return 3;
-  return 4;
+  const { view } = photoView(m);
+  return ({ front: 0, "model-front": 1, model: 1, back: 2, "model-back": 3, "model-zoom": 4 } as Record<string, number>)[view] ?? 5;
 };
 
 /** The photo of a given colour for bag and order lines: that colour's best shot, else the main photo. */

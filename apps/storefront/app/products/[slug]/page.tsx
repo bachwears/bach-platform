@@ -13,6 +13,7 @@ import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard } from "../../../components/product-card";
 import { CARD_COLUMNS, toCardProduct, type CardRow } from "../../../lib/card";
+import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
@@ -106,15 +107,14 @@ export default async function ProductPage({
   const shownColor = (media.find((m) => m.kind === "front") ?? media[0])?.color_en ?? null;
   const toImage = (m: { kind: string; storage_path: string }): GalleryImage => ({ kind: m.kind, url: m.storage_path });
   // Opening a piece shows it worn first (founder order 2026-10-05): the waist-up
-  // worn close-up, then the full worn shots (front, then back), any further worn
-  // close-ups, then the product front and back, then details.
+  // worn close-up, the full worn shot from the front, then from the back, any
+  // further worn shots, then the product front and back, then details.
   // Slot kinds say it for the main photos; extra photos carry the view in their file name.
   const viewRank = (m: { kind: string; storage_path: string }) => {
-    const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path);
-    const view = hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
-    const extra = Boolean(hit?.[2]); // a numbered shot: model-2, model-zoom-2…
-    if (view === "model-zoom") return extra ? 3 : 0;
-    if (view === "model") return extra ? 2 : 1;
+    const { view, numbered } = photoView(m);
+    if (view === "model-zoom") return numbered ? 3 : 0;
+    if (view === "model-front" || view === "model") return numbered ? 3 : 1;
+    if (view === "model-back") return numbered ? 3 : 2;
     return ({ front: 4, back: 5, detail: 6 } as Record<string, number>)[view] ?? 7;
   };
   const wornFirst = <T extends { kind: string; storage_path: string }>(list: T[]) =>
