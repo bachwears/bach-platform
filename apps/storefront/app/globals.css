@@ -186,3 +186,8 @@
   0% { transform: translateY(-100%); }
   100% { transform: translateY(200%); }
 }
+
+/* The open menu covers the page; the chat button waits behind it. */
+body:has(#site-menu) .assistant-fab {
+  display: none;
+}

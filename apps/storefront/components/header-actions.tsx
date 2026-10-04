@@ -214,7 +214,10 @@ export function HeaderActions({
               </button>
             </div>
 
-            <div role="tablist" className={`flex gap-6 px-4 sm:px-8 ${tabBar ? "pt-8 md:pt-4" : "pt-4"}`}>
+            <div
+              role="tablist"
+              className={`flex shrink-0 gap-6 overflow-x-auto whitespace-nowrap px-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden ${tabBar ? "pt-8 md:pt-4" : "pt-4"}`}
+            >
               {(["categories", "collections"] as const).map((k) => (
                 <button
                   key={k}
@@ -231,7 +234,7 @@ export function HeaderActions({
             </div>
 
             {tab === "categories" && tiles.length > 0 && (
-              <ul className="mt-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden">
+              <ul className="mt-6 flex shrink-0 snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:scroll-px-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {tiles.map((tile) => (
                   <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-36">
                     <Link href={tile.href} onClick={close} className="block">

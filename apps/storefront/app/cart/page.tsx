@@ -280,7 +280,7 @@ export default function CartPage() {
             {suggested.length ? (
               <>
                 <h2 className="type-label mb-6">{t(locale, "sf.cart.mayLike")}</h2>
-                <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
+                <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
                   {suggested.map((p) => (
                     <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">
                       <ProductCard product={p} locale={locale} variant="mini" />
