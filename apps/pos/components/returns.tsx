@@ -64,7 +64,17 @@ function lbp(n: number): string {
   return `${Math.round(n).toLocaleString("en-US")} ل.ل`;
 }
 
-export function Returns({ branchId, branchName, rate: initialRate }: { branchId: string; branchName: string; rate: number }) {
+export function Returns({
+  branchId,
+  branchName,
+  rate: initialRate,
+  tva,
+}: {
+  branchId: string;
+  branchName: string;
+  rate: number;
+  tva: { enabled: boolean; rateBasisPoints: number; pricesIncludeTva: boolean };
+}) {
   const supabase = supabaseBrowser();
   const [rate, setRate] = useState(initialRate);
   const [invoice, setInvoice] = useState("");
@@ -146,7 +156,12 @@ export function Returns({ branchId, branchName, rate: initialRate }: { branchId:
       }, 0)
     : 0;
 
-  const newTotal = newCart.reduce((s, l) => s + l.unitUsdCents * l.quantity, 0);
+  // Same total pos_exchange charges: TVA is added on top when prices exclude it.
+  const newItemsCents = newCart.reduce((s, l) => s + l.unitUsdCents * l.quantity, 0);
+  const newTotal =
+    tva.enabled && !tva.pricesIncludeTva
+      ? newItemsCents + Math.round((newItemsCents * tva.rateBasisPoints) / 10_000)
+      : newItemsCents;
   const net = mode === "exchange" ? newTotal - credit : -credit;
   const payUsdCents = Math.round((parseFloat(payUsd) || 0) * 100);
   const payLbpAmt = Math.round(parseFloat(payLbp.replace(/,/g, "")) || 0);
@@ -487,7 +502,9 @@ export function Returns({ branchId, branchName, rate: initialRate }: { branchId:
 
           <div className="space-y-2 rounded-lg border p-4 text-sm">
             <Row label="قيمة المرجوع" value={usd(credit)} />
-            {mode === "exchange" && <Row label="قيمة القطع الجديدة" value={usd(newTotal)} />}
+            {mode === "exchange" && (
+              <Row label={tva.enabled && !tva.pricesIncludeTva ? "قيمة القطع الجديدة (مع TVA)" : "قيمة القطع الجديدة"} value={usd(newTotal)} />
+            )}
             <div className="flex justify-between border-t pt-2 font-semibold">
               <span>{net > 5 ? "الزبون بيدفع" : net < -5 ? "منرجّع للزبون" : "متعادل"}</span>
               <span className="font-mono">

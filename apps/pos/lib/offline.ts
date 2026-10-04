@@ -147,7 +147,8 @@ export interface QueuedSale {
   at: string;
   branchId: string;
   items: Array<{ variant_id: string; quantity: number; line_discount_bp: number }>;
-  payments: Array<{ currency: string; amount_minor: number }>;
+  /** Net drawer lines (net: true); sales queued by older tills carry tendered amounts. */
+  payments: Array<{ currency: string; amount_minor: number; net?: boolean }>;
   discountBp: number;
   actingCashier: string | null;
   totalUsdCents: number;

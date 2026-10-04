@@ -12,7 +12,7 @@ export default async function ReturnsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: branch }, { data: rate }] = await Promise.all([
+  const [{ data: profile }, { data: branch }, { data: rate }, { data: tva }] = await Promise.all([
     supabase.from("profiles").select("full_name, role").eq("id", user!.id).single(),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at").limit(1).single(),
     supabase
@@ -21,6 +21,7 @@ export default async function ReturnsPage() {
       .order("effective_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("tva_settings").select("enabled, rate_basis_points, prices_include_tva").maybeSingle(),
   ]);
 
   const canSell = SELLING_ROLES.has(profile?.role ?? "");
@@ -56,7 +57,16 @@ export default async function ReturnsPage() {
         ) : !branch || !rate ? (
           <p className="p-8 text-center text-muted-foreground">لازم فرع مفعّل وسعر صرف محدّد قبل المرتجعات.</p>
         ) : (
-          <Returns branchId={branch.id} branchName={branch.name} rate={Number(rate.lbp_per_usd)} />
+          <Returns
+            branchId={branch.id}
+            branchName={branch.name}
+            rate={Number(rate.lbp_per_usd)}
+            tva={{
+              enabled: tva?.enabled ?? false,
+              rateBasisPoints: tva?.rate_basis_points ?? 0,
+              pricesIncludeTva: tva?.prices_include_tva ?? true,
+            }}
+          />
         )}
       </main>
     </div>

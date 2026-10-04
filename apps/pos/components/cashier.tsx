@@ -53,6 +53,12 @@ interface Receipt {
   rate: number;
 }
 
+/** Invoice discount a cashier may give alone (basis points = 10%). */
+const MAX_CASHIER_DISCOUNT_BP = 1000;
+/** LBP change is rounded down to this step. */
+const CHANGE_STEP_LBP = 5_000;
+const DISCOUNT_NEEDS_MANAGER_MSG = "الخصم فوق 10% بدّو موافقة مدير — بدّل عالمدير بالـPIN وكمّل.";
+
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -101,10 +107,10 @@ export function Cashier({
   const [bdayApplied, setBdayApplied] = useState(false);
   const [newCustName, setNewCustName] = useState("");
   const [parked, setParked] = useState<Array<{ id: string; label: string; cart: CartLine[]; customer_id: string | null; created_at: string }>>([]);
-  const [acting, setActing] = useState<{ id: string; name: string }>(currentUser);
+  const [acting, setActing] = useState<{ id: string; name: string; role: string }>({ ...currentUser, role });
   const [switching, setSwitching] = useState(false);
   const [cashiers, setCashiers] = useState<Array<{ profile_id: string; full_name: string; role: string; has_pin: boolean }>>([]);
-  const [pinFor, setPinFor] = useState<{ id: string; name: string } | null>(null);
+  const [pinFor, setPinFor] = useState<{ id: string; name: string; role: string } | null>(null);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
 
@@ -169,7 +175,12 @@ export function Cashier({
 
   async function confirmPin() {
     if (!pinFor || pin.length < 4) return;
-    const { data } = await supabase.rpc("verify_pos_pin", { p_profile_id: pinFor.id, p_pin: pin });
+    const { data, error: err } = await supabase.rpc("verify_pos_pin", { p_profile_id: pinFor.id, p_pin: pin });
+    if (err?.message.includes("too many PIN attempts")) {
+      setPinError("كتير محاولات غلط — استنّى ربع ساعة وجرّب مرة تانية.");
+      setPin("");
+      return;
+    }
     if (data === true) {
       setActing(pinFor);
       setPinFor(null);
@@ -376,6 +387,9 @@ export function Cashier({
     0,
   );
   const manualBp = Math.round(Math.min(Math.max(parseFloat(discountPct) || 0, 0), 100) * 100);
+  // Invoice discount above 10% needs a manager (signed in, or switched in with their PIN).
+  const actingIsManager = acting.role === "super_admin" || acting.role === "store_manager";
+  const discountNeedsManager = manualBp > MAX_CASHIER_DISCOUNT_BP && !actingIsManager;
   const discountBp = bdayApplied && bday ? Math.max(manualBp, bday.percent * 100) : manualBp;
   const discount = lineDiscounts + Math.round(((subtotal - lineDiscounts) * discountBp) / 10_000);
   let total = subtotal - discount;
@@ -389,12 +403,17 @@ export function Cashier({
     }
   }
 
-  const paidUsdCents = Math.round((parseFloat(paidUsd) || 0) * 100);
-  const paidLbp = Math.round(parseFloat(paidLbpStr.replace(/,/g, "")) || 0);
+  const paidUsdCents = Math.max(Math.round((parseFloat(paidUsd) || 0) * 100), 0);
+  const paidLbp = Math.max(Math.round(parseFloat(paidLbpStr.replace(/,/g, "")) || 0), 0);
   const paidEquivCents = paidUsdCents + Math.round((paidLbp / rate) * 100);
   const remainingCents = total - paidEquivCents;
-  const changeLbp = remainingCents < 0 ? Math.round((-remainingCents / 100) * rate) : 0;
-  const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy;
+  // Change is given in LBP, rounded DOWN to 5,000 LBP. Integer math in LBP × 10,000
+  // (rate has 2 decimals) — the same formula the server uses for older tills.
+  const rateCenti = Math.round(rate * 100);
+  const overLbpX = paidLbp * 10_000 + (paidUsdCents - total) * rateCenti;
+  const changeLbp = overLbpX >= CHANGE_STEP_LBP * 10_000 ? Math.floor(overLbpX / (CHANGE_STEP_LBP * 10_000)) * CHANGE_STEP_LBP : 0;
+  const changeKeptLbp = overLbpX > 0 ? Math.floor((overLbpX - changeLbp * 10_000) / 10_000) : 0;
+  const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy && !discountNeedsManager;
 
   function finishSale(number: number | null, offlineRef?: string) {
     setReceipt({
@@ -421,9 +440,12 @@ export function Cashier({
     if (!canCheckout) return;
     setBusy(true);
     setError("");
-    const payments: Array<{ currency: string; amount_minor: number }> = [];
-    if (paidUsdCents > 0) payments.push({ currency: "USD", amount_minor: paidUsdCents });
-    if (paidLbp > 0) payments.push({ currency: "LBP", amount_minor: paidLbp });
+    // Net lines = what stays in the drawer: the LBP change comes off the LBP line,
+    // which goes negative when a USD payment gets its change in LBP.
+    const payments: Array<{ currency: string; amount_minor: number; net: boolean }> = [];
+    if (paidUsdCents > 0) payments.push({ currency: "USD", amount_minor: paidUsdCents, net: true });
+    const netLbp = paidLbp - changeLbp;
+    if (netLbp !== 0) payments.push({ currency: "LBP", amount_minor: netLbp, net: true });
     const items = cart.map((l) => ({
       variant_id: l.variantId,
       quantity: l.quantity,
@@ -502,7 +524,11 @@ export function Cashier({
       setError(
         err.message.includes("insufficient stock")
           ? "المخزون ما بيكفي — حدّث الكمية."
-          : `ما مشي الحال: ${err.message}`,
+          : err.message.includes("needs a manager")
+            ? DISCOUNT_NEEDS_MANAGER_MSG
+            : err.message.includes("less than 30 days")
+              ? "هدية عيد الميلاد بتتفعّل بعد 30 يوم من تسجيل تاريخ الميلاد."
+              : `ما مشي الحال: ${err.message}`,
       );
       return;
     }
@@ -827,7 +853,7 @@ export function Cashier({
                     key={c.profile_id}
                     type="button"
                     disabled={!c.has_pin}
-                    onClick={() => setPinFor({ id: c.profile_id, name: c.full_name })}
+                    onClick={() => setPinFor({ id: c.profile_id, name: c.full_name, role: c.role })}
                     className="flex w-full items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted disabled:opacity-40"
                   >
                     <span>{c.full_name}</span>
@@ -920,7 +946,7 @@ export function Cashier({
                   title: "خصم عالفاتورة",
                   what: "نسبة خصم على مجموع الفاتورة كلها — غير خصم القطعة الواحدة بالجدول.",
                   source: "بينحسب من المجموع قبل الضريبة وبينسجّل مع الطلب.",
-                  edit: "الكاشير بيقدر يحطّ خصم عالفاتورة كلها هون. خصم القطعة الواحدة (عمود «خصم %» بالجدول) بس لحساب مدير.",
+                  edit: "الكاشير بيقدر يحطّ لحد 10% خصم عالفاتورة كلها هون؛ أكتر من هيك بدّو مدير (يبدّل عحالو بالـPIN). خصم القطعة الواحدة (عمود «خصم %» بالجدول) بس لحساب مدير.",
                 }}
               />
             </label>
@@ -933,6 +959,7 @@ export function Cashier({
               placeholder="0"
             />
           </div>
+          {discountNeedsManager && <p className="text-xs text-destructive">{DISCOUNT_NEEDS_MANAGER_MSG}</p>}
           {discount > 0 && <Row label="قيمة الخصم" value={`- ${usd(discount)}`} />}
           {tva.enabled && <Row label={tva.pricesIncludeTva ? "منها TVA" : "TVA"} value={usd(tvaCents)} />}
           <div className="flex justify-between border-t pt-2 text-lg font-bold">
@@ -985,6 +1012,11 @@ export function Cashier({
           )}
           {changeLbp > 0 && (
             <p className="text-sm font-medium text-green-600 dark:text-green-400">الباقي للزبون: {lbp(changeLbp)}</p>
+          )}
+          {changeKeptLbp > 0 && (
+            <p className="text-xs text-muted-foreground">
+              الباقي مدوّر لتحت لأقرب {lbp(CHANGE_STEP_LBP)} — {lbp(changeKeptLbp)} بيضلّوا بالصندوق.
+            </p>
           )}
           <Button className="h-12 w-full text-lg" disabled={!canCheckout} onClick={() => void checkout()}>
             {busy ? "عم نسجّل…" : "تسجيل البيع"}
