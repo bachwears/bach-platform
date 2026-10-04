@@ -105,14 +105,17 @@ export default async function ProductPage({
   // The colour the main photos show (set in MGMT); preselected in the buy box.
   const shownColor = (media.find((m) => m.kind === "front") ?? media[0])?.color_en ?? null;
   const toImage = (m: { kind: string; storage_path: string }): GalleryImage => ({ kind: m.kind, url: m.storage_path });
-  // Opening a piece shows it worn first: model, then the product shots, then close-ups.
+  // Opening a piece shows it worn first (founder order 2026-10-05): the waist-up
+  // worn close-up, then the full worn shots (front, then back), any further worn
+  // close-ups, then the product front and back, then details.
   // Slot kinds say it for the main photos; extra photos carry the view in their file name.
-  // Order: the main worn shot, the product front and back, more worn shots, close-ups, details.
   const viewRank = (m: { kind: string; storage_path: string }) => {
     const hit = /\/(front|back|model-zoom|model|detail)(-\d+)?-(?:\d+|v2[0-9a-f]+)-\d+\.webp$/.exec(m.storage_path);
     const view = hit?.[1] ?? ({ side: "model", closeup: "model-zoom" } as Record<string, string>)[m.kind] ?? m.kind;
-    if (view === "model") return hit?.[2] ? 3 : 0;
-    return ({ front: 1, back: 2, "model-zoom": 4, detail: 5 } as Record<string, number>)[view] ?? 6;
+    const extra = Boolean(hit?.[2]); // a numbered shot: model-2, model-zoom-2…
+    if (view === "model-zoom") return extra ? 3 : 0;
+    if (view === "model") return extra ? 2 : 1;
+    return ({ front: 4, back: 5, detail: 6 } as Record<string, number>)[view] ?? 7;
   };
   const wornFirst = <T extends { kind: string; storage_path: string }>(list: T[]) =>
     list.map((m, i) => ({ m, i })).sort((a, b) => viewRank(a.m) - viewRank(b.m) || a.i - b.i).map((x) => x.m);
