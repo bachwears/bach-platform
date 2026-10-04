@@ -79,7 +79,8 @@ export default function TrackOrderPage() {
       <main className="mx-auto max-w-xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
         <h1 className="type-heading">{t(locale, "sf.trackOrder.title")}</h1>
         <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.trackOrder.sub")}</p>
-        {signedIn ? (
+        {/* the account shortcut is for guests; a signed-in customer came from there */}
+        {!signedIn ? (
           <p className="mt-4 text-xs">
             <Link href={lhref(locale, "/account?open=orders")} className="underline underline-offset-4">
               {t(locale, "sf.trackOrder.account")}
