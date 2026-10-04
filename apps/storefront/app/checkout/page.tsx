@@ -8,6 +8,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { clearCart, readCart, setQuantity } from "../../lib/cart";
+import { colourPhoto } from "../../lib/media";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface SummaryLine {
@@ -88,11 +89,7 @@ export default function CheckoutPage() {
           const color = (locale === "ar" && v.color_ar ? v.color_ar : v.color_en) as string;
           // a photo in the bought colour when there is one, else the main photo
           const media = p.media_assets ?? [];
-          const onSite = (m: (typeof media)[number]) => m.kind !== "other" || (m.sort != null && m.sort >= 100 && m.sort < 500);
-          const image =
-            (media.find((m) => m.kind === "front" && m.color_en === v.color_en) ??
-              media.find((m) => m.color_en === v.color_en && onSite(m)) ??
-              media.find((m) => m.kind === "front"))?.storage_path ?? null;
+          const image = colourPhoto(media, v.color_en as string);
           return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity, image }];
         }),
       );

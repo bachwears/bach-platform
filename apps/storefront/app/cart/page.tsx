@@ -9,7 +9,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
-import { hoverPhoto } from "../../lib/media";
+import { colourPhoto, hoverPhoto } from "../../lib/media";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface Detail {
@@ -100,7 +100,7 @@ export default function CartPage() {
         supabase
           .from("product_variants")
           .select(
-            "id, size, color_en, color_ar, products!inner(slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, media_assets(kind, storage_path)), inventory_levels(quantity, reserved)",
+            "id, size, color_code, color_en, color_ar, products!inner(slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, media_assets(kind, storage_path, color_en, sort)), inventory_levels(quantity, reserved)",
           )
           .in("id", ids)
           .eq("is_active", true),
@@ -115,7 +115,7 @@ export default function CartPage() {
           name_ar: string | null;
           price_usd_cents: number;
           sale_price_usd_cents: number | null;
-          media_assets: Array<{ kind: string; storage_path: string }>;
+          media_assets: Array<{ kind: string; storage_path: string; color_en: string | null; sort: number | null }>;
         };
         if (p.status !== "published") continue;
         const lvl = (v.inventory_levels as Array<{ quantity: number; reserved: number }>)[0];
@@ -126,8 +126,9 @@ export default function CartPage() {
           available: lvl ? lvl.quantity - lvl.reserved : 0,
           price: Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents),
           name: p.name_en, // product names stay English in every locale
-          slug: p.slug,
-          image: p.media_assets?.find((m) => m.kind === "front")?.storage_path ?? null,
+          // opens the product on the colour in the bag
+          slug: `${p.slug}?color=${v.color_code as string}`,
+          image: colourPhoto(p.media_assets ?? [], v.color_en as string),
         };
       }
       // Lines whose piece is gone (deleted, switched off, unpublished) would
