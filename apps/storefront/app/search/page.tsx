@@ -44,7 +44,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, sku, is_active), product_collections(collections(name_en))",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, sku, is_active, inventory_levels(quantity, reserved)), product_collections(collections(name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),

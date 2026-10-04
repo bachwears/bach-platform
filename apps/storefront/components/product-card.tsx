@@ -26,7 +26,7 @@ export interface CardProduct {
   photos?: Record<string, string[]>;
   heroColor?: string | null;
   /** every active variant, for colour-aware quick add */
-  variants?: Array<{ variantId: string; size: string; color: string; colorCode: string | null }>;
+  variants?: Array<{ variantId: string; size: string; color: string; colorCode: string | null; soldOut?: boolean }>;
 }
 
 function usd(cents: number) {
@@ -75,7 +75,7 @@ export function ProductCard({
 
   const sizes: QuickShopSize[] =
     colour && variants.length
-      ? variants.filter((v) => v.color === colour).map(({ variantId, size }) => ({ variantId, size }))
+      ? variants.filter((v) => v.color === colour).map(({ variantId, size, soldOut }) => ({ variantId, size, soldOut }))
       : product.sizes ?? [];
   const showColour = colours.length > 1 ? colour : null;
 

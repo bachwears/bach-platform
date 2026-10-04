@@ -430,5 +430,6 @@
   "sf.co.deliveryFree": "مجاني",
   "sf.co.freeFrom": "التوصيل مجاني من {v}",
   "sf.cart.withDelivery": "مع توصيل {v} · مجاني من {f}",
-  "sf.cart.freeDelivery": "التوصيل مجاني"
+  "sf.cart.freeDelivery": "التوصيل مجاني",
+  "sf.shop.outOfStock": "نفدت الكمية"
 }

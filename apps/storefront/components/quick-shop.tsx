@@ -10,6 +10,8 @@ import { useLocale } from "../lib/locale-client";
 export interface QuickShopSize {
   variantId: string;
   size: string;
+  /** shown crossed out and not addable */
+  soldOut?: boolean;
 }
 
 /**
@@ -89,7 +91,10 @@ export function QuickShop({
                   <button
                     key={s.variantId}
                     type="button"
-                    className="type-label grid h-10 min-w-10 place-items-center px-2 underline-offset-4 hover:underline"
+                    disabled={s.soldOut}
+                    aria-label={s.soldOut ? `${s.size} — ${t(locale, "sf.shop.outOfStock")}` : undefined}
+                    title={s.soldOut ? t(locale, "sf.shop.outOfStock") : undefined}
+                    className="type-label grid h-10 min-w-10 place-items-center px-2 underline-offset-4 enabled:hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:line-through"
                     onClick={() => {
                       addToCart(s.variantId);
                       setAdded(color ? `${color} / ${s.size}` : s.size);

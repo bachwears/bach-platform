@@ -43,12 +43,13 @@ export interface CardRow {
     color_en: string;
     color_code?: string | null;
     is_active: boolean;
+    inventory_levels?: Array<{ quantity: number; reserved: number }> | null;
   }> | null;
 }
 
 /** Columns a card needs from `products` (embed-ready). */
 export const CARD_COLUMNS =
-  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active)";
+  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, inventory_levels(quantity, reserved))";
 
 /**
  * A listing card from a product row: the photographed colour's photos to swipe,
@@ -74,7 +75,14 @@ export function toCardProduct(p: CardRow): CardProduct {
   const variants = active
     .filter((v) => v.id && v.size)
     .sort((a, b) => sizeRank(a.size!) - sizeRank(b.size!))
-    .map((v) => ({ variantId: v.id!, size: v.size!, color: v.color_en, colorCode: v.color_code ?? null }));
+    .map((v) => ({
+      variantId: v.id!,
+      size: v.size!,
+      color: v.color_en,
+      colorCode: v.color_code ?? null,
+      // same sum the product page uses; rows without stock data stay buyable
+      soldOut: v.inventory_levels ? v.inventory_levels.reduce((n, l) => n + l.quantity - l.reserved, 0) <= 0 : false,
+    }));
   const seen = new Set<string>();
 
   return {
@@ -86,7 +94,7 @@ export function toCardProduct(p: CardRow): CardProduct {
     front: front?.storage_path ?? null,
     back: hoverPhoto(media),
     colors: active.map((v) => v.color_en),
-    sizes: variants.filter((v) => !seen.has(v.size) && seen.add(v.size)).map(({ variantId, size }) => ({ variantId, size })),
+    sizes: variants.filter((v) => !seen.has(v.size) && seen.add(v.size)).map(({ variantId, size, soldOut }) => ({ variantId, size, soldOut })),
     photos,
     heroColor,
     variants,
