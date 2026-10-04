@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 
 /**
  * "The New / Scroll down" with the moving line: scrolling on past it opens the
- * shop. It only fires after the visitor scrolls themselves, so coming back to a
- * page restored at the bottom doesn't bounce them straight out again.
+ * shop. Only a downward move by the visitor counts (wheel down, swipe up, a
+ * downward scroll, arrow/page/space keys outside text fields), so coming back
+ * to a page restored at the bottom — and scrolling up from there — never
+ * bounces them straight out again.
  */
 export function ScrollToShop({ href, title, cue }: { href: string; title: string; cue: string }) {
   const router = useRouter();
@@ -22,18 +24,41 @@ export function ScrollToShop({ href, title, cue }: { href: string; title: string
     const go = () => {
       if (gone || !armed || !visible) return;
       gone = true;
-      router.push(href);
+      // open the shop at its top: the home page is scrolled far down at this point,
+      // and on phones the new page would otherwise keep that offset
+      router.push(href, { scroll: false });
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     };
-    const arm = () => {
+    const down = () => {
       armed = true;
       go();
     };
-    window.addEventListener("wheel", arm, { passive: true });
-    window.addEventListener("touchstart", arm, { passive: true });
-    window.addEventListener("touchmove", arm, { passive: true });
-    window.addEventListener("keydown", arm);
-    // after a touch or wheel, the scroll itself can be what brings the strip in
-    window.addEventListener("scroll", go, { passive: true });
+    let lastY = window.scrollY;
+    let touchY: number | null = null;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > lastY) down();
+      lastY = y;
+    };
+    const onWheel = (e: WheelEvent) => e.deltaY > 0 && down();
+    const onTouchStart = (e: TouchEvent) => {
+      touchY = e.touches[0]?.clientY ?? null;
+    };
+    // finger moving up = page moving down
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (touchY != null && y != null && y < touchY - 8) down();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement | null)?.isContentEditable) return;
+      if (["ArrowDown", "PageDown", "End", " "].includes(e.key)) down();
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, { passive: true });
     const io = new IntersectionObserver(
       ([e]) => {
         visible = !!e?.isIntersecting;
@@ -44,11 +69,11 @@ export function ScrollToShop({ href, title, cue }: { href: string; title: string
     io.observe(el);
     return () => {
       io.disconnect();
-      window.removeEventListener("wheel", arm);
-      window.removeEventListener("touchstart", arm);
-      window.removeEventListener("touchmove", arm);
-      window.removeEventListener("keydown", arm);
-      window.removeEventListener("scroll", go);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [href, router]);
 

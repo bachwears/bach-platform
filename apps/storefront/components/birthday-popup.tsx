@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
+import { ModalShell, useInPurchase } from "./modal-shell";
+
 export function BirthdayPopup() {
+  const inPurchase = useInPurchase();
   const [offer, setOffer] = useState<{ code: string; percent: number } | null>(null);
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function BirthdayPopup() {
     void checkOffer();
   }, []);
 
-  if (!offer) return null;
+  if (!offer || inPurchase) return null;
 
   function dismiss() {
     try {
@@ -50,11 +53,7 @@ export function BirthdayPopup() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={dismiss}>
-      <div
-        className="w-full max-w-sm border bg-background p-8 text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalShell label="Happy birthday from BACH" onClose={dismiss}>
         <Cake className="mx-auto h-7 w-7" strokeWidth={1} aria-hidden />
         <h2 className="type-display mt-4 text-3xl">Happy birthday from BACH.</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -74,7 +73,6 @@ export function BirthdayPopup() {
             Maybe later
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

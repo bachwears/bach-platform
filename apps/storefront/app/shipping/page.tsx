@@ -4,6 +4,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { PolicyPage, policyFallbacks } from "../../components/policy-page";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/shipping" },
   title: "Delivery & Shipping — BACH Wears",
   description: "How BACH Wears delivers across Lebanon: confirmation calls, timelines, and payment on arrival.",
 };

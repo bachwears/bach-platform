@@ -32,13 +32,26 @@ export function hoverPhoto(media: CardMedia[]): string | null {
   return pool.length ? pool[Math.floor(Math.random() * pool.length)]!.storage_path : null;
 }
 
-/** The photo of a given colour for bag and order lines: that colour's front, any shown photo of it, else the main photo. */
+// Which shot best stands for a piece in a small thumbnail: the product front,
+// then a worn shot, then the back — never a close-up or detail if avoidable.
+const thumbRank = (m: CardMedia) => {
+  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-\d+-\d+\.webp$/.exec(m.storage_path)?.[1];
+  if (m.kind === "front" || view === "front") return 0;
+  if (m.kind === "side" || view === "model") return 1;
+  if (m.kind === "back" || view === "back") return 2;
+  if (m.kind === "closeup" || view === "model-zoom") return 3;
+  return 4;
+};
+
+/** The photo of a given colour for bag and order lines: that colour's best shot, else the main photo. */
 export function colourPhoto(media: CardMedia[], colorEn: string | null | undefined): string | null {
   const onSite = (m: CardMedia) => m.kind !== "other" || (m.sort != null && m.sort >= 100 && m.sort < 500);
+  const best = (list: CardMedia[]) =>
+    [...list].sort((a, b) => thumbRank(a) - thumbRank(b) || (a.sort ?? 0) - (b.sort ?? 0))[0];
   return (
     (colorEn
       ? media.find((m) => m.kind === "front" && m.color_en === colorEn) ??
-        media.find((m) => m.color_en === colorEn && onSite(m))
+        best(media.filter((m) => m.color_en === colorEn && onSite(m)))
       : undefined) ??
     media.find((m) => m.kind === "front") ??
     null

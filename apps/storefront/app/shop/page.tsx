@@ -11,8 +11,33 @@ import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getLocale();
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}): Promise<Metadata> {
+  const [locale, params] = await Promise.all([getLocale(), searchParams]);
+  // A category or collection is its own indexable page (its own title and
+  // canonical); size/colour/price filters fold back into it.
+  if (params.cat || params.col) {
+    const supabase = await supabaseServer();
+    const { data: page } = params.cat
+      ? await supabase.from("categories").select("name_en, name_ar").eq("code", params.cat).maybeSingle()
+      : await supabase.from("collections").select("name_en, name_ar").eq("slug", params.col!).maybeSingle();
+    if (page) {
+      const name = pick(locale, page.name_en, page.name_ar);
+      const query = params.cat ? `cat=${encodeURIComponent(params.cat)}` : `col=${encodeURIComponent(params.col!)}`;
+      return {
+        title: locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`,
+        description:
+          locale === "ar"
+            ? `${name} من باخ ويرز. أناقة رجالية من لبنان.`
+            : `${name} by BACH Wears. Considered menswear from Lebanon.`,
+        alternates: { canonical: lhref(locale, `/shop?${query}`) },
+        openGraph: { title: `${name} — BACH Wears`, url: `https://bachwears.com/shop?${query}` },
+      };
+    }
+  }
   return {
     title: locale === "ar" ? "تسوّق — باخ ويرز" : "Shop — BACH Wears",
     description:

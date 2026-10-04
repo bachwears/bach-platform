@@ -37,8 +37,16 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
 
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get("next");
-    // same-site paths only
-    if (n && n.startsWith("/") && !n.startsWith("//")) setNext(n);
+    // same-site paths only: resolve it the way the browser will (so "/\\evil.com"
+    // or "//evil.com" can't slip through) and keep it only if the origin is ours
+    if (n) {
+      try {
+        const u = new URL(n, window.location.origin);
+        if (u.origin === window.location.origin && n.startsWith("/")) setNext(u.pathname + u.search + u.hash);
+      } catch {
+        /* not a URL — keep the default */
+      }
+    }
     try {
       const raw = sessionStorage.getItem("bach-checkout-info");
       if (raw) {

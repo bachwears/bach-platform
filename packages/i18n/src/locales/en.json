@@ -431,5 +431,7 @@
   "sf.co.freeFrom": "Free delivery from {v}",
   "sf.cart.withDelivery": "Includes {v} delivery · free from {f}",
   "sf.cart.freeDelivery": "Free delivery included",
-  "sf.shop.outOfStock": "Out of stock"
+  "sf.shop.outOfStock": "Out of stock",
+  "sf.co.loadError": "We couldn't load your bag just now. Check your connection and refresh the page.",
+  "sf.co.walletDiscount": "Wallet reward (10%)"
 }

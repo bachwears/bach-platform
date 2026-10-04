@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/track" },
   title: "Track your order — BACH Wears",
   description: "Follow your BACH Wears order from confirmation to delivery with your order number and phone.",
 };

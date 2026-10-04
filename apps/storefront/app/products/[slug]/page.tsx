@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -31,7 +32,8 @@ function usd(cents: number) {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
 
-async function getProduct(slug: string) {
+// one query per request: generateMetadata and the page share it
+const getProduct = cache(async (slug: string) => {
   const supabase = await supabaseServer();
   const { data } = await supabase
     .from("products")
@@ -42,7 +44,7 @@ async function getProduct(slug: string) {
     .eq("status", "published")
     .single();
   return data;
-}
+});
 
 export async function generateMetadata({
   params,
@@ -54,14 +56,27 @@ export async function generateMetadata({
   if (!product) return { title: "BACH Wears" };
   const name = product.name_en; // product names stay English in every locale
   // MGMT's SEO fields win when set; otherwise name + description
+  const title = product.meta_title_en || (locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`);
+  const description =
+    product.meta_description_en ||
+    pick(locale, product.description_en ?? "", product.description_ar) ||
+    `${name} by BACH Wears.`;
+  const front = ((product.media_assets as unknown as Array<{ kind: string; storage_path: string }>) ?? []).find(
+    (m) => m.kind === "front",
+  )?.storage_path;
   return {
-    title: product.meta_title_en || (locale === "ar" ? `${name} — باخ ويرز` : `${name} — BACH Wears`),
-    description:
-      product.meta_description_en ||
-      pick(locale, product.description_en ?? "", product.description_ar) ||
-      `${name} by BACH Wears.`,
+    title,
+    description,
     alternates: {
       canonical: lhref(locale, `/products/${slug}`),
+    },
+    // shared links (WhatsApp, Instagram) preview the piece, not the homepage
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: `https://bachwears.com/products/${slug}`,
+      ...(front ? { images: [{ url: front.replace(/-1600\.webp$/, "-800.webp"), alt: name }] } : {}),
     },
     // a piece without photos isn't listed anywhere yet — keep it out of search too
     robots: ((product.media_assets as unknown as Array<{ kind: string }>) ?? []).some((m) => m.kind === "front")
@@ -122,7 +137,7 @@ export default async function ProductPage({
   );
   // ?color=NAV opens on that colour (shared links keep the shopper's pick)
   const linkedColor = colorParam ? variants.find((v) => v.color_code === colorParam.toUpperCase()) : undefined;
-  const onSale = product.sale_price_usd_cents != null;
+  const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   const category = product.categories as unknown as { code: string; name_en: string; name_ar: string } | null;
   const displayName = product.name_en; // product names stay English in every locale
   const displayDescription = pick(locale, product.description_en ?? "", product.description_ar) || null;
@@ -245,17 +260,25 @@ export default async function ProductPage({
     ],
   };
 
+  const inStock = variants.some(
+    (v) => (v.inventory_levels ?? []).reduce((s, l) => s + l.quantity - l.reserved, 0) > 0,
+  );
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name_en,
     description: product.description_en ?? undefined,
+    url: `https://bachwears.com/products/${product.slug}`,
+    sku: product.slug,
+    ...(gallery.length ? { image: gallery.slice(0, 4).map((g) => g.url) } : {}),
     brand: { "@type": "Brand", name: "BACH Wears" },
     offers: {
       "@type": "Offer",
+      url: `https://bachwears.com/products/${product.slug}`,
       priceCurrency: "USD",
-      price: ((product.sale_price_usd_cents ?? product.price_usd_cents) / 100).toFixed(2),
-      availability: "https://schema.org/InStock",
+      // the price the bag and checkout charge
+      price: (Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents) / 100).toFixed(2),
+      availability: inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     },
   };
 
@@ -330,7 +353,7 @@ export default async function ProductPage({
             categoryCodes={lineage}
             sizeRun={sizeRun(variants.map((v) => v.size), product.fit)}
             name={displayName}
-            priceLabel={usd(product.sale_price_usd_cents ?? product.price_usd_cents)}
+            priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             variants={variants.map((v) => ({
               id: v.id,

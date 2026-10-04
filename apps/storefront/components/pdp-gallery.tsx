@@ -3,6 +3,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
+
+/** Words for what a photo shows, for alt text: slot kind, or the view in an extra photo's file name. */
+function viewLabel(m: { kind: string; url: string }) {
+  const view = /\/(front|back|model-zoom|model|detail)(-\d+)?-[^/]+\.webp$/.exec(m.url)?.[1] ?? m.kind;
+  return (
+    ({
+      front: "front view",
+      back: "back view",
+      model: "worn",
+      side: "worn",
+      "model-zoom": "worn, close-up",
+      closeup: "worn, close-up",
+      detail: "detail",
+    } as Record<string, string>)[view] ?? "photo"
+  );
+}
 import { photoSrc } from "../lib/media";
 
 export interface GalleryImage {
@@ -67,12 +83,17 @@ export function PdpGallery({
               type="button"
               onClick={() => setOpen(i)}
               className="block w-full cursor-zoom-in bg-secondary"
-              aria-label={`${name} — ${m.kind}`}
+              aria-label={`${name} — ${viewLabel(m)}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                {...photoSrc(m.url, layout === "grid" ? "(min-width: 1024px) 33vw, 100vw" : "100vw")}
-                alt={`${name} — ${m.kind}`}
+                {...photoSrc(
+                  m.url,
+                  // the phone layouts are hidden on desktop: same sizes as the grid there, so the
+                  // first photo resolves to one file and isn't downloaded twice
+                  layout === "grid" || i === 0 ? "(min-width: 1024px) 33vw, 100vw" : "100vw",
+                )}
+                alt={`${name} — ${viewLabel(m)}`}
                 loading={i === 0 ? "eager" : "lazy"}
                 fetchPriority={i === 0 ? "high" : undefined}
                 draggable={false}
@@ -99,7 +120,7 @@ export function PdpGallery({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[open].url}
-            alt={`${name} — ${images[open].kind}`}
+            alt={`${name} — ${viewLabel(images[open])}`}
             className="max-h-full max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />

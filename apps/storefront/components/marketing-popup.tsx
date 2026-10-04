@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
+import { ModalShell, useInPurchase } from "./modal-shell";
+
 interface Popup {
   id: string;
   title_en: string;
@@ -14,6 +16,7 @@ interface Popup {
 
 export function MarketingPopup() {
   const [popup, setPopup] = useState<Popup | null>(null);
+  const inPurchase = useInPurchase();
 
   useEffect(() => {
     async function check() {
@@ -36,7 +39,7 @@ export function MarketingPopup() {
     void check();
   }, []);
 
-  if (!popup) return null;
+  if (!popup || inPurchase) return null;
 
   function dismiss() {
     try {
@@ -48,11 +51,7 @@ export function MarketingPopup() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={dismiss}>
-      <div
-        className="w-full max-w-sm border bg-background p-8 text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalShell label={popup.title_en} onClose={dismiss}>
         <h2 className="type-display text-3xl">{popup.title_en}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{popup.body_en}</p>
         <div className="mt-6 flex flex-col gap-2">
@@ -67,7 +66,6 @@ export function MarketingPopup() {
             Dismiss
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -10,7 +10,7 @@ import { t } from "@bach/i18n";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { CARD_COLUMNS, toCardProduct } from "../../lib/card";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
-import { colourPhoto } from "../../lib/media";
+import { colourPhoto, photoSrc } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
 
@@ -84,7 +84,7 @@ export default function CartPage() {
         return;
       }
       const ids = readCart().map((l) => l.variantId);
-      const [{ data }, { data: rateRow }] = await Promise.all([
+      const [{ data, error: loadError }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
           .select(
@@ -94,6 +94,13 @@ export default function CartPage() {
           .eq("is_active", true),
         supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
+      // A failed read (network, expired session) says nothing about the pieces:
+      // keep every line and let the shopper retry rather than emptying the bag.
+      if (loadError || !data) {
+        setNotice(t(locale, "sf.co.loadError"));
+        setLoaded(true);
+        return;
+      }
       const map: Record<string, Detail> = {};
       for (const v of (data ?? []) as unknown as Array<Record<string, unknown>>) {
         const p = v.products as {
@@ -186,7 +193,7 @@ export default function CartPage() {
       );
   }, [bagEmpty, suggested.length]);
 
-  const delivery = deliveryFor(subtotal, deliveryRule);
+  const delivery = subtotal > 0 ? deliveryFor(subtotal, deliveryRule) : 0;
   const lbp = rate ? `${Math.round(((subtotal + delivery) / 100) * rate).toLocaleString("en-US")} LBP` : null;
   const tabClass = (on: boolean) =>
     `type-label flex items-center gap-2 pb-2 ${on ? "font-semibold" : "text-muted-foreground hover:text-foreground"}`;
@@ -288,7 +295,7 @@ export default function CartPage() {
                   <Link href={lhref(locale, `/products/${d!.slug}`)} className="block w-28 shrink-0 bg-secondary sm:w-full" tabIndex={-1} aria-hidden>
                     {d!.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={d!.image} alt="" className="aspect-[3/4] w-full object-cover" />
+                      <img {...photoSrc(d!.image, "120px")} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
                     ) : (
                       <span className="block aspect-[3/4] w-full" />
                     )}

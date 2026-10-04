@@ -4,6 +4,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { PolicyPage, policyFallbacks } from "../../components/policy-page";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/returns-policy" },
   title: "Returns & Exchanges — BACH Wears",
   description: "The BACH Wears returns policy: 30-day window, condition requirements, and how to start a return.",
 };

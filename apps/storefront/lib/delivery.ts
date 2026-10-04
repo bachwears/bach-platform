@@ -16,7 +16,8 @@ export interface DeliveryRule {
 const DEFAULT: DeliveryRule = { fee: 500, freeOver: 10000 };
 
 export function deliveryFor(goodsCents: number, rule: DeliveryRule): number {
-  return goodsCents > 0 && goodsCents < rule.freeOver ? rule.fee : 0;
+  // a fully discounted order still ships, so the fee applies at $0 too (as in the RPC)
+  return goodsCents < rule.freeOver ? rule.fee : 0;
 }
 
 export function useDeliveryRule(): DeliveryRule {

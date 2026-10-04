@@ -16,16 +16,15 @@ export async function GET() {
       .eq("media_assets.kind", "front"),
     supabase
       .from("categories")
-      .select("name_en, products(count)")
+      // only categories the shop actually shows: a published, photographed piece in them
+      .select("name_en, products!inner(id, media_assets!inner(kind))")
       .eq("is_active", true)
-      .eq("products.status", "published"),
+      .eq("products.status", "published")
+      .eq("products.media_assets.kind", "front"),
     supabase.from("help_articles").select("slug, title_en").eq("is_published", true).order("sort"),
   ]);
   const legal = await publishedLegalPages();
-  const categories = (cats ?? [])
-    .filter((c) => ((c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0) > 0)
-    .map((c) => c.name_en)
-    .sort();
+  const categories = [...new Set((cats ?? []).map((c) => c.name_en))].sort();
 
   const body = `# BACH Wears
 

@@ -55,13 +55,18 @@ export default function CheckoutPage() {
         router.replace(lhref(locale, "/cart"));
         return;
       }
-      const [{ data }, { data: rateRow }] = await Promise.all([
+      const [{ data, error: loadError }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
           .select("id, size, color_en, color_ar, is_active, products!inner(name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, media_assets(kind, storage_path, color_en, sort))")
           .in("id", cart.map((l) => l.variantId)),
         supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
+      // A failed read says nothing about the pieces: keep the bag, ask to retry.
+      if (loadError || !data) {
+        setNotice(t(locale, "sf.co.loadError"));
+        return;
+      }
       // A bag can outlive a piece (deleted, switched off, unpublished): drop those
       // lines now rather than let "Place order" fail on them.
       const sellable = (v: Record<string, unknown> | undefined) =>
@@ -140,11 +145,21 @@ export default function CheckoutPage() {
         ? Math.round((subtotal * promoState.value) / 100)
         : Math.min(promoState.value, subtotal)
       : 0;
+  // Delivery is judged on the pieces after the promo (before any wallet reward),
+  // the same rule the checkout RPC applies.
   const delivery = deliveryFor(subtotal - promoDiscount, deliveryRule);
-  const total = subtotal - promoDiscount + delivery;
-  // wallet payers get 10% off the pieces; delivery is paid in full
-  const walletPays = Math.round((subtotal - promoDiscount) * 0.9) + delivery;
-  const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
+  // wallet payers get 10% off the pieces (integer cents, as the RPC rounds); delivery is paid in full
+  const walletDiscount = Math.round((subtotal - promoDiscount) / 10);
+  const walletPays = subtotal - promoDiscount - walletDiscount + delivery;
+  const walletOffered = walletBalance > 0 && walletBalance >= walletPays;
+  const payingWallet = payMethod === "wallet" && walletOffered;
+  const total = subtotal - promoDiscount + delivery - (payingWallet ? walletDiscount : 0);
+  // The wallet option hides when the balance no longer covers the order (e.g. a promo
+  // was removed): fall back to cash on delivery rather than keep a hidden choice.
+  useEffect(() => {
+    if (payMethod === "wallet" && !walletOffered) setPayMethod("cod");
+  }, [payMethod, walletOffered]);
+    const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && city.trim() && address.trim();
 
@@ -232,7 +247,7 @@ export default function CheckoutPage() {
           n: data![0].order_number,
           lines: summary,
           total,
-          discount: promoDiscount,
+          discount: promoDiscount + (payingWallet ? walletDiscount : 0),
           delivery,
           rate,
           city: city.trim(),
@@ -323,9 +338,7 @@ export default function CheckoutPage() {
 
             <Step n={3} title={t(locale, "sf.co.payment")}>
               <div role="radiogroup" aria-label={t(locale, "sf.co.payment")} className="border-t">
-                {methods.length > 1 &&
-                  walletBalance >= walletPays &&
-                  walletBalance > 0 &&
+                {walletOffered &&
                   payOption(
                     "wallet",
                     "Pay from wallet — 10% off",
@@ -421,6 +434,12 @@ export default function CheckoutPage() {
               <p className="type-meta mt-3 flex justify-between">
                 <span>{t(locale, "sf.co.promoDiscount")}</span>
                 <span className="tabular-nums">- {usd(promoDiscount)}</span>
+              </p>
+            )}
+            {payingWallet && (
+              <p className="type-meta mt-3 flex justify-between">
+                <span>{t(locale, "sf.co.walletDiscount")}</span>
+                <span className="tabular-nums">- {usd(walletDiscount)}</span>
               </p>
             )}
             <p className="type-meta mt-3 flex justify-between">

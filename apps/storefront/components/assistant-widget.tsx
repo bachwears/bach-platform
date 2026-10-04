@@ -32,7 +32,7 @@ interface Msg {
 
 const GREETING: Msg = {
   role: "assistant",
-  content: "Hi! I'm the BACH assistant — ask me about ordering, delivery, returns, or your birthday gift. 🖤",
+  content: "Hi! I'm the BACH assistant — ask me about ordering, delivery, returns, or your birthday gift.",
 };
 
 export function AssistantWidget() {
@@ -102,7 +102,12 @@ export function AssistantWidget() {
               <p className="type-heading">BACH</p>
               <p className="text-xs text-muted-foreground">Assistant</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              aria-label="Close assistant"
+              onClick={() => setOpen(false)}
+              className="-me-2 grid h-10 w-10 place-items-center text-muted-foreground hover:text-foreground"
+            >
               ✕
             </button>
           </div>
@@ -127,6 +132,7 @@ export function AssistantWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void send()}
               placeholder="Ask anything…"
+              aria-label="Message the BACH assistant"
               disabled={busy}
             />
             <Button size="sm" className="h-9" disabled={busy || !input.trim()} onClick={() => void send()}>

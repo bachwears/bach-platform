@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+
+import { ModalShell, useInPurchase } from "./modal-shell";
 import { Input } from "@bach/ui/components/input";
 
 const SEGMENTS = [
@@ -22,6 +24,7 @@ const STORAGE_KEY = "bach-wheel-done";
  *  per email, real single-use promocode) — the wheel animation just lands
  *  on a segment matching the server's verdict. */
 export function SpinWheel({ title, sub }: { title: string; sub: string }) {
+  const inPurchase = useInPurchase();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [spinning, setSpinning] = useState(false);
@@ -85,13 +88,13 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
     }
   }
 
-  if (!open) return null;
+  if (!open || inPurchase) return null;
 
   const gradient = `conic-gradient(${SEGMENTS.map((s, i) => `${s.color} ${i * SEG}deg ${(i + 1) * SEG}deg`).join(", ")})`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-label={title}>
-      <div className="anim-materialize relative w-full max-w-sm border bg-background p-6 text-center">
+    // a spin in progress can't be closed (its result would be lost)
+    <ModalShell label={title} onClose={() => !spinning && dismiss()} className="anim-materialize relative w-full max-w-sm border bg-background p-6 text-center">
         <button
           type="button"
           aria-label="Close"
@@ -180,7 +183,6 @@ export function SpinWheel({ title, sub }: { title: string; sub: string }) {
             <p className="text-xs text-muted-foreground">One spin per email. By playing you join the BACH newsletter.</p>
           </div>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }
