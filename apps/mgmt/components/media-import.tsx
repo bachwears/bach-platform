@@ -91,26 +91,55 @@ export function MediaImport() {
 
     // One colour per product owns the four gallery slots (the hero). It stays the
     // colour already on the front photo; a product without one (or a full replace)
-    // takes the colour of its first _front file. Every other colour's photos are
-    // kept as extra photos tagged with their colour.
+    // takes the colour with the most photos among those with a _front (else a _model).
+    // Every other colour's photos are kept as extra photos tagged with their colour.
     const touched = new Set<string>();
     for (const p of parsed) {
       const hit = p.sku ? lookup.get(p.sku) : undefined;
       if (hit) touched.add(hit.productId);
     }
     const hero = new Map<string, string | null>();
+    const hasFront = new Set<string>();
     if (!replaceAll && touched.size) {
       const { data: fronts } = await supabase
         .from("media_assets")
         .select("product_id, color_en")
         .eq("kind", "front")
         .in("product_id", [...touched]);
-      for (const f of fronts ?? []) hero.set(f.product_id, f.color_en);
+      for (const f of fronts ?? []) {
+        hero.set(f.product_id, f.color_en);
+        hasFront.add(f.product_id);
+      }
     }
+    type Tally = { files: number; front: boolean; model: boolean };
+    const tally = new Map<string, Map<string | null, Tally>>();
     for (const p of parsed) {
       const hit = p.sku ? lookup.get(p.sku) : undefined;
-      if (hit && p.view === "front" && p.n === 1 && !hero.has(hit.productId)) hero.set(hit.productId, hit.color);
+      if (!hit || !p.view) continue;
+      const byColor = tally.get(hit.productId) ?? new Map<string | null, Tally>();
+      const t = byColor.get(hit.color) ?? { files: 0, front: false, model: false };
+      t.files += 1;
+      if (p.n === 1 && p.view === "front") t.front = true;
+      if (p.n === 1 && (p.view === "model" || p.view === "side")) t.model = true;
+      byColor.set(hit.color, t);
+      tally.set(hit.productId, byColor);
     }
+    // a product with no product-only front shows its on-model shot as the main photo
+    const modelAsFront = new Set<string>();
+    for (const [productId, byColor] of tally) {
+      if (hero.has(productId)) continue;
+      const all = [...byColor.entries()];
+      const pool = all.filter(([, t]) => t.front).length
+        ? all.filter(([, t]) => t.front)
+        : all.filter(([, t]) => t.model).length
+          ? all.filter(([, t]) => t.model)
+          : all;
+      const best = pool.sort((a, b) => b[1].files - a[1].files)[0];
+      if (!best) continue;
+      hero.set(productId, best[0]);
+      if (!best[1].front && best[1].model) modelAsFront.add(productId);
+    }
+
     if (replaceAll) {
       for (const id of touched) await supabase.from("media_assets").delete().eq("product_id", id);
     }
@@ -131,7 +160,8 @@ export function MediaImport() {
       const productId = hit.productId;
       const heroColor = hero.get(productId);
       const isHero = heroColor === undefined || heroColor === null || hit.color === null || hit.color === heroColor;
-      const slot = VIEW_KIND[p.view];
+      let slot = VIEW_KIND[p.view];
+      if (slot === "side" && p.view !== "side" && modelAsFront.has(productId) && !hasFront.has(productId)) slot = "front";
       const kind = slot && p.n === 1 && isHero ? slot : "other";
       const tag = p.n > 1 ? `${p.view}-${p.n}` : p.view;
       try {
