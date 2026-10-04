@@ -12,6 +12,7 @@ import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
+import { hoverPhoto } from "../../../lib/media";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 
 interface VariantRow {
@@ -117,7 +118,7 @@ export default async function ProductPage({
 
   const supabase = await supabaseServer();
   const cardSelect =
-    "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path), product_variants(color_en, is_active)";
+    "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)";
 
   // "You may also like": same category, newest first.
   const relatedQ = product.category_id
@@ -177,7 +178,7 @@ export default async function ProductPage({
     price_usd_cents: p.price_usd_cents,
     sale_price_usd_cents: p.sale_price_usd_cents,
     front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null,
-    back: (p.media_assets ?? []).find((m) => m.kind === "back")?.storage_path ?? null,
+    back: hoverPhoto(p.media_assets ?? []),
     colors: (p.product_variants ?? []).filter((v) => v.is_active).map((v) => v.color_en),
   });
   // photographed pieces first, then keep four

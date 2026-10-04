@@ -4,6 +4,7 @@ import { t } from "@bach/i18n";
 
 import { HomeSlides } from "../components/home-slides";
 import { ProductCard, type CardProduct } from "../components/product-card";
+import { hoverPhoto } from "../lib/media";
 import { getLocale, lhref } from "../lib/locale";
 
 interface HeroContent {
@@ -42,7 +43,7 @@ export default async function Home() {
   const collections = collectionRows ?? [];
   const { data: products } = await supabase
     .from("products")
-    .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)")
+    .select("slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)")
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(24);
@@ -56,7 +57,7 @@ export default async function Home() {
       price_usd_cents: p.price_usd_cents,
       sale_price_usd_cents: p.sale_price_usd_cents,
       front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-      back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+      back: hoverPhoto(media),
       colors: ((p.product_variants as unknown as Array<{ color_en: string; is_active: boolean }>) ?? [])
         .filter((v) => v.is_active)
         .map((v) => v.color_en),

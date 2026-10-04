@@ -8,6 +8,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
+import { hoverPhoto } from "../../lib/media";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface Detail {
@@ -32,7 +33,7 @@ interface CardRow {
 }
 
 const CARD_SELECT =
-  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(id, size, color_en, is_active)";
+  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, is_active)";
 
 function toCard(p: CardRow): CardProduct {
   const active = p.product_variants.filter((v) => v.is_active);
@@ -44,7 +45,7 @@ function toCard(p: CardRow): CardProduct {
     price_usd_cents: p.price_usd_cents,
     sale_price_usd_cents: p.sale_price_usd_cents,
     front: p.media_assets.find((m) => m.kind === "front")?.storage_path ?? null,
-    back: p.media_assets.find((m) => m.kind === "back")?.storage_path ?? null,
+    back: hoverPhoto(p.media_assets),
     colors: active.map((v) => v.color_en),
     sizes: active.filter((v) => !seen.has(v.size) && seen.add(v.size)).map((v) => ({ variantId: v.id, size: v.size })),
   };

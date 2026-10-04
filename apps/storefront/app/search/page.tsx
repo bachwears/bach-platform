@@ -5,6 +5,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { SearchField } from "../../components/search-field";
+import { hoverPhoto } from "../../lib/media";
 import { getLocale, lhref } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,7 +49,7 @@ function toCard(p: Row): CardProduct {
     price_usd_cents: p.price_usd_cents,
     sale_price_usd_cents: p.sale_price_usd_cents,
     front: p.media_assets.find((m) => m.kind === "front")?.storage_path ?? null,
-    back: p.media_assets.find((m) => m.kind === "back")?.storage_path ?? null,
+    back: hoverPhoto(p.media_assets),
     colors: active.map((v) => v.color_en),
     sizes: active
       .filter((v) => !seen.has(v.size) && seen.add(v.size))
@@ -66,7 +67,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(name_en), media_assets(kind, storage_path), product_variants(id, size, color_en, sku, is_active), product_collections(collections(name_en))",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, sku, is_active), product_collections(collections(name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),

@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "./product-card";
+import { hoverPhoto } from "../lib/media";
 import { useLocale } from "../lib/locale-client";
 
 const KEY = "bach-recent";
@@ -37,7 +38,7 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
     void supabaseBrowser()
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path), product_variants(color_en, is_active)",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)",
       )
       .eq("status", "published")
       .in("slug", previous.slice(0, 4))
@@ -52,7 +53,7 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
               price_usd_cents: p.price_usd_cents as number,
               sale_price_usd_cents: p.sale_price_usd_cents as number | null,
               front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-              back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+              back: hoverPhoto(media),
               colors: ((p.product_variants as Array<{ color_en: string; is_active: boolean }>) ?? [])
                 .filter((v) => v.is_active)
                 .map((v) => v.color_en),

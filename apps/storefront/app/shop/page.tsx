@@ -7,6 +7,7 @@ import { FilterDrawer, type FilterSection } from "../../components/filter-drawer
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
+import { hoverPhoto } from "../../lib/media";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -73,7 +74,7 @@ export default async function ShopPage({
     supabase
       .from("products")
       .select(
-        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path), product_seasons(season), product_variants(id, size, color_en, color_ar, is_active), product_collections(collections(slug, name_en))",
+        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort), product_seasons(season), product_variants(id, size, color_en, color_ar, is_active), product_collections(collections(slug, name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),
@@ -169,7 +170,7 @@ export default async function ShopPage({
       price_usd_cents: p.price_usd_cents,
       sale_price_usd_cents: p.sale_price_usd_cents,
       front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-      back: media.find((m) => m.kind === "back")?.storage_path ?? null,
+      back: hoverPhoto(media),
       colors: p.product_variants.filter((v) => v.is_active).map((v) => v.color_en),
       sizes,
     };
