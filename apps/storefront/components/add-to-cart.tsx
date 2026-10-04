@@ -130,6 +130,8 @@ export function AddToCart({
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyState, setNotifyState] = useState<"idle" | "done" | "error">("idle");
   const [savedSize, setSavedSize] = useState<string | null>(null);
+  // the size picked on the page (sizes are listed inline for a quick pick)
+  const [pickedSize, setPickedSize] = useState<string | null>(null);
   const [mainVisible, setMainVisible] = useState(true);
   const mainRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -208,10 +210,11 @@ export function AddToCart({
     setAdded(null);
     setAlertFor(null);
     setNotifyState("idle");
-    // A single size needs no choice.
-    if (sizes.length === 1 && sizes[0]!.available > 0) {
-      addToCart(sizes[0]!.id);
-      setAdded(sizes[0]!);
+    // A single size needs no choice; a size picked on the page goes straight in.
+    const ready = sizes.length === 1 && sizes[0]!.available > 0 ? sizes[0]! : picked;
+    if (ready) {
+      addToCart(ready.id);
+      setAdded(ready);
     }
     setSheet(true);
   }
@@ -242,6 +245,10 @@ export function AddToCart({
   }
 
   const mine = savedSize ? sizes.find((v) => v.size.toUpperCase() === savedSize.toUpperCase()) : undefined;
+  // The pick follows colour changes by size name; the shopper's saved size is the default.
+  const picked =
+    sizes.find((v) => v.size === pickedSize && v.available > 0) ??
+    (pickedSize == null && mine && mine.available > 0 ? mine : undefined);
   const soldOutEverywhere = variants.every((v) => v.available <= 0);
   const addLabel = soldOutEverywhere ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
 
@@ -291,6 +298,57 @@ export function AddToCart({
         <p className="type-meta text-muted-foreground">
           {t(locale, "sf.pdp.size")} — <span className="text-foreground">{sizes[0]!.size}</span>
         </p>
+      )}
+      {sizes.length > 1 && (
+        <div>
+          <p className="type-meta text-muted-foreground">
+            {t(locale, "sf.pdp.size")}
+            {picked ? (
+              <>
+                {" — "}
+                <span className="text-foreground">{picked.size}</span>
+                {picked.available <= 3 ? ` · ${t(locale, "sf.pdp.fewLeft")}` : ""}
+              </>
+            ) : null}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t(locale, "sf.pdp.size")}>
+            {sizes.map((v) => {
+              const out = v.available <= 0;
+              const on = picked?.id === v.id;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={v.missing}
+                  aria-label={out ? `${v.size} — ${t(locale, "sf.shop.outOfStock")}` : v.size}
+                  title={out ? (v.missing ? t(locale, "sf.shop.outOfStock") : t(locale, "sf.pdp.notifyShort")) : undefined}
+                  onClick={() => {
+                    if (out) {
+                      // a sold-out size offers the back-in-stock alert
+                      setAdded(null);
+                      setNotifyState("idle");
+                      setAlertFor(v);
+                      setSheet(true);
+                      return;
+                    }
+                    setPickedSize(v.size);
+                  }}
+                  className={`type-meta h-10 min-w-12 border px-3 transition-colors disabled:cursor-not-allowed ${
+                    on
+                      ? "border-foreground"
+                      : out
+                        ? "border-border text-muted-foreground line-through"
+                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                  }`}
+                >
+                  {v.size}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
       {savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
         <p className="type-meta text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
