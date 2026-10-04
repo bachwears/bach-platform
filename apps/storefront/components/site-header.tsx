@@ -7,13 +7,12 @@ import { getLocale, lhref, pick } from "../lib/locale";
 export async function SiteHeader() {
   const locale = await getLocale();
   const supabase = await supabaseServer();
-  const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }] = await Promise.all([
+  const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }, { data: fronts }] = await Promise.all([
     supabase
       .from("categories")
       // "*" brings the banner columns (banner_mobile_url may be missing on older schemas)
-      .select("*, products(count)")
+      .select("*")
       .eq("is_active", true)
-      .eq("products.status", "published")
       .order("sort")
       .order("name_en"),
     supabase
@@ -33,6 +32,12 @@ export async function SiteHeader() {
       .eq("status", "published")
       .order("created_at", { ascending: false })
       .limit(20),
+    // the shop only lists photographed pieces, so the menu counts those
+    supabase
+      .from("media_assets")
+      .select("products!inner(category_id, status)")
+      .eq("kind", "front")
+      .eq("products.status", "published"),
   ]);
 
   // Parent categories are menu groups; children with published products are
@@ -45,11 +50,14 @@ export async function SiteHeader() {
     parent_id: string | null;
     banner_url?: string | null;
     banner_mobile_url?: string | null;
-    products: unknown;
   };
   const all = (cats ?? []) as Cat[];
-  const count = (c: (typeof all)[number]) =>
-    (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0;
+  const shown = new Map<string, number>();
+  for (const f of fronts ?? []) {
+    const id = (f.products as unknown as { category_id: string | null } | null)?.category_id;
+    if (id) shown.set(id, (shown.get(id) ?? 0) + 1);
+  }
+  const count = (c: Cat) => shown.get(c.id) ?? 0;
   const groups: NavGroup[] = [];
   for (const parent of all.filter((c) => !c.parent_id)) {
     const items = all

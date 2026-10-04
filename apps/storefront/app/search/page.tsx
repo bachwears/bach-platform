@@ -20,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 interface Row {
   slug: string;
+  category_id: string | null;
   name_en: string;
   name_ar: string | null;
   price_usd_cents: number;
@@ -67,15 +68,20 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, sku, is_active), product_collections(collections(name_en))",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, sku, is_active), product_collections(collections(name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),
-    supabase.from("categories").select("code, name_en, sort").is("parent_id", null).order("sort"),
+    supabase.from("categories").select("id, code, name_en, sort, parent_id").eq("is_active", true).order("sort"),
   ]);
   const hasPhoto = (p: Row) => p.media_assets.some((m) => m.kind === "front");
   // unphotographed pieces stay hidden until they are shot
   const all = ((data ?? []) as unknown as Row[]).filter(hasPhoto);
+  // top-level categories that have something to show (themselves or a child)
+  const shownCats = new Set(all.map((p) => p.category_id));
+  const topCats = (cats ?? []).filter(
+    (c) => !c.parent_id && (shownCats.has(c.id) || (cats ?? []).some((k) => k.parent_id === c.id && shownCats.has(k.id))),
+  );
 
   // Every word must appear somewhere in the product: name, category,
   // collection, colour or SKU — so "black boots" and "BW-KN" both work.
@@ -112,7 +118,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </div>
 
         <nav aria-label={t(locale, "sf.search.categories")} className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2">
-          {(cats ?? []).map((c) => (
+          {topCats.map((c) => (
             <Link
               key={c.code}
               href={lhref(locale, `/shop?cat=${c.code}`)}
