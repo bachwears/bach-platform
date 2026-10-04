@@ -11,6 +11,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { ScrollReveal } from "../components/scroll-reveal";
 import { BirthdayPopup } from "../components/birthday-popup";
 import { MarketingPopup } from "../components/marketing-popup";
+import { FooterGate } from "../components/footer-gate";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import { ThemeScript } from "@bach/ui/components/theme-script";
@@ -78,7 +79,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <div className="flex min-h-dvh flex-col bg-background">
           <SiteHeader />
           <div className="flex-1">{children}</div>
-          <SiteFooter />
+          <FooterGate>
+            <SiteFooter />
+          </FooterGate>
         </div>
         <ScrollReveal />
         <BirthdayPopup />
