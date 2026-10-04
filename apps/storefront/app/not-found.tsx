@@ -17,14 +17,14 @@ export default async function NotFound() {
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
             href={lhref(locale, "/shop")}
-            className="type-label grid h-12 flex-1 place-items-center bg-foreground text-background hover:opacity-90"
+            className="type-label grid h-12 place-items-center sm:flex-1 bg-foreground text-background hover:opacity-90"
           >
             {t(locale, "sf.404.shop")}
           </Link>
-          <Link href={lhref(locale, "/search")} className="type-label grid h-12 flex-1 place-items-center border border-foreground hover:bg-secondary">
+          <Link href={lhref(locale, "/search")} className="type-label grid h-12 place-items-center sm:flex-1 border border-foreground hover:bg-secondary">
             {t(locale, "sf.search.title")}
           </Link>
-          <Link href={lhref(locale, "/help")} className="type-label grid h-12 flex-1 place-items-center border border-foreground hover:bg-secondary">
+          <Link href={lhref(locale, "/help")} className="type-label grid h-12 place-items-center sm:flex-1 border border-foreground hover:bg-secondary">
             {t(locale, "sf.nav.help")}
           </Link>
         </div>

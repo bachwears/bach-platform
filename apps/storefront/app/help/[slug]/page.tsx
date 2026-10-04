@@ -36,7 +36,6 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
   const title = pick(locale, article.title_en, article.title_ar);
   const body = pick(locale, article.body_en, article.body_ar);
-  const other = locale === "ar" ? { title: article.title_en, body: article.body_en } : { title: article.title_ar, body: article.body_ar };
 
   return (
     <div className="min-h-dvh bg-background">
@@ -54,17 +53,6 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
           {t(locale, "sf.help.allTopics")}
         </Link>
 
-        {/* The other language stays one fold below for mixed-language households. */}
-        {other.title && other.body ? (
-          <div
-            className="mt-16 border-t pt-8"
-            dir={locale === "ar" ? "ltr" : "rtl"}
-            lang={locale === "ar" ? "en" : "ar"}
-          >
-            <h2 className="text-[15px]">{other.title}</h2>
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{other.body}</p>
-          </div>
-        ) : null}
       </main>
     </div>
   );
