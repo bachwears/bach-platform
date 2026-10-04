@@ -59,6 +59,8 @@ export function HeaderActions({
   const path = pathname.replace(/^\/ar(?=\/|$)/, "") || "/";
   const tabBar = !NO_TAB_BAR.some((r) => r.test(path));
   const onBag = path.startsWith("/cart");
+  // the product page brings its own phone bar (components/pdp-topbar.tsx)
+  const onProduct = path.startsWith("/products/");
   // Checkout keeps only the wordmark: no menu or links to wander off to.
   const focus = path.startsWith("/checkout");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,7 +139,7 @@ export function HeaderActions({
         </div>
       )}
       <div
-        className={`mx-auto h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8 ${onBag ? "hidden md:flex" : "flex"}`}
+        className={`mx-auto h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8 ${onBag || onProduct ? "hidden md:flex" : "flex"}`}
       >
         <div className="flex items-center gap-5">
           <button

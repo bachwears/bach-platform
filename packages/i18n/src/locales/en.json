@@ -423,5 +423,7 @@
   "sf.home.scrollDown": "Scroll down",
   "sf.confirmed.deliverTo": "Delivery to",
   "sf.confirmed.trackLink": "Track this order",
-  "sf.confirmed.paidWallet": "Paid from your wallet"
+  "sf.confirmed.paidWallet": "Paid from your wallet",
+  "sf.pdp.share": "Share",
+  "sf.pdp.linkCopied": "Link copied"
 }

@@ -10,6 +10,7 @@ import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
 import { usePdpColour } from "./pdp-colour";
+import { WISHLIST_EVENT } from "./pdp-topbar";
 import { lhref, useLocale } from "../lib/locale-client";
 
 export interface PdpVariant {
@@ -150,6 +151,16 @@ export function AddToCart({
     // variants and categoryCode are fixed per product page
   }, [productId]);
 
+  // The phone product bar saves too: keep one state.
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const d = (e as CustomEvent<{ productId: string; saved: boolean }>).detail;
+      if (d?.productId === productId) setSaved(d.saved);
+    };
+    window.addEventListener(WISHLIST_EVENT, onChange);
+    return () => window.removeEventListener(WISHLIST_EVENT, onChange);
+  }, [productId]);
+
   // Pinned phone bar shows only while the main ADD is off screen.
   useEffect(() => {
     const el = mainRef.current;
@@ -198,6 +209,7 @@ export function AddToCart({
       return;
     }
     const supabase = supabaseBrowser();
+    window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: { productId, saved: !saved } }));
     if (saved) {
       setSaved(false);
       await supabase.from("wishlists").delete().eq("customer_id", customerId).eq("product_id", productId);
@@ -287,7 +299,8 @@ export function AddToCart({
           onClick={() => void toggleWishlist()}
           aria-pressed={saved}
           aria-label={saved ? t(locale, "sf.pdp.wishSaved") : t(locale, "sf.pdp.wishSave")}
-          className="grid h-12 w-12 place-items-center border border-border hover:border-foreground"
+          // phones save from the product bar at the top
+          className="hidden h-12 w-12 place-items-center border border-border hover:border-foreground md:grid"
         >
           <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} strokeWidth={1.25} aria-hidden />
         </button>

@@ -8,6 +8,7 @@ import { t } from "@bach/i18n";
 import { AddToCart } from "../../../components/add-to-cart";
 import { PdpAccordion } from "../../../components/pdp-accordion";
 import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-colour";
+import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
 import { RecentlyViewed } from "../../../components/recently-viewed";
@@ -271,6 +272,7 @@ export default async function ProductPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
+      <PdpTopBar productId={product.id} name={displayName} />
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">
           {gallery.length ? (

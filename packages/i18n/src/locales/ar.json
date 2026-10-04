@@ -423,5 +423,7 @@
   "sf.home.scrollDown": "انزل لتحت",
   "sf.confirmed.deliverTo": "التوصيل على",
   "sf.confirmed.trackLink": "تابع هالطلب",
-  "sf.confirmed.paidWallet": "مدفوع من محفظتك"
+  "sf.confirmed.paidWallet": "مدفوع من محفظتك",
+  "sf.pdp.share": "شارك",
+  "sf.pdp.linkCopied": "انسخ الرابط"
 }
