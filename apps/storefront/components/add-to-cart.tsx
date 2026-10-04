@@ -415,7 +415,9 @@ export function AddToCart({
             {added ? (
               <div className="mt-2 space-y-4" role="status">
                 <p className="type-label">
-                  {name} · {added.size}
+                  {name} ·{" "}
+                  {colors.length > 1 ? `${locale === "ar" && added.color_ar ? added.color_ar : added.color_en} / ` : ""}
+                  {added.size}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                   <Link href={lhref(locale, "/cart")} className="type-label grid h-12 place-items-center bg-foreground text-background">
