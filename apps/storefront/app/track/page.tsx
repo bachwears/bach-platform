@@ -39,20 +39,29 @@ export default function TrackOrderPage() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    const n = new URLSearchParams(window.location.search).get("n");
-    if (n) setNumber(n.replace(/\D/g, ""));
-    void supabaseBrowser()
-      .auth.getSession()
-      .then(({ data }) => setSignedIn(!!data.session));
+    const n = new URLSearchParams(window.location.search).get("n")?.replace(/\D/g, "") ?? "";
+    if (n) setNumber(n);
+    const supabase = supabaseBrowser();
+    void supabase.auth.getSession().then(async ({ data }) => {
+      setSignedIn(!!data.session);
+      if (!data.session || !n) return;
+      // Signed in from the account page: the order is theirs, so fill in its phone and show it.
+      const { data: own } = await supabase.from("orders").select("ship_phone").eq("number", Number(n)).maybeSingle();
+      if (own?.ship_phone) {
+        setPhone(own.ship_phone);
+        void track(n, own.ship_phone);
+      }
+    });
+    // runs once on load
   }, []);
 
-  async function track() {
-    const n = Number(number.replace(/\D/g, ""));
-    if (!n || phone.replace(/\D/g, "").length < 7) return;
+  async function track(numberIn = number, phoneIn = phone) {
+    const n = Number(numberIn.replace(/\D/g, ""));
+    if (!n || phoneIn.replace(/\D/g, "").length < 7) return;
     setBusy(true);
     setError("");
     setOrder(null);
-    const { data, error: err } = await supabaseBrowser().rpc("track_order", { p_number: n, p_phone: phone });
+    const { data, error: err } = await supabaseBrowser().rpc("track_order", { p_number: n, p_phone: phoneIn });
     setBusy(false);
     if (err || !data) {
       setError(t(locale, "sf.trackOrder.notFound"));

@@ -210,6 +210,14 @@ export default function AccountPage() {
                         </li>
                       ))}
                     </ul>
+                    {o.channel === "online" && (
+                      <Link
+                        href={lhref(locale, `/track?n=${o.number}`)}
+                        className="type-meta me-6 mt-4 inline-block underline underline-offset-4 hover:opacity-60"
+                      >
+                        {t(locale, "sf.trackOrder.go")}
+                      </Link>
+                    )}
                     {["delivered", "completed"].includes(o.status) && o.channel === "online" && (
                       <Link
                         href={lhref(locale, `/returns?n=${o.number}`)}
