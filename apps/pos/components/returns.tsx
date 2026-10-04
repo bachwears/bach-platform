@@ -201,26 +201,13 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
 
     if (mode === "return") {
       const useWallet = toWallet && !!order.customer_id;
-      const { data: ret, error: err } = await supabase.rpc("pos_return", {
+      // Wallet refunds: the database credits the wallet in the same step as the return.
+      const { error: err } = await supabase.rpc("pos_return", {
         p_order_id: order.id,
         p_items: retItems,
         p_refunds: useWallet ? [] : cash,
+        ...(useWallet ? { p_to_wallet: true } : {}),
       });
-      if (!err && useWallet) {
-        const amount = (ret as Array<{ credit_usd_cents: number }>)?.[0]?.credit_usd_cents ?? credit;
-        const { error: werr } = await supabase.rpc("credit_wallet", {
-          p_customer_id: order.customer_id,
-          p_amount_usd_cents: amount,
-          p_kind: "return_credit",
-          p_note: `مرتجع فاتورة #${order.number}`,
-          p_reference: order.id,
-        });
-        if (werr) {
-          setBusy(false);
-          setError(`المرتجع انسجل بس ما قدرنا نضيف الرصيد: ${werr.message} — ضيفه يدوياً من الإدارة.`);
-          return;
-        }
-      }
       setBusy(false);
       if (err) {
         setError(`ما مشي الحال: ${err.message}`);
@@ -245,21 +232,8 @@ export function Returns({ branchId, branchName, rate }: { branchId: string; bran
         p_new_items: newCart.map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
         p_payments: net > 5 ? cash : [],
         p_refunds: net < -5 && !useWallet ? cash : [],
+        ...(useWallet ? { p_to_wallet: true } : {}),
       });
-      if (!err && useWallet) {
-        const { error: werr } = await supabase.rpc("credit_wallet", {
-          p_customer_id: order.customer_id,
-          p_amount_usd_cents: Math.abs(net),
-          p_kind: "return_credit",
-          p_note: `فرق تبديل فاتورة #${order.number}`,
-          p_reference: order.id,
-        });
-        if (werr) {
-          setBusy(false);
-          setError(`التبديل انسجل بس ما قدرنا نضيف الرصيد: ${werr.message} — ضيفه يدوياً من الإدارة.`);
-          return;
-        }
-      }
       setBusy(false);
       if (err) {
         setError(`ما مشي الحال: ${err.message}`);
