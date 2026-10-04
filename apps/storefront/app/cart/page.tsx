@@ -8,8 +8,9 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
+import { CARD_COLUMNS, toCardProduct } from "../../lib/card";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
-import { colourPhoto, hoverPhoto } from "../../lib/media";
+import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
 
@@ -34,24 +35,9 @@ interface CardRow {
   product_variants: Array<{ id: string; size: string; color_en: string; is_active: boolean }>;
 }
 
-const CARD_SELECT =
-  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, is_active)";
+const CARD_SELECT = CARD_COLUMNS;
 
-function toCard(p: CardRow): CardProduct {
-  const active = p.product_variants.filter((v) => v.is_active);
-  const seen = new Set<string>();
-  return {
-    slug: p.slug,
-    name_en: p.name_en,
-    name_ar: p.name_ar,
-    price_usd_cents: p.price_usd_cents,
-    sale_price_usd_cents: p.sale_price_usd_cents,
-    front: p.media_assets.find((m) => m.kind === "front")?.storage_path ?? null,
-    back: hoverPhoto(p.media_assets),
-    colors: active.map((v) => v.color_en),
-    sizes: active.filter((v) => !seen.has(v.size) && seen.add(v.size)).map((v) => ({ variantId: v.id, size: v.size })),
-  };
-}
+const toCard = (p: CardRow): CardProduct => toCardProduct(p);
 
 function usd(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;

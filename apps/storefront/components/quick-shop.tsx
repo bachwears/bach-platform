@@ -19,10 +19,13 @@ export interface QuickShopSize {
 export function QuickShop({
   sizes,
   name,
+  color,
   align = "end",
 }: {
   sizes: QuickShopSize[];
   name: string;
+  /** the colour the sizes belong to, echoed in the confirmation */
+  color?: string | null;
   /** "center": the + sits centred under the price (mini cards) */
   align?: "end" | "center";
 }) {
@@ -77,7 +80,10 @@ export function QuickShop({
             </p>
           ) : (
             <>
-              <p className="type-heading text-muted-foreground">{t(locale, "sf.shop.selectSize")}</p>
+              <p className="type-heading text-muted-foreground">
+                {t(locale, "sf.shop.selectSize")}
+                {color ? <span className="ms-2">· {color}</span> : null}
+              </p>
               <div className="mt-2 flex flex-wrap gap-1">
                 {sizes.map((s) => (
                   <button
@@ -86,7 +92,7 @@ export function QuickShop({
                     className="type-label grid h-10 min-w-10 place-items-center px-2 underline-offset-4 hover:underline"
                     onClick={() => {
                       addToCart(s.variantId);
-                      setAdded(s.size);
+                      setAdded(color ? `${color} / ${s.size}` : s.size);
                     }}
                   >
                     {s.size}

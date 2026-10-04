@@ -5,7 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "./product-card";
-import { hoverPhoto } from "../lib/media";
+import { CARD_COLUMNS, toCardProduct, type CardRow } from "../lib/card";
 import { useLocale } from "../lib/locale-client";
 
 const KEY = "bach-recent";
@@ -37,27 +37,13 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
 
     void supabaseBrowser()
       .from("products")
-      .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)",
-      )
+      .select(CARD_COLUMNS)
       .eq("status", "published")
       .in("slug", previous.slice(0, 4))
       .then(({ data }) => {
         const bySlug = new Map(
-          ((data ?? []) as unknown as Array<Record<string, unknown>>).map((p) => {
-            const media = (p.media_assets as Array<{ kind: string; storage_path: string }>) ?? [];
-            const card: CardProduct = {
-              slug: p.slug as string,
-              name_en: p.name_en as string,
-              name_ar: p.name_ar as string | null,
-              price_usd_cents: p.price_usd_cents as number,
-              sale_price_usd_cents: p.sale_price_usd_cents as number | null,
-              front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-              back: hoverPhoto(media),
-              colors: ((p.product_variants as Array<{ color_en: string; is_active: boolean }>) ?? [])
-                .filter((v) => v.is_active)
-                .map((v) => v.color_en),
-            };
+          ((data ?? []) as unknown as CardRow[]).map((p) => {
+            const card = toCardProduct(p as unknown as CardRow);
             return [card.slug, card];
           }),
         );

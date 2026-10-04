@@ -4,8 +4,8 @@ import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
+import { toCardProduct } from "../../lib/card";
 import { SearchField } from "../../components/search-field";
-import { hoverPhoto } from "../../lib/media";
 import { getLocale, lhref } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,32 +32,8 @@ interface Row {
   product_collections: Array<{ collections: { name_en: string } | null }>;
 }
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-const sizeRank = (s: string) => {
-  const i = SIZE_ORDER.indexOf(s.toUpperCase());
-  if (i >= 0) return i;
-  const n = Number(s);
-  return Number.isFinite(n) ? 100 + n : 999;
-};
 
-function toCard(p: Row): CardProduct {
-  const active = p.product_variants.filter((v) => v.is_active);
-  const seen = new Set<string>();
-  return {
-    slug: p.slug,
-    name_en: p.name_en,
-    name_ar: p.name_ar,
-    price_usd_cents: p.price_usd_cents,
-    sale_price_usd_cents: p.sale_price_usd_cents,
-    front: p.media_assets.find((m) => m.kind === "front")?.storage_path ?? null,
-    back: hoverPhoto(p.media_assets),
-    colors: active.map((v) => v.color_en),
-    sizes: active
-      .filter((v) => !seen.has(v.size) && seen.add(v.size))
-      .sort((a, b) => sizeRank(a.size) - sizeRank(b.size))
-      .map((v) => ({ variantId: v.id, size: v.size })),
-  };
-}
+const toCard = (p: Row): CardProduct => toCardProduct(p);
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q: raw = "" } = await searchParams;
@@ -68,7 +44,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, sku, is_active), product_collections(collections(name_en))",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, sku, is_active), product_collections(collections(name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),

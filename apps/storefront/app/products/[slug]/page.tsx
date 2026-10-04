@@ -10,10 +10,10 @@ import { PdpAccordion } from "../../../components/pdp-accordion";
 import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-colour";
 import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
-import { ProductCard, type CardProduct } from "../../../components/product-card";
+import { ProductCard } from "../../../components/product-card";
+import { CARD_COLUMNS, toCardProduct, type CardRow } from "../../../lib/card";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
-import { hoverPhoto } from "../../../lib/media";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 
 interface VariantRow {
@@ -142,8 +142,7 @@ export default async function ProductPage({
     lineage.push(n.code);
     n = (catTree ?? []).find((c) => c.id === n!.parent_id);
   }
-  const cardSelect =
-    "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, category_id, media_assets(kind, storage_path, color_en, sort), product_variants(color_en, is_active)";
+  const cardSelect = `id, category_id, ${CARD_COLUMNS}`;
 
   // "You may also like": same category, newest first.
   const relatedQ = product.category_id
@@ -187,24 +186,7 @@ export default async function ProductPage({
         .limit(24)
     : { data: [] };
 
-  const toCard = (p: {
-    slug: string;
-    name_en: string;
-    name_ar: string | null;
-    price_usd_cents: number;
-    sale_price_usd_cents: number | null;
-    media_assets: Array<{ kind: string; storage_path: string }> | null;
-    product_variants: Array<{ color_en: string; is_active: boolean }> | null;
-  }): CardProduct => ({
-    slug: p.slug,
-    name_en: p.name_en,
-    name_ar: p.name_ar,
-    price_usd_cents: p.price_usd_cents,
-    sale_price_usd_cents: p.sale_price_usd_cents,
-    front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null,
-    back: hoverPhoto(p.media_assets ?? []),
-    colors: (p.product_variants ?? []).filter((v) => v.is_active).map((v) => v.color_en),
-  });
+  const toCard = (p: CardRow) => toCardProduct(p);
   // photographed pieces first, then keep four
   const firstFour = (rows: unknown) =>
     ((rows ?? []) as Parameters<typeof toCard>[0][])

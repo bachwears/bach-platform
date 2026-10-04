@@ -6,9 +6,9 @@ import { t } from "@bach/i18n";
 
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
+import { toCardProduct } from "../../lib/card";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
-import { hoverPhoto } from "../../lib/media";
 import { getLocale, lhref, pick } from "../../lib/locale";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,7 +75,7 @@ export default async function ShopPage({
     supabase
       .from("products")
       .select(
-        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort), product_seasons(season), product_variants(id, size, color_en, color_ar, is_active), product_collections(collections(slug, name_en))",
+        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active), product_collections(collections(slug, name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),
@@ -166,25 +166,7 @@ export default async function ShopPage({
     return inSeason(a) - inSeason(b) || b.created_at.localeCompare(a.created_at);
   });
 
-  const cards: CardProduct[] = items.map((p) => {
-    const media = p.media_assets ?? [];
-    const seen = new Set<string>();
-    const sizes = p.product_variants
-      .filter((v) => v.is_active && !seen.has(v.size) && seen.add(v.size))
-      .sort((a, b) => sizeRank(a.size) - sizeRank(b.size))
-      .map((v) => ({ variantId: v.id, size: v.size }));
-    return {
-      slug: p.slug,
-      name_en: p.name_en,
-      name_ar: p.name_ar,
-      price_usd_cents: p.price_usd_cents,
-      sale_price_usd_cents: p.sale_price_usd_cents,
-      front: media.find((m) => m.kind === "front")?.storage_path ?? null,
-      back: hoverPhoto(media),
-      colors: p.product_variants.filter((v) => v.is_active).map((v) => v.color_en),
-      sizes,
-    };
-  });
+  const cards: CardProduct[] = items.map(toCardProduct);
 
   // URL builder: toggles one param while keeping the rest, so every state is a link.
   const href = (patch: Record<string, string | undefined>) => {
