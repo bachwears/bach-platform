@@ -99,10 +99,7 @@ export default async function HelpPage({ searchParams }: { searchParams: Promise
           </section>
         ) : (
           <>
-            <section className="mt-14">
-              <h2 className="type-heading mb-4">{t(locale, "sf.help.faq")}</h2>
-              {rows(all.slice(0, 6))}
-            </section>
+            {/* every article sits in its topic group (the FAQ schema above still lists them all) */}
             {[...byCategory.entries()].map(([category, list]) => (
               <section key={category} className="mt-14">
                 <h2 className="type-heading mb-4">{t(locale, `sf.helpcat.${category}`)}</h2>
@@ -120,14 +117,14 @@ export default async function HelpPage({ searchParams }: { searchParams: Promise
               href="https://wa.me/96171566296"
               target="_blank"
               rel="noreferrer"
-              className="type-label grid h-12 flex-1 place-items-center bg-foreground text-background hover:opacity-90"
+              className="type-label grid h-12 place-items-center sm:flex-1 bg-foreground text-background hover:opacity-90"
             >
               WhatsApp
             </a>
-            <a href="mailto:care@bachwears.com" className="type-label grid h-12 flex-1 place-items-center border border-foreground hover:bg-secondary">
+            <a href="mailto:care@bachwears.com" className="type-label grid h-12 place-items-center sm:flex-1 border border-foreground hover:bg-secondary">
               {t(locale, "sf.help.email")}
             </a>
-            <Link href={lhref(locale, "/support")} className="type-label grid h-12 flex-1 place-items-center border border-foreground hover:bg-secondary">
+            <Link href={lhref(locale, "/support")} className="type-label grid h-12 place-items-center sm:flex-1 border border-foreground hover:bg-secondary">
               {t(locale, "sf.footer.support")}
             </Link>
           </div>
