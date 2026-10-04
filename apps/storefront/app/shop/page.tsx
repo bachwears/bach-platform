@@ -59,6 +59,7 @@ interface ShopProduct {
   price_usd_cents: number;
   sale_price_usd_cents: number | null;
   created_at: string;
+  tags: string[] | null;
   categories: { code: string; name_en: string; name_ar: string } | null;
   media_assets: Array<{ kind: string; storage_path: string }>;
   product_seasons: Array<{ season: string }>;
@@ -67,6 +68,7 @@ interface ShopProduct {
 }
 
 const SORTS: Array<[string, string]> = [
+  ["featured", "sf.shop.featured"],
   ["new", "sf.shop.newest"],
   ["price-asc", "sf.shop.priceAsc"],
   ["price-desc", "sf.shop.priceDesc"],
@@ -82,6 +84,33 @@ function price(p: ShopProduct) {
   return Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
 }
 
+/** Pieces pinned in MGMT ("Pin as hero") lead the featured order. */
+const isHero = (p: ShopProduct) => (p.tags ?? []).includes("hero");
+const ANCHOR_EVERY = 8;
+
+/**
+ * "Featured" order (the default): the newest-first list, with a price anchor up
+ * front and one more every 8 cards. The first price a shopper sees sets the
+ * reference the rest is judged against, so the grid opens on a pinned hero or,
+ * without one, the listing's top-priced piece — jackets on Shop All, the best
+ * knits inside Knitwear — and keeps a recent reference in view down the scroll.
+ * Anchors: pinned heroes, then pieces in the top quarter of this listing's prices.
+ */
+function anchored(list: ShopProduct[]): ShopProduct[] {
+  if (list.length < 3) return list;
+  const prices = list.map(price).sort((a, b) => b - a);
+  const floor = prices[Math.floor(prices.length / 4)]!;
+  const anchors = list
+    .filter((p) => isHero(p) || price(p) >= floor)
+    .sort((a, b) => Number(isHero(b)) - Number(isHero(a)) || price(b) - price(a))
+    .slice(0, Math.ceil(list.length / ANCHOR_EVERY));
+  const used = new Set(anchors);
+  const rest = list.filter((p) => !used.has(p));
+  const out: ShopProduct[] = [];
+  for (const a of anchors) out.push(a, ...rest.splice(0, ANCHOR_EVERY - 1));
+  return [...out, ...rest];
+}
+
 export default async function ShopPage({
   searchParams,
 }: {
@@ -94,7 +123,7 @@ export default async function ShopPage({
   const size = params.size ?? "";
   const color = params.color ?? "";
   const band = params.price ?? "";
-  const sort = params.sort ?? "new";
+  const sort = params.sort ?? "featured";
   const sale = params.sale === "1";
 
   const locale = await getLocale();
@@ -181,6 +210,7 @@ export default async function ShopPage({
     if (sort === "price-desc") return price(b) - price(a);
     return inSeason(a) - inSeason(b) || b.created_at.localeCompare(a.created_at);
   });
+  if (sort === "featured") items = anchored(items);
 
   const cards: CardProduct[] = items.map(toCardProduct);
 
@@ -194,7 +224,7 @@ export default async function ShopPage({
       size,
       color,
       price: band,
-      sort: sort === "new" ? undefined : sort,
+      sort: sort === "featured" ? undefined : sort,
       sale: sale ? "1" : undefined,
       ...patch,
     };
@@ -271,7 +301,7 @@ export default async function ShopPage({
       kind: "list",
       options: SORTS.map(([k, labelKey]) => ({
         label: t(locale, labelKey),
-        href: href({ sort: k === "new" ? undefined : k }),
+        href: href({ sort: k === "featured" ? undefined : k }),
         active: sort === k,
       })),
     },

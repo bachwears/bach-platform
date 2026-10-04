@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HintDot } from "@bach/ui/components/hint-dot";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -35,6 +36,10 @@ export interface ProductValues {
   meta_description_en: string;
   /** comma-separated product_seasons values */
   seasons: string;
+  /** the product's tags as loaded (kept as-is apart from the "hero" pin) */
+  tags?: string[];
+  /** pinned as a price anchor at the top of the shop ("hero" tag) */
+  hero: boolean;
 }
 
 // The fits the catalogue actually uses (shown as-is on the product page).
@@ -63,6 +68,7 @@ const EMPTY: ProductValues = {
   meta_title_en: "",
   meta_description_en: "",
   seasons: "",
+  hero: false,
 };
 
 function slugify(s: string) {
@@ -86,10 +92,10 @@ export function ProductForm({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  function set<K extends keyof ProductValues>(key: K, value: string) {
+  function set<K extends keyof ProductValues>(key: K, value: ProductValues[K]) {
     setValues((v) => {
       const next = { ...v, [key]: value };
-      if (key === "name_en" && isNew) next.slug = slugify(value);
+      if (key === "name_en" && isNew) next.slug = slugify(String(value));
       return next;
     });
     setSaved(false);
@@ -125,6 +131,8 @@ export function ProductForm({
       care_en: values.care_en.trim() || null,
       meta_title_en: values.meta_title_en.trim() || null,
       meta_description_en: values.meta_description_en.trim() || null,
+      // the hero pin lives in tags (storefront never shows tags)
+      tags: [...(values.tags ?? []).filter((t) => t !== "hero"), ...(values.hero ? ["hero"] : [])],
     };
     const wantSeasons = values.seasons.split(",").filter(Boolean);
     // product_seasons is a plain list per product: replace it with what's ticked
@@ -255,6 +263,29 @@ export function ProductForm({
           <Textarea id="care" dir="ltr" rows={2} placeholder="Machine wash cold. Do not bleach." value={values.care_en} onChange={(e) => set("care_en", e.target.value)} />
         </div>
       </div>
+
+      <label className="flex items-start gap-3 rounded-lg border p-4">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4"
+          checked={values.hero}
+          onChange={(e) => set("hero", e.target.checked)}
+        />
+        <span className="space-y-1">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            ثبّتها كقطعة «هيرو»
+            <HintDot
+              hint={{
+                title: "القطعة الهيرو",
+                what: "قطعة بتنحطّ أوّل شي بالشوب وبصفحة فئتها (وبين كل ٨ قطع)، لتصير هي السعر المرجعي يلّي الزبون بيقارن فيه باقي القطع. منختار قطع مميّزة وغالية متل الجاكيتات.",
+                source: "تاغ hero على المنتج. الترتيب «Featured» بالشوب بيقرا هالتاغ أوّل، وبعدين الأغلى بكل صفحة.",
+                edit: "من هون: علّم أو شيل العلامة واحفظ. بيبيّن عالموقع خلال دقيقة.",
+              }}
+            />
+          </span>
+          <span className="block text-xs text-muted-foreground">بتطلع أوّل شي بالشوب وبفئتها. أحسن شي ٣ لـ ٦ قطع بالمرّة.</span>
+        </span>
+      </label>
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">المواسم</legend>

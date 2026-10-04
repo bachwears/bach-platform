@@ -60,6 +60,7 @@ export default function CartPage() {
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState("");
   const [suggested, setSuggested] = useState<CardProduct[]>([]);
+  const [addOns, setAddOns] = useState<CardProduct[]>([]);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [favs, setFavs] = useState<Array<{ productId: string; card: CardProduct }> | null>(null);
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -195,6 +196,29 @@ export default function CartPage() {
       );
   }, [bagEmpty, suggested.length]);
 
+  // A bag with something in it offers finishing touches under $40: next to the piece
+  // already chosen they read as small additions (the bag item is the price anchor).
+  const bagSlugs = rows.map((r) => r.d!.slug.split("?")[0]).join(",");
+  useEffect(() => {
+    if (!loaded || !bagSlugs) return;
+    const inBag = new Set(bagSlugs.split(","));
+    void supabaseBrowser()
+      .from("products")
+      .select(CARD_SELECT)
+      .eq("status", "published")
+      .lte("price_usd_cents", 4000)
+      .order("price_usd_cents", { ascending: true })
+      .limit(40)
+      .then(({ data }) =>
+        setAddOns(
+          ((data ?? []) as unknown as CardRow[])
+            .filter((p) => !inBag.has(p.slug) && p.media_assets.some((m) => m.kind === "front"))
+            .slice(0, 10)
+            .map(toCard),
+        ),
+      );
+  }, [loaded, bagSlugs]);
+
   const delivery = subtotal > 0 ? deliveryFor(subtotal, deliveryRule) : 0;
   const lbp = rate ? `${Math.round(((subtotal + delivery) / 100) * rate).toLocaleString("en-US")} LBP` : null;
   const tabClass = (on: boolean) =>
@@ -307,6 +331,7 @@ export default function CartPage() {
             ) : null}
           </section>
         ) : (
+          <>
           <section className="mt-8 grid gap-10 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0" role="tabpanel">
             <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
               {rows.map(({ line, d }) => (
@@ -396,6 +421,19 @@ export default function CartPage() {
               </div>
             </aside>
           </section>
+          {addOns.length ? (
+            <section className="-mt-16 pb-32 lg:mt-16 lg:pb-0" aria-label={t(locale, "sf.cart.finishing")}>
+              <h2 className="type-label mb-6">{t(locale, "sf.cart.finishing")}</h2>
+              <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
+                {addOns.map((p) => (
+                  <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">
+                    <ProductCard product={p} locale={locale} variant="mini" />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          </>
         )}
       </main>
     </div>

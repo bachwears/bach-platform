@@ -438,5 +438,7 @@
   "sf.pdp.wishErrorShort": "ما انحفظ — جرّب كمان مرة",
   "sf.trackOrder.numberPh": "مثلاً 1024",
   "sf.meta.searchDescription": "فتّش بتشكيلة BACH Wears الرجالية بالاسم أو الفئة أو اللون — قمصان، كنزات، بناطيل، أحذية وإكسسوارات.",
-  "sf.meta.helpDescription": "أجوبة عن الطلب، الدفع عند الاستلام، التوصيل بكل لبنان، المرتجع والتبديل، وحسابك على BACH Wears."
+  "sf.meta.helpDescription": "أجوبة عن الطلب، الدفع عند الاستلام، التوصيل بكل لبنان، المرتجع والتبديل، وحسابك على BACH Wears.",
+  "sf.shop.featured": "مختارات",
+  "sf.cart.finishing": "لمسات أخيرة"
 }

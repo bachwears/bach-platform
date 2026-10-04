@@ -213,7 +213,13 @@ export default async function ProductPage({
       .filter((c) => c.front)
       .slice(0, 4);
   const related = firstFour(relatedRaw);
-  const look = firstFour(lookRaw);
+  // "Complete the look" leads with its priciest piece: it sets the reference the
+  // rest of the outfit is weighed against (same four pieces, re-ordered).
+  const look = firstFour(lookRaw).sort(
+    (a, b) =>
+      Math.min(b.sale_price_usd_cents ?? b.price_usd_cents, b.price_usd_cents) -
+      Math.min(a.sale_price_usd_cents ?? a.price_usd_cents, a.price_usd_cents),
+  );
   // the guide set on the nearest category wins (Boots' own guide over Shoes')
   const guideRows = (guideRow ?? []) as Array<{ category_codes: string[] }>;
   const nearest = (g: { category_codes: string[] }) => {

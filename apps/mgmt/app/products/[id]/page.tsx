@@ -70,6 +70,8 @@ export default async function EditProductPage({
               meta_title_en: product.meta_title_en ?? "",
               meta_description_en: product.meta_description_en ?? "",
               seasons: ((product.product_seasons as Array<{ season: string }> | null) ?? []).map((x) => x.season).join(","),
+              tags: (product.tags as string[] | null) ?? [],
+              hero: ((product.tags as string[] | null) ?? []).includes("hero"),
             }}
           />
         </div>
