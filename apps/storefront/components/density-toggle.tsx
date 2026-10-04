@@ -16,6 +16,11 @@ export function DensityToggle({ target }: { target: string }) {
   const [large, setLarge] = useState(false);
 
   useEffect(() => {
+    // ?view=1 (from the home page's "The New") opens on large photos for this visit
+    if (new URLSearchParams(window.location.search).get("view") === "1") {
+      setLarge(true);
+      return;
+    }
     try {
       setLarge(localStorage.getItem(KEY) === "large");
     } catch {
