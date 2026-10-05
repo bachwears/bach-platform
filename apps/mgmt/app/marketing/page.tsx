@@ -1,5 +1,6 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { LoyaltySettings } from "../../components/loyalty-settings";
 import { Marketing } from "../../components/marketing";
 import { Nav } from "../../components/nav";
 import { NewsletterCard } from "../../components/newsletter-card";
@@ -21,12 +22,13 @@ export default async function MarketingPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">التسويق</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            الموسم، الحملات، أكواد الخصم، والبوب-أب — كلو من هون.
+            الموسم، الحملات، أكواد الخصم، البوب-أب وبرنامج النقاط — كلو من هون.
           </p>
         </div>
         {allowed ? (
           <>
             <Marketing />
+            <LoyaltySettings />
             <NewsletterCard />
           </>
         ) : (

@@ -11,6 +11,7 @@ import { clearCart, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { DeliveryProgress } from "../../components/delivery-progress";
+import { PointsEarn } from "../../components/points-earn";
 import { lhref, useLocale } from "../../lib/locale-client";
 import { track } from "../../lib/track";
 
@@ -467,6 +468,8 @@ export default function CheckoutPage() {
                 ≈ {Math.round((total / 100) * rate).toLocaleString("en-US")} LBP
               </p>
             )}
+            {/* the pieces as paid (after promo and any wallet reward), delivery excluded */}
+            <PointsEarn goods={total - delivery} signedIn={signedIn} className="mt-2" />
             <p className="mt-4 text-xs text-muted-foreground">{t(locale, "sf.co.cashNote")}</p>
             <Link href={lhref(locale, "/cart")} className="type-meta mt-4 inline-block underline underline-offset-4 hover:opacity-60">
               {t(locale, "sf.co.editBag")}

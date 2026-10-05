@@ -10,6 +10,15 @@ import { t, type Locale } from "@bach/i18n";
 import { AccountPassword } from "../../components/account-password";
 import { AccountProfile, type ProfileCustomer } from "../../components/account-profile";
 import { lhref, useLocale } from "../../lib/locale-client";
+import { loyaltyRule, ptsUnit, rewardValue, usdShort, useLoyalty } from "../../lib/loyalty";
+
+interface PointsMove {
+  id: number;
+  delta: number;
+  kind: string;
+  note: string | null;
+  created_at: string;
+}
 
 interface MyOrder {
   id: string;
@@ -93,6 +102,10 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<MyOrder[]>([]);
   const [wishlist, setWishlist] = useState<Array<{ product_id: string; products: { slug: string; name_en: string; name_ar: string | null; price_usd_cents: number; sale_price_usd_cents: number | null } }>>([]);
   const [loaded, setLoaded] = useState(false);
+  const loyalty = useLoyalty();
+  const [moves, setMoves] = useState<PointsMove[]>([]);
+  const [ptsBusy, setPtsBusy] = useState(false);
+  const [ptsMsg, setPtsMsg] = useState<{ text: string; bad?: boolean } | null>(null);
   // /account?open=orders (e.g. from the order confirmation) opens the orders row
   const [openOrders, setOpenOrders] = useState(false);
   useEffect(() => {
@@ -123,6 +136,7 @@ export default function AccountPage() {
           .order("created_at", { ascending: false })
           .limit(10)
           .then(({ data: t2 }) => setTopups(t2 ?? []));
+        void loadMoves(cust.id);
         const [{ data }, { data: wl }] = await Promise.all([
           supabase
             .from("orders")
@@ -144,6 +158,48 @@ export default function AccountPage() {
     void load();
   }, [router, locale]);
 
+  // Points history; an error (programme not live yet) just leaves it empty.
+  async function loadMoves(customerId: string) {
+    const { data, error } = await supabaseBrowser()
+      .from("loyalty_points")
+      .select("id, delta, kind, note, created_at")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (!error) setMoves((data ?? []) as PointsMove[]);
+  }
+
+  async function redeemPoints() {
+    if (!customer?.id || !loyalty) return;
+    setPtsBusy(true);
+    setPtsMsg(null);
+    const supabase = supabaseBrowser();
+    const { data, error } = await supabase.rpc("redeem_points");
+    if (error) {
+      setPtsBusy(false);
+      setPtsMsg({
+        bad: true,
+        text: error.message.includes("not enough")
+          ? t(locale, "sf.pts.errNotEnough", { r: loyalty.rewardPoints })
+          : error.message.includes("paused")
+            ? t(locale, "sf.pts.errPaused")
+            : t(locale, "sf.pts.errGeneric"),
+      });
+      return;
+    }
+    const credit = ((Array.isArray(data) ? data[0] : data) as { credit_usd_cents?: number } | null)?.credit_usd_cents ?? 0;
+    // fresh balances from the database (points and wallet moved together)
+    const { data: fresh } = await supabase
+      .from("customers")
+      .select("balance_usd_cents, points_balance")
+      .eq("id", customer.id)
+      .maybeSingle();
+    if (fresh) setCustomer((c) => (c ? { ...c, ...fresh } : c));
+    await loadMoves(customer.id);
+    setPtsBusy(false);
+    setPtsMsg({ text: t(locale, "sf.pts.converted", { v: usdShort(credit) }) });
+  }
+
   async function signOut() {
     await supabaseBrowser().auth.signOut();
     router.replace(lhref(locale, "/"));
@@ -157,6 +213,8 @@ export default function AccountPage() {
     "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors focus:border-foreground";
   const SAVE = "type-label h-11 shrink-0 bg-foreground px-8 text-background hover:opacity-90 disabled:opacity-40";
   const balance = (customer as { balance_usd_cents?: number })?.balance_usd_cents ?? 0;
+  // undefined until the loyalty migration adds the column: the card stays hidden
+  const points = (customer as { points_balance?: number } | null)?.points_balance;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -412,6 +470,76 @@ export default function AccountPage() {
               </ul>
             )}
           </Row>
+
+          {loyalty && customer?.id && typeof points === "number" && (
+            <Row title={t(locale, "sf.pts.title")} meta={`${points} ${ptsUnit(locale, points)}`}>
+              <p className="type-label tabular-nums">
+                {t(locale, "sf.pts.worth", { v: usdShort(rewardValue(points, loyalty)) })}
+              </p>
+              {(() => {
+                const into = points % loyalty.rewardPoints;
+                const left = loyalty.rewardPoints - into;
+                return (
+                  <div className="mt-6 max-w-md">
+                    <p className="type-meta">
+                      {t(locale, "sf.pts.toNext", { n: left, u: ptsUnit(locale, left), v: usdShort(loyalty.rewardUsdCents) })}
+                    </p>
+                    <div
+                      className="mt-2 h-px w-full bg-foreground/15"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={loyalty.rewardPoints}
+                      aria-valuenow={into}
+                      aria-label={t(locale, "sf.pts.progress")}
+                    >
+                      <div
+                        className="h-px bg-foreground transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                        style={{ width: `${Math.round((into / loyalty.rewardPoints) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+              {points >= loyalty.rewardPoints && (
+                <button type="button" className={`${SAVE} mt-6`} disabled={ptsBusy} onClick={() => void redeemPoints()}>
+                  {ptsBusy
+                    ? t(locale, "sf.pts.converting")
+                    : t(locale, "sf.pts.convert", { v: usdShort(rewardValue(points, loyalty)) })}
+                </button>
+              )}
+              {ptsMsg && (
+                <p role="status" className={`mt-3 text-xs ${ptsMsg.bad ? "text-destructive" : "text-muted-foreground"}`}>
+                  {ptsMsg.text}
+                </p>
+              )}
+              <p className="mt-6 text-xs text-muted-foreground">{loyaltyRule(locale, loyalty)}</p>
+              <p className="type-meta mt-8">{t(locale, "sf.pts.history")}</p>
+              {moves.length === 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.pts.none")}</p>
+              ) : (
+                <ul className="mt-3 divide-y border-y text-xs">
+                  {moves.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-3 py-3">
+                      <span className="text-muted-foreground">
+                        {new Date(m.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {t(locale, `sf.pts.kind.${m.kind}`)}
+                        {/* order references only; staff adjustment notes stay internal */}
+                        {(m.kind === "earn" || m.kind === "reverse") && m.note ? (
+                          <span className="text-muted-foreground" dir="ltr"> · {m.note}</span>
+                        ) : null}
+                      </span>
+                      <span className="tabular-nums" dir="ltr">
+                        {m.delta > 0 ? "+" : "−"}
+                        {Math.abs(m.delta)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Row>
+          )}
 
           {userEmail && (
             <Row title={t(locale, "sf.acct.password")}>

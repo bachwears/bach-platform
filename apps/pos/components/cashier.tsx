@@ -9,6 +9,7 @@ import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { CameraScanner } from "./camera-scanner";
+import { CustomerPoints } from "./customer-points";
 
 import {
   type BarcodeAlias,
@@ -919,6 +920,7 @@ export function Cashier({
               )}
             </div>
           )}
+          {customer && <CustomerPoints key={customer.id} customerId={customer.id} />}
           {customer && bday?.eligible && !bdayApplied && (
             <Button
               size="sm"

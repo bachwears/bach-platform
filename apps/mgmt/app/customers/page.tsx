@@ -9,7 +9,10 @@ export default async function CustomersPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
-  const canDecide = ["super_admin", "store_manager"].includes(profile?.role ?? "");
+  const role = profile?.role ?? "";
+  const canDecide = ["super_admin", "store_manager"].includes(role);
+  // loyalty points: managers adjust by hand; cashiers can also convert to wallet credit
+  const canRedeem = ["super_admin", "store_manager", "cashier"].includes(role);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -18,10 +21,10 @@ export default async function CustomersPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">العملاء</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            بحث بالعملاء، سجل طلباتهم، محافظهم — وتأكيد تعبئات Whish (وعدنا: 6 ساعات كحد أقصى).
+            بحث بالعملاء، سجل طلباتهم، محافظهم ونقاطهم — وتأكيد تعبئات Whish (وعدنا: 6 ساعات كحد أقصى).
           </p>
         </div>
-        <CustomersManager canDecide={canDecide} />
+        <CustomersManager canDecide={canDecide} canAdjust={canDecide} canRedeem={canRedeem} />
       </main>
     </div>
   );

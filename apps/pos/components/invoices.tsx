@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Input } from "@bach/ui/components/input";
 
+import { CustomerPoints } from "./customer-points";
+
 interface Inv {
   id: string;
   number: number;
@@ -105,6 +107,24 @@ export function Invoices() {
                   <span dir="ltr"> {o.customers.phone}</span>
                   <span className="ms-3">محفظته: <span className="font-mono" dir="ltr">{usd(o.customers.balance_usd_cents)}</span></span>
                 </p>
+              )}
+              {o.customers && (
+                <CustomerPoints
+                  key={o.customers.id}
+                  customerId={o.customers.id}
+                  className="max-w-md"
+                  onRedeemed={(credit) => {
+                    // the same customer can sit on several invoices in the list
+                    const cid = o.customers!.id;
+                    setRows((prev) =>
+                      prev.map((r) =>
+                        r.customers?.id === cid
+                          ? { ...r, customers: { ...r.customers, balance_usd_cents: r.customers.balance_usd_cents + credit } }
+                          : r,
+                      ),
+                    );
+                  }}
+                />
               )}
               <ul className="space-y-1">
                 {o.order_items.map((i, idx) => (

@@ -7,6 +7,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
+import { NOT_SAVED } from "../lib/access";
 import { STATUS_LABELS } from "../lib/order-status";
 import { fmt } from "../lib/time";
 
@@ -16,6 +17,7 @@ interface Cust {
   phone: string | null;
   email: string | null;
   balance_usd_cents: number;
+  points_balance?: number; // loyalty migration; absent until it lands
   created_at: string;
   birthday: string | null;
   marketing_consent: boolean | null;
@@ -39,11 +41,37 @@ interface Topup {
   customers: { full_name: string | null; phone: string | null } | null;
 }
 
+interface PointsMove {
+  id: number;
+  delta: number;
+  kind: string;
+  note: string | null;
+  created_at: string;
+}
+
+interface Loyalty {
+  enabled: boolean;
+  reward_points: number;
+  reward_usd_cents: number;
+}
+
+const PTS_KIND_AR: Record<string, string> = {
+  earn: "ربح من طلب",
+  reverse: "سحب بسبب مرتجع",
+  redeem: "تحويل لرصيد",
+  expire: "انتهاء",
+  adjust: "تعديل يدوي",
+};
+
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const day = (iso: string) => fmt(iso, { day: "numeric", month: "short", year: "numeric" });
 const hoursAgo = (iso: string) => (Date.now() - new Date(iso).getTime()) / 36e5;
 
-export function CustomersManager({ canDecide }: { canDecide: boolean }) {
+/**
+ * canAdjust: super_admin/store_manager (adjust_points); canRedeem: those plus
+ * cashier (redeem_points for a customer). The database enforces both.
+ */
+export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecide: boolean; canAdjust: boolean; canRedeem: boolean }) {
   const supabase = supabaseBrowser();
   const [pending, setPending] = useState<Topup[]>([]);
   const [q, setQ] = useState("");
@@ -53,6 +81,21 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
   const [tx, setTx] = useState<Array<{ id: string; delta_usd_cents: number; kind: string; note: string | null; created_at: string }>>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  // null = programme not in the database (yet): every points block hides
+  const [loyalty, setLoyalty] = useState<Loyalty | null>(null);
+  const [pts, setPts] = useState<PointsMove[] | null>(null);
+  const [adjDelta, setAdjDelta] = useState("");
+  const [adjNote, setAdjNote] = useState("");
+  const [ptsBusy, setPtsBusy] = useState(false);
+  const [ptsMsg, setPtsMsg] = useState<{ text: string; bad?: boolean } | null>(null);
+
+  useEffect(() => {
+    void supabase.rpc("loyalty_settings").then(({ data, error }) => {
+      const row = (Array.isArray(data) ? data[0] : data) as Loyalty | null;
+      if (!error && row?.reward_points) setLoyalty(row);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadPending() {
     const { data } = await supabase
@@ -92,12 +135,94 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
   async function openCustomer(id: string) {
     setOpen(open === id ? null : id);
     if (open === id) return;
-    const [{ data: o }, { data: w }] = await Promise.all([
+    setPts(null);
+    setPtsMsg(null);
+    setAdjDelta("");
+    setAdjNote("");
+    const [{ data: o }, { data: w }, { data: p, error: pErr }] = await Promise.all([
       supabase.from("orders").select("id, number, status, channel, total_usd_cents, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(30),
       supabase.from("wallet_transactions").select("id, delta_usd_cents, kind, note, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("loyalty_points").select("id, delta, kind, note, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
     ]);
     setOrders((o ?? []) as never);
     setTx((w ?? []) as never);
+    setPts(pErr ? null : ((p ?? []) as never));
+  }
+
+  // After a points change: fresh balances on the row, plus both histories.
+  async function reloadBalances(id: string) {
+    const [{ data: c }, { data: w }, { data: p }] = await Promise.all([
+      supabase.from("customers").select("balance_usd_cents, points_balance").eq("id", id).maybeSingle(),
+      supabase.from("wallet_transactions").select("id, delta_usd_cents, kind, note, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("loyalty_points").select("id, delta, kind, note, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
+    ]);
+    if (c) setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...c } : r)));
+    setTx((w ?? []) as never);
+    if (p) setPts(p as never);
+  }
+
+  async function redeemFor(c: Cust) {
+    if (!loyalty || typeof c.points_balance !== "number") return;
+    const rewards = Math.floor(c.points_balance / loyalty.reward_points);
+    if (!rewards) return;
+    if (!window.confirm(`نحوّل ${rewards * loyalty.reward_points} نقطة لـ${usd(rewards * loyalty.reward_usd_cents)} رصيد بمحفظة ${c.full_name ?? "الزبون"}؟`)) return;
+    setPtsBusy(true);
+    setPtsMsg(null);
+    const { data, error } = await supabase.rpc("redeem_points", { p_customer_id: c.id });
+    setPtsBusy(false);
+    if (error) {
+      setPtsMsg({
+        bad: true,
+        text: error.message.includes("not enough")
+          ? "النقاط ما بتكفي للتحويل."
+          : error.message.includes("paused")
+            ? "البرنامج موقّف — شغّلو من التسويق ← برنامج النقاط."
+            : error.message.includes("customer not found")
+              ? NOT_SAVED
+              : `ما مشي التحويل: ${error.message}`,
+      });
+      return;
+    }
+    const r = (Array.isArray(data) ? data[0] : data) as { points_used: number; credit_usd_cents: number } | null;
+    setPtsMsg({ text: `تمّ — ${r?.points_used ?? 0} نقطة صاروا ${usd(r?.credit_usd_cents ?? 0)} بالمحفظة.` });
+    void reloadBalances(c.id);
+  }
+
+  async function adjust(c: Cust) {
+    const raw = adjDelta.trim();
+    const delta = /^[+-]?\d{1,6}$/.test(raw) ? parseInt(raw, 10) : 0;
+    if (!delta) {
+      setPtsMsg({ bad: true, text: "اكتب عدد نقاط صحيح، مثلاً 50 للزيادة أو ‎-50 للنقصان." });
+      return;
+    }
+    if (!adjNote.trim()) {
+      setPtsMsg({ bad: true, text: "السبب إجباري — بيبيّن بسجل النقاط." });
+      return;
+    }
+    setPtsBusy(true);
+    setPtsMsg(null);
+    const { data, error } = await supabase.rpc("adjust_points", { p_customer_id: c.id, p_delta: delta, p_note: adjNote.trim() });
+    setPtsBusy(false);
+    if (error) {
+      setPtsMsg({
+        bad: true,
+        text: error.message.includes("not allowed")
+          ? NOT_SAVED
+          : error.message.includes("reason")
+            ? "السبب إجباري."
+            : `ما انحفظ التعديل: ${error.message}`,
+      });
+      return;
+    }
+    const applied = typeof data === "number" ? data : delta;
+    setPtsMsg(
+      applied === 0
+        ? { bad: true, text: "ما تغيّر شي — الرصيد صفر وما بينزل تحت الصفر." }
+        : { text: `انحفظ — ${applied > 0 ? "+" : ""}${applied} نقطة.${applied !== delta ? " (النقصان وقف عند الصفر)" : ""}` },
+    );
+    setAdjDelta("");
+    setAdjNote("");
+    void reloadBalances(c.id);
   }
 
   async function decide(id: string, approve: boolean) {
@@ -118,6 +243,8 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
     return_credit: "رصيد مرتجع",
     order_payment: "دفع طلب",
     adjustment: "تسوية",
+    order_refund: "استرجاع طلب",
+    loyalty_reward: "مكافأة نقاط",
   };
 
   return (
@@ -224,6 +351,12 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                   <span className="text-muted-foreground">المحفظة: </span>
                   <span className="font-mono" dir="ltr">{usd(c.balance_usd_cents)}</span>
                 </span>
+                {loyalty && typeof c.points_balance === "number" && (
+                  <span>
+                    <span className="text-muted-foreground">النقاط: </span>
+                    <span className="font-mono" dir="ltr">{c.points_balance}</span>
+                  </span>
+                )}
               </span>
             </button>
             {open === c.id && (
@@ -284,6 +417,77 @@ export function CustomersManager({ canDecide }: { canDecide: boolean }) {
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {loyalty && typeof c.points_balance === "number" && pts && (
+                    <div className="mt-6 space-y-3">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        النقاط: <span className="font-mono" dir="ltr">{c.points_balance}</span>
+                        <span className="font-normal text-muted-foreground" dir="ltr">
+                          (= {usd(Math.floor(c.points_balance / loyalty.reward_points) * loyalty.reward_usd_cents)})
+                        </span>
+                        <HintDot
+                          hint={{
+                            title: "نقاط الزبون",
+                            what: `بتنزل لحالها لما يكمل بيع بالمحل أو يوصل طلب أونلاين، وبتنسحب مع المرتجع. كل ${loyalty.reward_points} نقطة = ${usd(loyalty.reward_usd_cents)} رصيد بالمحفظة.`,
+                            source: "رصيد النقاط من جدول العملاء، والحركات من سجل النقاط (loyalty_points).",
+                            edit: "التحويل لرصيد: الزبون من حسابو، أو الكاشير/المدير من هون أو من الكاشير. التعديل اليدوي: سوبر أدمن أو مدير محل بس، مع سبب. القواعد: التسويق ← برنامج النقاط.",
+                          }}
+                        />
+                      </p>
+                      {!loyalty.enabled && <p className="text-xs text-muted-foreground">البرنامج موقّف حالياً — ما في ربح ولا تحويل.</p>}
+                      {canRedeem && loyalty.enabled && c.points_balance >= loyalty.reward_points && (
+                        <Button size="sm" variant="outline" disabled={ptsBusy} onClick={() => void redeemFor(c)}>
+                          حوّل لرصيد بالمحفظة
+                        </Button>
+                      )}
+                      {pts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">ما في حركات نقاط.</p>
+                      ) : (
+                        <ul className="space-y-1 text-sm">
+                          {pts.map((m) => (
+                            <li key={m.id} className="flex items-center justify-between gap-2">
+                              <span className="text-xs">
+                                {PTS_KIND_AR[m.kind] ?? m.kind}
+                                <span className="block text-muted-foreground">{day(m.created_at)}</span>
+                              </span>
+                              <span className="truncate text-xs text-muted-foreground" dir="auto">{m.note}</span>
+                              <span className={`font-mono text-xs ${m.delta > 0 ? "text-green-600 dark:text-green-400" : ""}`} dir="ltr">
+                                {m.delta > 0 ? "+" : ""}{m.delta}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {canAdjust && (
+                        <div className="space-y-2 rounded-md border p-3">
+                          <p className="text-xs font-medium">تعديل يدوي للنقاط</p>
+                          <div className="flex flex-wrap gap-2">
+                            <Input
+                              value={adjDelta}
+                              onChange={(e) => setAdjDelta(e.target.value)}
+                              placeholder="+50 / -50"
+                              aria-label="عدد النقاط (+ أو -)"
+                              dir="ltr"
+                              inputMode="numeric"
+                              className="h-9 w-28 text-left font-mono"
+                            />
+                            <Input
+                              value={adjNote}
+                              onChange={(e) => setAdjNote(e.target.value)}
+                              placeholder="السبب (إجباري)"
+                              aria-label="سبب التعديل"
+                              className="h-9 min-w-40 flex-1"
+                            />
+                            <Button size="sm" disabled={ptsBusy || !adjDelta.trim() || !adjNote.trim()} onClick={() => void adjust(c)}>
+                              سجّل
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {ptsMsg && (
+                        <p className={`text-xs ${ptsMsg.bad ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>{ptsMsg.text}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

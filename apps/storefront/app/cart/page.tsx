@@ -10,6 +10,7 @@ import { t } from "@bach/i18n";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { CARD_COLUMNS, toCardProduct } from "../../lib/card";
 import { DeliveryProgress } from "../../components/delivery-progress";
+import { PointsEarn } from "../../components/points-earn";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto, photoSrc } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
@@ -433,6 +434,7 @@ export default function CartPage() {
                       ? t(locale, "sf.cart.withDelivery", { v: usd(delivery), f: usd(deliveryRule.freeOver) })
                       : t(locale, "sf.cart.freeDelivery")}
                   </p>
+                  <PointsEarn goods={subtotal} signedIn={signedIn !== false} />
                   <p className="type-meta mt-4 hidden normal-case text-muted-foreground lg:block">{t(locale, "sf.cart.codNote")}</p>
                 </div>
                 {overStock ? (
