@@ -66,12 +66,16 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     ),
     supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", from.toISOString()),
     supabase.from("customers").select("id", { count: "exact", head: true }),
-    supabase
-      .from("inventory_levels")
-      .select("quantity, reserved, reorder_threshold, product_variants(sku, products(name_en))")
-      .gt("reorder_threshold", 0)
-      .order("quantity", { ascending: true })
-      .limit(200),
+    // every stock row (≈1,200): a threshold of 0 means "tell me when it sells out",
+    // and PostgREST can't compare two columns, so the at-or-below filter runs below
+    fetchAllPages((from, to) =>
+      supabase
+        .from("inventory_levels")
+        .select("quantity, reserved, reorder_threshold, product_variants(sku, products(name_en, status))")
+        .order("quantity", { ascending: true })
+        .order("variant_id")
+        .range(from, to),
+    ),
     supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
@@ -120,8 +124,10 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     quantity: number;
     reserved: number;
     reorder_threshold: number;
-    product_variants: { sku: string | null; products: { name_en: string } | null } | null;
-  }>).filter((l) => l.quantity - l.reserved <= l.reorder_threshold);
+    product_variants: { sku: string | null; products: { name_en: string; status?: string } | null } | null;
+  }>)
+    .filter((l) => l.quantity - l.reserved <= l.reorder_threshold)
+    .slice(0, 200);
 
   // Daily series (last `days`, capped at 14 bars for readability)
   const barDays = Math.min(days, 14);
