@@ -233,12 +233,18 @@ export function Cashier({
       setCatalog(cached.items);
       setAliases(cached.aliases ?? []);
     }
-    if (!cached || Date.now() - cached.at > CATALOG_TTL_MS) {
-      void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
-    }
-    const timer = setInterval(() => {
+    // The saved copy shows at once; a fresh one follows on every open, every
+    // minute, and whenever the till comes back to the screen (phones freeze
+    // background tabs), so price and stock changes from MGMT land quickly.
+    const refresh = () => {
       if (navigator.onLine) void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
-    }, CATALOG_TTL_MS);
+    };
+    refresh();
+    const timer = setInterval(refresh, CATALOG_TTL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const goOnline = () => {
       setOnline(true);
       void doSync();
@@ -249,6 +255,7 @@ export function Cashier({
     if (navigator.onLine) void doSync();
     return () => {
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };

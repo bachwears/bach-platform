@@ -25,7 +25,7 @@ export interface CatalogItem {
 
 const CATALOG_KEY = "bach-pos-catalog";
 const QUEUE_KEY = "bach-pos-queue";
-export const CATALOG_TTL_MS = 5 * 60 * 1000;
+export const CATALOG_TTL_MS = 60 * 1000;
 
 export interface BarcodeAlias {
   barcode: string;
