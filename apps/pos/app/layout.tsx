@@ -1,19 +1,42 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
 
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
+// Fonts are served from the repo (app/fonts, Google Fonts files under the OFL):
+// fetching them from Google at build time made the Docker build fail at random.
+// IBM Plex Sans Arabic comes as separate Arabic and Latin files, so it is two
+// families: Latin text uses the Latin cut, Arabic falls through to the Arabic one.
+const plexArabic = localFont({
+  src: [
+    { path: "./fonts/PlexArabic-arabic-300.woff2", weight: "300" },
+    { path: "./fonts/PlexArabic-arabic-400.woff2", weight: "400" },
+    { path: "./fonts/PlexArabic-arabic-500.woff2", weight: "500" },
+    { path: "./fonts/PlexArabic-arabic-600.woff2", weight: "600" },
+    { path: "./fonts/PlexArabic-arabic-700.woff2", weight: "700" },
+  ],
   variable: "--font-plex-arabic",
   display: "swap",
 });
+const plexArabicLatin = localFont({
+  src: [
+    { path: "./fonts/PlexArabic-latin-300.woff2", weight: "300" },
+    { path: "./fonts/PlexArabic-latin-400.woff2", weight: "400" },
+    { path: "./fonts/PlexArabic-latin-500.woff2", weight: "500" },
+    { path: "./fonts/PlexArabic-latin-600.woff2", weight: "600" },
+    { path: "./fonts/PlexArabic-latin-700.woff2", weight: "700" },
+  ],
+  variable: "--font-plex-latin",
+  display: "swap",
+});
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/PlexMono-latin-400.woff2", weight: "400" },
+    { path: "./fonts/PlexMono-latin-500.woff2", weight: "500" },
+    { path: "./fonts/PlexMono-latin-600.woff2", weight: "600" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
 });
@@ -33,9 +56,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="ar"
       dir="rtl"
       suppressHydrationWarning
-      className={`${plexArabic.variable} ${plexMono.variable}`}
+      className={`${plexArabic.variable} ${plexArabicLatin.variable} ${plexMono.variable}`}
       style={{
-        ["--font-app-sans" as string]: "var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif",
+        ["--font-app-sans" as string]: "var(--font-plex-latin), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif",
         ["--font-app-mono" as string]: "var(--font-plex-mono), ui-monospace, monospace",
       }}
     >

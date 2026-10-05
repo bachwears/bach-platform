@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Bodoni_Moda, IBM_Plex_Sans_Arabic, Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 import { dir } from "@bach/i18n";
 
 import "./globals.css";
@@ -18,24 +18,31 @@ import { ThemeScript } from "@bach/ui/components/theme-script";
 import { getSiteContent } from "../lib/cached";
 import { getLocale } from "../lib/locale";
 
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+// Fonts are served from the repo (app/fonts, Google Fonts files under the OFL):
+// fetching them from Google at build time made the Docker build fail at random.
+const interTight = localFont({
+  src: "./fonts/InterTight-latin-var.woff2",
+  weight: "300 600",
   variable: "--font-inter-tight",
   display: "swap",
 });
 
 // Editorial titles only (collection names, section heads) — never body copy.
-const bodoni = Bodoni_Moda({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const bodoni = localFont({
+  src: "./fonts/BodoniModa-latin-var.woff2",
+  weight: "400 500",
   variable: "--font-bodoni",
   display: "swap",
 });
 
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["300", "400", "500", "600", "700"],
+const plexArabic = localFont({
+  src: [
+    { path: "./fonts/PlexArabic-arabic-300.woff2", weight: "300" },
+    { path: "./fonts/PlexArabic-arabic-400.woff2", weight: "400" },
+    { path: "./fonts/PlexArabic-arabic-500.woff2", weight: "500" },
+    { path: "./fonts/PlexArabic-arabic-600.woff2", weight: "600" },
+    { path: "./fonts/PlexArabic-arabic-700.woff2", weight: "700" },
+  ],
   variable: "--font-plex-arabic",
   display: "swap",
 });
