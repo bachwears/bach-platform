@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { latinDigits } from "../lib/offline";
 
 interface CountRow {
   variant_id: string;
@@ -149,7 +150,7 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
 
   async function runSearch(text: string, exact: boolean) {
     // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
-    const q = text.trim().replace(/[,()%*\\]/g, " ").trim();
+    const q = latinDigits(text).trim().replace(/[,()%*\\]/g, " ").trim();
     if (!q) return;
     const select = "id, sku, size, color_en, products!inner(name_en)";
     if (exact) {

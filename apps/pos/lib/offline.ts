@@ -98,13 +98,21 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
   return blob;
 }
 
+/**
+ * Arabic-Indic (٠-٩) and Persian (۰-۹) digits → 0-9. A scanner types through the
+ * computer's keyboard layout, so on an Arabic layout a barcode can arrive as ١٢٣.
+ */
+export function latinDigits(text: string): string {
+  return text.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String((d.charCodeAt(0) & 0xf) % 10));
+}
+
 export function searchCatalog(
   items: CatalogItem[],
   query: string,
   exact: boolean,
   aliases: BarcodeAlias[] = [],
 ): CatalogItem[] {
-  const q = query.trim().toLowerCase();
+  const q = latinDigits(query).trim().toLowerCase();
   if (!q) return [];
   if (exact) {
     const hit = items.find((i) => i.barcode?.toLowerCase() === q || i.sku?.toLowerCase() === q);
