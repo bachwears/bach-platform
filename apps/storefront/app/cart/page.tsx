@@ -442,8 +442,11 @@ export default function CartPage() {
             </aside>
           </section>
           {addOns.length ? (
-            <section className="-mt-16 pb-32 lg:mt-16 lg:pb-0" aria-label={t(locale, "sf.cart.finishing")}>
-              <h2 className="type-label mb-6">{t(locale, "sf.cart.finishing")}</h2>
+            <section
+              className="-mt-16 pb-32 lg:mt-16 lg:pb-0"
+              aria-label={t(locale, gap > 0 ? "sf.cart.closeGap" : "sf.cart.finishing")}
+            >
+              <h2 className="type-label mb-6">{t(locale, gap > 0 ? "sf.cart.closeGap" : "sf.cart.finishing")}</h2>
               <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {addOns.map((p) => (
                   <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">

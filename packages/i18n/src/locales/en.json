@@ -443,5 +443,6 @@
   "sf.cart.finishing": "Finishing touches",
   "sf.cart.awayFromFree": "You're {v} away from free delivery",
   "sf.cart.freeUnlocked": "Free delivery unlocked",
-  "sf.cart.freeProgress": "Progress to free delivery"
+  "sf.cart.freeProgress": "Progress to free delivery",
+  "sf.cart.closeGap": "One more piece for free delivery"
 }

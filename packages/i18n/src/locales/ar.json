@@ -443,5 +443,6 @@
   "sf.cart.finishing": "لمسات أخيرة",
   "sf.cart.awayFromFree": "باقي {v} وبيصير التوصيل مجاني",
   "sf.cart.freeUnlocked": "صار التوصيل مجاني",
-  "sf.cart.freeProgress": "قدّيش باقي للتوصيل المجاني"
+  "sf.cart.freeProgress": "قدّيش باقي للتوصيل المجاني",
+  "sf.cart.closeGap": "قطعة كمان والتوصيل مجاني"
 }
