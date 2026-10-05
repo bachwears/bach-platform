@@ -45,6 +45,8 @@ const plexArabic = localFont({
   ],
   variable: "--font-plex-arabic",
   display: "swap",
+  // the storefront is English-only: Arabic glyphs are rare, so don't preload them
+  preload: false,
 });
 
 export const metadata: Metadata = {
