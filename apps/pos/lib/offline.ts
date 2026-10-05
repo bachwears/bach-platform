@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchAllPages } from "./fetch-all";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ---- Local catalog (local-first search; survives connection loss) ----
@@ -48,21 +49,31 @@ export function readCatalog(branchId: string): CatalogBlob | null {
 }
 
 export async function refreshCatalog(supabase: SupabaseClient, branchId: string): Promise<CatalogBlob | null> {
+  // Over 1,000 sellable variants: read every page, or the rest silently vanish
+  // from the till and their barcodes come back "not found".
   const [{ data, error }, { data: aliasRows }] = await Promise.all([
-    supabase
-      .from("product_variants")
-      .select(
-        "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
-      )
-      .eq("is_active", true)
-      .eq("products.status", "published"),
-    supabase
-      .from("product_variants")
-      .select("barcode, product_id, products!inner(status)")
-      .eq("is_active", false)
-      .eq("size", "OS")
-      .eq("products.status", "published")
-      .not("barcode", "is", null),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("product_variants")
+        .select(
+          "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
+        )
+        .eq("is_active", true)
+        .eq("products.status", "published")
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("product_variants")
+        .select("barcode, product_id, products!inner(status)")
+        .eq("is_active", false)
+        .eq("size", "OS")
+        .eq("products.status", "published")
+        .not("barcode", "is", null)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   if (error || !data) return readCatalog(branchId);
   const items: CatalogItem[] = (data as unknown as Array<Record<string, unknown>>).map((v) => {
@@ -106,6 +117,18 @@ export function latinDigits(text: string): string {
   return text.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String((d.charCodeAt(0) & 0xf) % 10));
 }
 
+/** The ways one barcode can arrive: as typed, without spaces/dashes, and with the EAN-13 check digit added back. */
+export function barcodeForms(query: string): string[] {
+  const q = query.trim().toLowerCase();
+  const compact = q.replace(/[\s-]/g, "");
+  const forms = [q, compact];
+  if (/^\d{12}$/.test(compact)) {
+    const sum = compact.split("").reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0);
+    forms.push(compact + String((10 - (sum % 10)) % 10));
+  }
+  return [...new Set(forms)];
+}
+
 export function searchCatalog(
   items: CatalogItem[],
   query: string,
@@ -115,10 +138,13 @@ export function searchCatalog(
   const q = latinDigits(query).trim().toLowerCase();
   if (!q) return [];
   if (exact) {
-    const hit = items.find((i) => i.barcode?.toLowerCase() === q || i.sku?.toLowerCase() === q);
+    // a barcode typed by hand from the label ("2 000000 000015"), or sent by a
+    // scanner set to drop the EAN-13 check digit, still finds its piece
+    const codes = barcodeForms(q);
+    const hit = items.find((i) => (i.barcode && codes.includes(i.barcode.toLowerCase())) || i.sku?.toLowerCase() === q);
     if (hit) return [hit];
     // Physical tag of a retired one-size variant: offer the product's sizes.
-    const alias = aliases.find((a) => a.barcode.toLowerCase() === q);
+    const alias = aliases.find((a) => codes.includes(a.barcode.toLowerCase()));
     if (alias) return items.filter((i) => i.product_id === alias.product_id);
     return [];
   }

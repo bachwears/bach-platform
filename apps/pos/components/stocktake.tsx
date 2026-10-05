@@ -5,7 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
-import { latinDigits } from "../lib/offline";
+import { barcodeForms, latinDigits } from "../lib/offline";
 
 interface CountRow {
   variant_id: string;
@@ -157,7 +157,10 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
       const { data } = await supabase
         .from("product_variants")
         .select(select)
-        .or(`barcode.eq.${q},sku.eq.${q}`)
+        // the label's number typed with spaces, or without its check digit, still counts
+        .or(
+          [...barcodeForms(q).filter((f) => /^[\w-]+$/.test(f)).map((f) => `barcode.eq.${f}`), `sku.eq.${q}`].join(","),
+        )
         .eq("is_active", true)
         .limit(1);
       if (data?.length) {
