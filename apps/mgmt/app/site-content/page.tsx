@@ -1,6 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
+import { NotificationSettings } from "../../components/notification-settings";
 import { SiteContentEditor } from "../../components/site-content-editor";
 
 export default async function SiteContentPage() {
@@ -22,7 +23,10 @@ export default async function SiteContentPage() {
           </p>
         </div>
         {canEdit ? (
-          <SiteContentEditor />
+          <>
+            <SiteContentEditor />
+            <NotificationSettings />
+          </>
         ) : (
           <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بتعديل محتوى الموقع.</p>
         )}

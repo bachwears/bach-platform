@@ -33,6 +33,20 @@ const ownLink = (link: unknown) => {
 };
 const track = (p: Payload) => `${SITE}/track?n=${encodeURIComponent(String(p.order_number ?? ""))}`;
 
+// Internal (admin_*) emails go to the shop, not customers: their links may
+// also point at the MGMT portal — and only there or at the storefront.
+const MGMT = "https://mgmt.bachwears.com";
+const isAdminEvent = (event: string) => event.startsWith("admin_");
+/** An MGMT link from the payload, only if it is on mgmt.bachwears.com (admin templates only). */
+const adminLink = (link: unknown) => {
+  try {
+    const u = new URL(String(link ?? ""), MGMT);
+    return u.origin === MGMT ? u.toString() : `${MGMT}/`;
+  } catch {
+    return `${MGMT}/`;
+  }
+};
+
 interface EventDesign {
   eyebrow: (p: Payload, lang: Lang) => string;
   title: (p: Payload, lang: Lang) => string;
@@ -60,6 +74,28 @@ const EVENTS: Record<string, EventDesign> = {
       ["Payment", paymentLabel(p)],
       ...(p.city ? ([["Delivery to", String(p.city)]] as Array<[string, string]>) : []),
     ],
+    cta: (p) => ({ label: "Track your order", url: track(p) }),
+  },
+  order_confirmed: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: () => "Your order is confirmed.",
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Total", String(p.total_usd ?? "")],
+      ["Payment", paymentLabel(p)],
+    ],
+    cta: (p) => ({ label: "Track your order", url: track(p) }),
+  },
+  order_picking: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: () => "We're preparing your order.",
+    details: (p) => [["Order", `#${p.order_number}`]],
+    cta: (p) => ({ label: "Track your order", url: track(p) }),
+  },
+  order_packed: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: () => "Packed and ready to ship.",
+    details: (p) => [["Order", `#${p.order_number}`]],
     cta: (p) => ({ label: "Track your order", url: track(p) }),
   },
   order_shipped: {
@@ -134,6 +170,46 @@ const EVENTS: Record<string, EventDesign> = {
     code: (p) => ({ code: String(p.code ?? ""), note: `${p.percent}% off everything — valid for a few days around your day.` }),
     cta: () => ({ label: "Shop the collection", url: `${SITE}/shop` }),
   },
+  birthday_upcoming: {
+    eyebrow: () => "Tomorrow is your day",
+    title: (p) => (firstName(p) ? `A gift for you, ${firstName(p)}.` : "A birthday gift for you."),
+    code: (p) => ({ code: String(p.code ?? ""), note: `${p.percent}% off everything — valid for a few days around your day.` }),
+    cta: () => ({ label: "Shop the collection", url: `${SITE}/shop` }),
+  },
+  // ── internal: to the shop's admin address (site_content 'notify') ──
+  admin_online_order_placed: {
+    eyebrow: () => "Internal · New online order",
+    title: (p) => `Order #${p.order_number} is waiting.`,
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Customer", String(p.customer_name ?? "")],
+      ["Phone", String(p.customer_phone ?? "")],
+      ["City", String(p.city ?? "")],
+      ["Total", p.total_lbp ? `${p.total_usd}  ·  ${p.total_lbp} LBP` : String(p.total_usd ?? "")],
+      ["Payment", paymentLabel(p)],
+    ],
+    cta: (p) => ({ label: "Open in MGMT", url: adminLink(p.mgmt_link) }),
+  },
+  admin_return_requested: {
+    eyebrow: () => "Internal · Return request",
+    title: (p) => `${p.kind === "exchange" ? "Exchange" : "Return"} requested — order #${p.order_number}.`,
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Customer", String(p.customer_name ?? "")],
+      ["Type", p.kind === "exchange" ? "Exchange" : "Return"],
+    ],
+    cta: (p) => ({ label: "Review in MGMT", url: adminLink(p.mgmt_link) }),
+  },
+  admin_complaint_received: {
+    eyebrow: () => "Internal · Complaint",
+    title: (p) => `New complaint — ticket #${p.ticket}.`,
+    details: (p) => [
+      ["Ticket", `#${p.ticket}`],
+      ["Customer", String(p.customer_name ?? "")],
+      ["Phone", String(p.customer_phone ?? "")],
+    ],
+    cta: (p) => ({ label: "Open the queue", url: adminLink(p.mgmt_link) }),
+  },
   newsletter_welcome: {
     eyebrow: (_p, lang) => (lang === "ar" ? "النشرة الإخبارية" : "Newsletter"),
     title: (_p, lang) => (lang === "ar" ? "صرت عاللائحة." : "You're on the list."),
@@ -141,10 +217,26 @@ const EVENTS: Record<string, EventDesign> = {
   },
 };
 
-/** Plain template text → safe HTML: drop the "— BACH Wears" sign-off (the footer carries it), link URLs, keep line breaks. */
-function bodyHtml(text: string): string {
+/** True when a URL in the body may become a link: our storefront, plus MGMT for internal emails. */
+function linkable(url: string, admin: boolean): boolean {
+  try {
+    const origin = new URL(url.replace(/&amp;/g, "&")).origin;
+    return origin === SITE || (admin && origin === MGMT);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Plain template text → safe HTML: drop the "— BACH Wears" sign-off (the footer
+ * carries it), keep line breaks, and link URLs only on our own domains — text
+ * typed by customers (names, complaint subjects) never becomes a clickable link.
+ */
+function bodyHtml(text: string, admin = false): string {
   return esc(text.replace(/\s*[—–-]\s*BACH Wears\s*$/u, "").trim())
-    .replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" style="color:${INK};">${u.replace(/^https?:\/\//, "")}</a>`)
+    .replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) =>
+      linkable(u, admin) ? `<a href="${u}" style="color:${INK};">${u.replace(/^https?:\/\//, "")}</a>` : u,
+    )
     .replace(/\n/g, "<br>");
 }
 
@@ -220,7 +312,7 @@ export function renderEmailHtml(event: string, lang: string, subject: string, te
       <tr><td style="padding:44px 40px 0;font-family:${font};text-align:${align};">
         <p style="margin:0 0 14px;font-size:11px;letter-spacing:${rtl ? "0" : "0.25em"};text-transform:uppercase;color:${MUTED};">${esc(d.eyebrow(p, l))}</p>
         <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:600;letter-spacing:${rtl ? "0" : "-0.01em"};color:${INK};">${esc(d.title(p, l))}</h1>
-        <p style="margin:16px 0 0;font-size:15px;line-height:1.7;color:${BODY};">${bodyHtml(text)}</p>
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.7;color:${BODY};">${bodyHtml(text, isAdminEvent(event))}</p>
       </td></tr>${detailsHtml}${codeHtml}${ctaHtml}
       <tr><td style="padding:40px 40px 0;"><div style="height:1px;line-height:1px;font-size:1px;background:${RULE};">&nbsp;</div></td></tr>
       <tr><td style="padding:24px 40px 40px;font-family:${FONT_EN};font-size:12px;line-height:1.7;color:${MUTED};text-align:${align};" dir="ltr">

@@ -4,6 +4,9 @@
 //   - Email:    Resend (RESEND_API_KEY, EMAIL_FROM)
 // Recipient "shop" routes to NOTIFY_WHATSAPP_TO (the founder's number until
 // the official Meta-verified number lands — swapping is a secrets change).
+// Every 'shop' WhatsApp row also gets an "admin_<event>" email row, queued by
+// the database to site_content 'notify' ->> 'admin_email' (MGMT-editable), so
+// email rows always carry a real address here.
 // Missing secrets → rows are marked 'skipped', never lost.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
