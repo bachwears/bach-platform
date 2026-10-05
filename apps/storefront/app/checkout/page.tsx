@@ -10,6 +10,7 @@ import { t } from "@bach/i18n";
 import { clearCart, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
+import { DeliveryProgress } from "../../components/delivery-progress";
 import { lhref, useLocale } from "../../lib/locale-client";
 
 interface SummaryLine {
@@ -446,11 +447,7 @@ export default function CheckoutPage() {
               <span>{t(locale, "sf.co.delivery")}</span>
               <span className="tabular-nums">{delivery ? usd(delivery) : t(locale, "sf.co.deliveryFree")}</span>
             </p>
-            {delivery ? (
-              <p className="type-meta mt-1 text-muted-foreground">
-                {t(locale, "sf.co.freeFrom", { v: usd(deliveryRule.freeOver) })}
-              </p>
-            ) : null}
+            <DeliveryProgress goods={subtotal - promoDiscount} className="mt-3" />
             <p className="type-label mt-4 flex justify-between border-t pt-4">
               <span>{t(locale, "sf.co.total")}</span>
               <span className="tabular-nums">{usd(total)}</span>

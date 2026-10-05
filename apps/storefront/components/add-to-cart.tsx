@@ -13,6 +13,13 @@ import { usePdpColour } from "./pdp-colour";
 import { WISHLIST_EVENT } from "./pdp-topbar";
 import { lhref, useLocale } from "../lib/locale-client";
 import { availableFirst } from "../lib/sizes";
+import { DeliveryProgress, useBagGoods } from "./delivery-progress";
+
+/** The bag's way to free delivery, right after an add (reads the whole bag). */
+function BagProgress() {
+  const goods = useBagGoods();
+  return goods == null ? null : <DeliveryProgress goods={goods} />;
+}
 
 export interface PdpVariant {
   id: string;
@@ -419,6 +426,7 @@ export function AddToCart({
                   {colors.length > 1 ? `${locale === "ar" && added.color_ar ? added.color_ar : added.color_en} / ` : ""}
                   {added.size}
                 </p>
+                <BagProgress />
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                   <Link href={lhref(locale, "/cart")} className="type-label grid h-12 place-items-center bg-foreground text-background">
                     {t(locale, "sf.pdp.viewBag")}

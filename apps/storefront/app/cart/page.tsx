@@ -9,6 +9,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { CARD_COLUMNS, toCardProduct } from "../../lib/card";
+import { DeliveryProgress } from "../../components/delivery-progress";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto, photoSrc } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
@@ -196,28 +197,46 @@ export default function CartPage() {
       );
   }, [bagEmpty, suggested.length]);
 
-  // A bag with something in it offers finishing touches under $40: next to the piece
-  // already chosen they read as small additions (the bag item is the price anchor).
+  // A bag with something in it offers finishing touches: next to the piece already
+  // chosen they read as small additions (the bag item is the price anchor). Short of
+  // free delivery, the row leads with the cheapest pieces that close the gap in one
+  // add, then the under-$40 touches.
   const bagSlugs = rows.map((r) => r.d!.slug.split("?")[0]).join(",");
+  const gap = loaded && subtotal > 0 ? Math.max(0, deliveryRule.freeOver - subtotal) : 0;
   useEffect(() => {
     if (!loaded || !bagSlugs) return;
     const inBag = new Set(bagSlugs.split(","));
-    void supabaseBrowser()
-      .from("products")
-      .select(CARD_SELECT)
-      .eq("status", "published")
-      .lte("price_usd_cents", 4000)
-      .order("price_usd_cents", { ascending: true })
-      .limit(40)
-      .then(({ data }) =>
-        setAddOns(
-          ((data ?? []) as unknown as CardRow[])
-            .filter((p) => !inBag.has(p.slug) && p.media_assets.some((m) => m.kind === "front"))
-            .slice(0, 10)
-            .map(toCard),
-        ),
+    const sb = supabaseBrowser();
+    const pick = (rows: unknown) =>
+      ((rows ?? []) as CardRow[]).filter((p) => !inBag.has(p.slug) && p.media_assets.some((m) => m.kind === "front"));
+    void Promise.all([
+      gap > 4000
+        ? sb
+            .from("products")
+            .select(CARD_SELECT)
+            .eq("status", "published")
+            .gte("price_usd_cents", gap)
+            .order("price_usd_cents", { ascending: true })
+            .limit(12)
+        : Promise.resolve({ data: [] }),
+      sb
+        .from("products")
+        .select(CARD_SELECT)
+        .eq("status", "published")
+        .lte("price_usd_cents", 4000)
+        .order("price_usd_cents", { ascending: gap === 0 || gap > 4000 })
+        .limit(40),
+    ]).then(([closers, touches]) => {
+      // gap ≤ $40: the touches themselves close it, priciest first so one add is enough
+      const seen = new Set<string>();
+      setAddOns(
+        [...pick(closers.data).slice(0, 4), ...pick(touches.data)]
+          .filter((p) => !seen.has(p.slug) && seen.add(p.slug))
+          .slice(0, 10)
+          .map(toCard),
       );
-  }, [loaded, bagSlugs]);
+    });
+  }, [loaded, bagSlugs, gap]);
 
   const delivery = subtotal > 0 ? deliveryFor(subtotal, deliveryRule) : 0;
   const lbp = rate ? `${Math.round(((subtotal + delivery) / 100) * rate).toLocaleString("en-US")} LBP` : null;
@@ -332,6 +351,7 @@ export default function CartPage() {
           </section>
         ) : (
           <>
+          <DeliveryProgress goods={subtotal} className="mt-6 max-w-md" />
           <section className="mt-8 grid gap-10 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0" role="tabpanel">
             <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
               {rows.map(({ line, d }) => (

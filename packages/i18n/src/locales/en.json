@@ -440,5 +440,8 @@
   "sf.meta.searchDescription": "Search BACH Wears menswear by name, category or colour — shirts, knitwear, trousers, shoes and accessories.",
   "sf.meta.helpDescription": "Answers on ordering, cash on delivery, delivery across Lebanon, returns and exchanges, and your BACH Wears account.",
   "sf.shop.featured": "Featured",
-  "sf.cart.finishing": "Finishing touches"
+  "sf.cart.finishing": "Finishing touches",
+  "sf.cart.awayFromFree": "You're {v} away from free delivery",
+  "sf.cart.freeUnlocked": "Free delivery unlocked",
+  "sf.cart.freeProgress": "Progress to free delivery"
 }

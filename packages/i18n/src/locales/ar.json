@@ -440,5 +440,8 @@
   "sf.meta.searchDescription": "فتّش بتشكيلة BACH Wears الرجالية بالاسم أو الفئة أو اللون — قمصان، كنزات، بناطيل، أحذية وإكسسوارات.",
   "sf.meta.helpDescription": "أجوبة عن الطلب، الدفع عند الاستلام، التوصيل بكل لبنان، المرتجع والتبديل، وحسابك على BACH Wears.",
   "sf.shop.featured": "مختارات",
-  "sf.cart.finishing": "لمسات أخيرة"
+  "sf.cart.finishing": "لمسات أخيرة",
+  "sf.cart.awayFromFree": "باقي {v} وبيصير التوصيل مجاني",
+  "sf.cart.freeUnlocked": "صار التوصيل مجاني",
+  "sf.cart.freeProgress": "قدّيش باقي للتوصيل المجاني"
 }
