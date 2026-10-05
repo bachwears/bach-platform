@@ -7,6 +7,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
 import { NOT_SAVED } from "../lib/access";
+import { fetchAllPages } from "../lib/fetch-all";
 
 const BUCKET = "product-media";
 const KINDS: Array<{ value: string; label: string }> = [
@@ -75,10 +76,15 @@ export function MediaMatch() {
     }
     // Self-heal: hide (and clean up) anything already linked to a product —
     // a leftover from an assign whose unmatched-cleanup didn't go through.
-    const { data: linked } = await supabase
-      .from("media_assets")
-      .select("storage_path")
-      .like("storage_path", "%/products/%");
+    // every page: there are well over 1,000 product photos
+    const { data: linked } = await fetchAllPages<{ storage_path: string }>((from, to) =>
+      supabase
+        .from("media_assets")
+        .select("storage_path")
+        .like("storage_path", "%/products/%")
+        .order("id")
+        .range(from, to),
+    );
     const linkedNames = new Set((linked ?? []).map((r) => r.storage_path.split("/").pop()));
     const stale = all.filter((f) => linkedNames.has(f.name));
     if (stale.length) {
