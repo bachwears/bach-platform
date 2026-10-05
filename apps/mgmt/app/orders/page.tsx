@@ -36,7 +36,7 @@ export default async function OrdersPage({
     .limit(q ? 500 : 100);
   if (status && STATUS_LABELS[status]) query = query.eq("status", status);
 
-  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }] = await Promise.all([
+  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }, { data: pickupPays }] = await Promise.all([
     query,
     supabase
       .from("orders")
@@ -54,6 +54,16 @@ export default async function OrdersPage({
     supabase.auth.getUser().then(async ({ data: { user } }) =>
       supabase.from("profiles").select("role").eq("id", user?.id ?? "").maybeSingle(),
     ),
+    // Pickup orders paid in cash at the counter are drawer cash too, counted
+    // on the day they were collected (same rule as the POS end-of-day report).
+    supabase
+      .from("order_payments")
+      .select("currency, amount_minor, orders!inner(channel, fulfilment, status)")
+      .eq("method", "cod")
+      .eq("orders.channel", "online")
+      .eq("orders.fulfilment", "pickup")
+      .not("orders.status", "in", '("cancelled","returned")')
+      .gte("created_at", startOfDay.toISOString()),
   ]);
   // site_content is writable by these roles (RLS); others see the pickup card read-only
   const canEditPickup = ["super_admin", "store_manager", "marketing_manager"].includes(profile?.role ?? "");
@@ -77,8 +87,9 @@ export default async function OrdersPage({
     : (rows ?? []);
 
   const todayTotal = (todayOrders ?? []).reduce((s, o) => s + o.total_usd_cents, 0);
-  const cashUsd = (todayPays ?? []).filter((p) => p.currency === "USD").reduce((s, p) => s + Number(p.amount_minor), 0);
-  const cashLbp = (todayPays ?? []).filter((p) => p.currency === "LBP").reduce((s, p) => s + Number(p.amount_minor), 0);
+  const drawerPays = [...(todayPays ?? []), ...(pickupPays ?? [])];
+  const cashUsd = drawerPays.filter((p) => p.currency === "USD").reduce((s, p) => s + Number(p.amount_minor), 0);
+  const cashLbp = drawerPays.filter((p) => p.currency === "LBP").reduce((s, p) => s + Number(p.amount_minor), 0);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -107,12 +118,12 @@ export default async function OrdersPage({
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">كاش دولار بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd(cashUsd)}</p>
-            <p className="text-xs text-muted-foreground">دفع كاش بالمحل بس</p>
+            <p className="text-xs text-muted-foreground">كاش بالمحل + طلبات الاستلام يلي انقبضت اليوم</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">كاش ليرة بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{cashLbp.toLocaleString("en-US")} ل.ل</p>
-            <p className="text-xs text-muted-foreground">دفع كاش بالمحل بس</p>
+            <p className="text-xs text-muted-foreground">كاش بالمحل + طلبات الاستلام يلي انقبضت اليوم</p>
           </div>
         </div>
 

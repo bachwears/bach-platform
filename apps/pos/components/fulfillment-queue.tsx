@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { Input } from "@bach/ui/components/input";
 
 const STATUS_AR: Record<string, string> = {
   pending: "جديد",
@@ -51,6 +52,120 @@ interface QueueOrder {
 function usd(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
+const lbp = (n: number) => `${n.toLocaleString("en-US")} ل.ل`;
+/** LBP change is rounded down to this step (same as the cashier). */
+const CHANGE_STEP_LBP = 5_000;
+/** "12.5" → 1250; blank or junk → 0. */
+const toCents = (v: string) => Math.max(0, Math.round((Number(v.replace(/,/g, "")) || 0) * 100));
+const toLbp = (v: string) => Math.max(0, Math.round(Number(v.replace(/,/g, "")) || 0));
+
+/**
+ * Collecting a pickup paid at the counter in any mix of dollars, lira and Whish.
+ * Records only what stays in the drawer: change comes back in dollars when the
+ * dollars cover it, otherwise in lira (rounded down to 5,000).
+ */
+function CollectPanel({
+  total,
+  busy,
+  onCollect,
+  onClose,
+}: {
+  total: number;
+  busy: boolean;
+  onCollect: (paid: { usd: number; lbp: number; whish: number }) => void;
+  onClose: () => void;
+}) {
+  const [usdIn, setUsdIn] = useState("");
+  const [lbpIn, setLbpIn] = useState("");
+  const [whishIn, setWhishIn] = useState("");
+  const [rate, setRate] = useState<number | null>(null);
+  const [rateErr, setRateErr] = useState("");
+
+  useEffect(() => {
+    void supabaseBrowser()
+      .from("exchange_rates")
+      .select("lbp_per_usd")
+      .order("effective_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) setRateErr("ما قدرنا نجيب سعر الصرف — الدفع بالليرة مش متاح هلّق.");
+        else setRate(Number(data.lbp_per_usd));
+      });
+  }, []);
+
+  const paidUsd = toCents(usdIn);
+  const paidLbp = toLbp(lbpIn);
+  const paidWhish = toCents(whishIn);
+  const lbpCents = rate && paidLbp ? Math.round((paidLbp / rate) * 100) : 0;
+  const covered = paidUsd + lbpCents + paidWhish;
+  const short = total - covered;
+  const over = Math.max(0, covered - total);
+  // Whish is exact by nature: never more than the order
+  const whishTooMuch = paidWhish > total;
+  const changeUsd = over > 0 && paidUsd >= over ? over : 0;
+  const changeLbp =
+    over > 0 && !changeUsd && rate ? Math.floor((over / 100) * rate / CHANGE_STEP_LBP) * CHANGE_STEP_LBP : 0;
+  const lbpChangeTooBig = changeLbp > paidLbp;
+  const ok = short <= 5 && !whishTooMuch && !lbpChangeTooBig && (paidLbp === 0 || rate !== null) && covered > 0;
+
+  return (
+    <div className="w-full space-y-3 rounded-md border p-3">
+      <p className="text-sm font-medium">قبض طلب الاستلام — المطلوب {usd(total)}</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          كاش دولار ($)
+          <Input inputMode="decimal" dir="ltr" value={usdIn} onChange={(e) => setUsdIn(e.target.value)} placeholder="0" />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          كاش ليرة (ل.ل)
+          <Input
+            inputMode="numeric"
+            dir="ltr"
+            value={lbpIn}
+            disabled={rate === null}
+            onChange={(e) => setLbpIn(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Whish ($)
+          <Input inputMode="decimal" dir="ltr" value={whishIn} onChange={(e) => setWhishIn(e.target.value)} placeholder="0" />
+        </label>
+      </div>
+      {rateErr && <p className="text-xs text-destructive">{rateErr}</p>}
+      <div className="space-y-1 text-sm">
+        {paidLbp > 0 && rate ? (
+          <p className="text-muted-foreground">
+            {lbp(paidLbp)} = {usd(lbpCents)}
+          </p>
+        ) : null}
+        {short > 5 ? (
+          <p>باقي: {usd(short)}{rate ? ` (${lbp(Math.ceil((short / 100) * rate))})` : ""}</p>
+        ) : changeUsd > 0 ? (
+          <p className="font-medium text-green-600 dark:text-green-400">الباقي للزبون: {usd(changeUsd)}</p>
+        ) : changeLbp > 0 ? (
+          <p className="font-medium text-green-600 dark:text-green-400">الباقي للزبون: {lbp(changeLbp)}</p>
+        ) : covered > 0 ? (
+          <p className="text-muted-foreground">المبلغ مزبوط.</p>
+        ) : null}
+        {whishTooMuch && <p className="text-destructive">Whish ما بيصير أكتر من المطلوب.</p>}
+        {lbpChangeTooBig && <p className="text-destructive">الباقي بالليرة أكبر من الليرة يلي قبضتها — رجّع الباقي بالدولار أو صحّح المبالغ.</p>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          disabled={busy || !ok}
+          onClick={() => onCollect({ usd: paidUsd - changeUsd, lbp: paidLbp - changeLbp, whish: paidWhish })}
+        >
+          {busy ? "لحظة…" : "انستلم — سجّل الدفع"}
+        </Button>
+        <Button variant="outline" disabled={busy} onClick={onClose}>
+          رجوع
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function FulfillmentQueue() {
   const supabase = supabaseBrowser();
@@ -60,6 +175,8 @@ export function FulfillmentQueue() {
   // a failed load used to look like "no orders" — the team would think everything shipped
   const [loadError, setLoadError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  // the pickup order whose mixed-payment panel is open
+  const [collecting, setCollecting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data, error: err } = await supabase
@@ -85,20 +202,24 @@ export function FulfillmentQueue() {
     return () => clearInterval(t);
   }, [load]);
 
-  /** `whishCents`: a pickup paid by Whish at the counter (otherwise the total is recorded as cash). */
-  async function advance(id: string, to: string, whishCents?: number) {
+  /**
+   * `paid`: what a pickup paid at the counter (dollars, lira, Whish) — without
+   * it a cash-on-delivery order is recorded as the full total in dollars.
+   */
+  async function advance(id: string, to: string, paid?: { usd: number; lbp: number; whish: number }) {
     setBusy(id);
     setError("");
     const { error: err } = await supabase.rpc("advance_online_order", {
       p_order_id: id,
       p_next: to,
-      ...(whishCents ? { p_paid_usd_cents: 0, p_paid_lbp: 0, p_paid_whish_usd_cents: whishCents } : {}),
+      ...(paid ? { p_paid_usd_cents: paid.usd, p_paid_lbp: paid.lbp, p_paid_whish_usd_cents: paid.whish } : {}),
     });
     setBusy(null);
     if (err) {
       setError(`ما مشي الحال: ${err.message}`);
       return;
     }
+    setCollecting(null);
     void load();
   }
 
@@ -181,10 +302,22 @@ export function FulfillmentQueue() {
                   <Button
                     variant="outline"
                     disabled={busy === o.id}
-                    onClick={() => void advance(o.id, "delivered", o.total_usd_cents)}
+                    onClick={() => void advance(o.id, "delivered", { usd: 0, lbp: 0, whish: o.total_usd_cents })}
                   >
                     انستلم — دفع Whish
                   </Button>
+                  {collecting === o.id ? (
+                    <CollectPanel
+                      total={o.total_usd_cents}
+                      busy={busy === o.id}
+                      onCollect={(paid) => void advance(o.id, "delivered", paid)}
+                      onClose={() => setCollecting(null)}
+                    />
+                  ) : (
+                    <Button variant="outline" disabled={busy === o.id} onClick={() => setCollecting(o.id)}>
+                      ليرة أو دفع مختلط…
+                    </Button>
+                  )}
                 </>
               ) : next ? (
                 <Button disabled={busy === o.id} onClick={() => void advance(o.id, next.to)}>
