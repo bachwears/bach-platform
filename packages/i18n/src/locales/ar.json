@@ -446,5 +446,7 @@
   "sf.cart.freeProgress": "قدّيش باقي للتوصيل المجاني",
   "sf.cart.closeGap": "قطعة كمان والتوصيل مجاني",
   "sf.pdp.wearWith": "البسها مع",
-  "sf.pdp.similar": "قطع مشابهة"
+  "sf.pdp.similar": "قطع مشابهة",
+  "sf.shop.loadMore": "فرجيني أكتر",
+  "sf.shop.showing": "{n} من {total}"
 }

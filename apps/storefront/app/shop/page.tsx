@@ -87,6 +87,8 @@ function price(p: ShopProduct) {
 /** Pieces pinned in MGMT ("Pin as hero") lead the featured order. */
 const isHero = (p: ShopProduct) => (p.tags ?? []).includes("hero");
 const ANCHOR_EVERY = 8;
+/** Pieces per page of the grid (a multiple of 2 and 4 so rows stay full). */
+const PAGE = 48;
 
 /**
  * "Featured" order (the default): the newest-first list, with a price anchor up
@@ -212,7 +214,11 @@ export default async function ShopPage({
   });
   if (sort === "featured") items = anchored(items);
 
-  const cards: CardProduct[] = items.map(toCardProduct);
+  // A page of the grid at a time: only the shown pieces are rendered and sent to the
+  // browser (the full catalogue would be a heavy page at 500+ models). "Load more"
+  // links to the same page with a bigger ?show=, so it also works without script.
+  const show = Math.min(items.length, Math.max(PAGE, Math.floor(Number(params.show) / PAGE) * PAGE || PAGE));
+  const cards: CardProduct[] = items.slice(0, show).map(toCardProduct);
 
   // URL builder: toggles one param while keeping the rest, so every state is a link.
   const href = (patch: Record<string, string | undefined>) => {
@@ -226,6 +232,8 @@ export default async function ShopPage({
       price: band,
       sort: sort === "featured" ? undefined : sort,
       sale: sale ? "1" : undefined,
+      // the large-photo view chosen on the way in (home → shop) survives "Load more"
+      view: params.view,
       ...patch,
     };
     for (const [k, v] of Object.entries(merged)) if (v) next.set(k, v);
@@ -401,7 +409,7 @@ export default async function ShopPage({
           {title}
         </h1>
         <p className={cat ? "sr-only" : "type-meta mt-3 text-muted-foreground"}>
-          {cards.length} {cards.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
+          {items.length} {items.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
           {(activeFilters > 0 || cat) && (
             <>
               {" · "}
@@ -433,13 +441,14 @@ export default async function ShopPage({
           <FilterDrawer
             sections={sections}
             activeCount={drawerActive}
-            resultCount={cards.length}
+            resultCount={items.length}
             clearHref={href({ size: undefined, color: undefined, price: undefined, sale: undefined })}
           />
           <DensityToggle target="product-grid" />
         </div>
 
         {cards.length ? (
+          <>
           <div
             id="product-grid"
             data-density="standard"
@@ -450,6 +459,25 @@ export default async function ShopPage({
               <ProductCard key={p.slug} product={p} locale={locale} priority={i < 4} />
             ))}
           </div>
+          {items.length > show ? (
+            <div className="mt-14 flex flex-col items-center gap-3">
+              <p className="type-meta text-muted-foreground tabular-nums">
+                {t(locale, "sf.shop.showing", { n: String(show), total: String(items.length) })}
+              </p>
+              <div className="h-px w-40 bg-foreground/15" aria-hidden>
+                <div className="h-px bg-foreground" style={{ width: `${Math.round((show / items.length) * 100)}%` }} />
+              </div>
+              {/* keeps the scroll position: the next page appends below what's already seen */}
+              <Link
+                href={href({ show: String(show + PAGE) })}
+                scroll={false}
+                className="type-label mt-3 grid h-12 w-full max-w-72 place-items-center border border-foreground hover:bg-foreground hover:text-background"
+              >
+                {t(locale, "sf.shop.loadMore")}
+              </Link>
+            </div>
+          ) : null}
+          </>
         ) : (
           <div className="mt-16 text-center">
             <p className="type-label text-muted-foreground">{t(locale, saleOnly ? "sf.shop.saleEmpty" : "sf.shop.empty")}</p>

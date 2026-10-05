@@ -446,5 +446,7 @@
   "sf.cart.freeProgress": "Progress to free delivery",
   "sf.cart.closeGap": "One more piece for free delivery",
   "sf.pdp.wearWith": "Wear with",
-  "sf.pdp.similar": "Similar items"
+  "sf.pdp.similar": "Similar items",
+  "sf.shop.loadMore": "Load more",
+  "sf.shop.showing": "Showing {n} of {total}"
 }
