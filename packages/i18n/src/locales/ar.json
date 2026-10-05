@@ -482,6 +482,7 @@
   "sf.co.stepPickup": "استلام من المحل",
   "sf.co.pickupAddress": "عنوان المحل",
   "sf.co.pickupHours": "الدوام",
+  "sf.co.directions": "الاتجاهات",
   "sf.co.pickupReady": "منبعتلك رسالة لما يصير طلبك جاهز للاستلام.",
   "sf.co.notesPickup": "ملاحظات (اختياري)",
   "sf.co.payAtShop": "الدفع بالمحل",

@@ -199,6 +199,8 @@ export default function TrackOrderPage() {
               <p className="mt-2 text-xs">
                 {t(locale, "sf.trackOrder.pickupAt")}
                 {order.pickup_address ? <span className="text-muted-foreground"> · {order.pickup_address}</span> : null}
+                {" · "}
+                <a href="/visit" target="_blank" rel="noopener" className="underline underline-offset-4">{t(locale, "sf.co.directions")}</a>
               </p>
             ) : null}
             <p className="mt-8 text-xs text-muted-foreground">

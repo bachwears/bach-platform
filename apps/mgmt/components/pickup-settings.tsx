@@ -12,6 +12,8 @@ interface Pickup {
   address: string;
   hours: string;
   pay_note: string;
+  /** Google Maps link to the shop; bachwears.com/visit redirects to it */
+  map_url: string;
 }
 
 const DEFAULTS: Pickup = {
@@ -19,6 +21,7 @@ const DEFAULTS: Pickup = {
   address: "",
   hours: "Every day 10:00–19:00",
   pay_note: "Pay at the shop — cash or Whish",
+  map_url: "",
 };
 
 /**
@@ -56,6 +59,7 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
       address: v.address.trim(),
       hours: v.hours.trim(),
       pay_note: v.pay_note.trim(),
+      map_url: v.map_url.trim(),
     };
     const { error } = await supabaseBrowser()
       .from("site_content")
@@ -105,6 +109,20 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
             placeholder="e.g. Hamra Street, Beirut"
             onChange={(e) => setV({ ...v, address: e.target.value })}
           />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="pk-map">رابط Google Maps للمحل</Label>
+          <Input
+            id="pk-map"
+            dir="ltr"
+            value={v.map_url}
+            disabled={!canEdit}
+            placeholder="https://maps.app.goo.gl/…"
+            onChange={(e) => setV({ ...v, map_url: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            زر «Directions» عالموقع وبالإيميل بيفتح هالرابط (عبر bachwears.com/visit). بلا رابط، بيدوّر عالعنوان بـGoogle Maps.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">

@@ -117,7 +117,8 @@ const EVENTS: Record<string, EventDesign> = {
       ["Opening hours", String(p.pickup_hours ?? "")],
       isCod(p) ? ["Pay at the shop", `${String(p.total_usd ?? "")} — cash or Whish`] : ["Payment", "Paid — just collect it"],
     ],
-    cta: (p) => ({ label: "View your order", url: track(p) }),
+    // bachwears.com/visit redirects to the shop's map link set in MGMT
+    cta: () => ({ label: "Get directions", url: `${SITE}/visit` }),
   },
   order_collected: {
     eyebrow: (p) => `Order #${p.order_number}`,

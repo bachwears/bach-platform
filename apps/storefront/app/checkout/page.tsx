@@ -392,7 +392,10 @@ export default function CheckoutPage() {
                 <dl className="space-y-4 text-sm">
                   <div>
                     <dt className="type-meta text-muted-foreground">{t(locale, "sf.co.pickupAddress")}</dt>
-                    <dd className="mt-1">{pickup.address}</dd>
+                    <dd className="mt-1">
+                      {pickup.address}
+                      <span className="block"><a href="/visit" target="_blank" rel="noopener" className="type-meta mt-1 inline-block underline underline-offset-4">{t(locale, "sf.co.directions")}</a></span>
+                    </dd>
                   </div>
                   {pickup.hours ? (
                     <div>

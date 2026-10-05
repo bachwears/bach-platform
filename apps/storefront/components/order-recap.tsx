@@ -106,6 +106,7 @@ export function OrderRecap({ n }: { n: string }) {
             <dd className="mt-1">
               {recap.pickup.address}
               {recap.pickup.hours ? <span className="block text-muted-foreground">{recap.pickup.hours}</span> : null}
+              <span className="block"><a href="/visit" target="_blank" rel="noopener" className="type-meta mt-1 inline-block underline underline-offset-4">{t(locale, "sf.co.directions")}</a></span>
             </dd>
           </div>
         ) : (

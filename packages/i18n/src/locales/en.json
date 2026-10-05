@@ -482,6 +482,7 @@
   "sf.co.stepPickup": "Pickup at the shop",
   "sf.co.pickupAddress": "Shop address",
   "sf.co.pickupHours": "Opening hours",
+  "sf.co.directions": "Directions",
   "sf.co.pickupReady": "We'll message you when your order is ready to collect.",
   "sf.co.notesPickup": "Notes (optional)",
   "sf.co.payAtShop": "Pay at the shop",
