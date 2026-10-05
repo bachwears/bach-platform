@@ -7,6 +7,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
+import { Thumb } from "@bach/ui/components/thumb";
 
 const REASONS = [
   { value: "purchase", label: "استلام بضاعة" },
@@ -20,7 +21,7 @@ export function MovementForm({
   variants,
   branches,
 }: {
-  variants: Array<{ id: string; label: string }>;
+  variants: Array<{ id: string; label: string; photo?: string | null }>;
   branches: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
@@ -66,14 +67,18 @@ export function MovementForm({
     <form onSubmit={onSubmit} className="grid items-end gap-3 rounded-md border p-4 sm:grid-cols-5">
       <div className="space-y-1 sm:col-span-2">
         <Label htmlFor="m-variant">الفاريانت</Label>
-        <Select id="m-variant" required value={variantId} onChange={(e) => setVariantId(e.target.value)}>
-          <option value="">اختار…</option>
-          {variants.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-        </Select>
+        {/* a native list can't hold photos, so the chosen piece shows beside it */}
+        <div className="flex items-center gap-2">
+          <Thumb src={variants.find((v) => v.id === variantId)?.photo} size="sm" />
+          <Select id="m-variant" required value={variantId} onChange={(e) => setVariantId(e.target.value)} className="min-w-0 flex-1">
+            <option value="">اختار…</option>
+            {variants.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
       <div className="space-y-1">
         <Label htmlFor="m-branch">الفرع</Label>

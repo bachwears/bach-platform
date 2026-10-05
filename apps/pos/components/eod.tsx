@@ -219,7 +219,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
         <div className="rounded-lg border p-6 print:border-0 print:p-0" dir="ltr" id="eod-report">
           <div className="flex items-start justify-between border-b pb-4">
             <div>
-              <h2 className="text-xl font-bold tracking-[0.25em]">BACH WEARS</h2>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-bach.png" alt="BACH" className="h-5 w-auto dark:invert print:invert-0" />
               <p className="text-sm text-muted-foreground">End of Day — {branchName}</p>
             </div>
             <div className="text-right text-sm">

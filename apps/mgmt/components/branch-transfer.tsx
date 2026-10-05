@@ -7,6 +7,8 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 interface Branch {
   id: string;
@@ -16,6 +18,7 @@ interface Branch {
 
 interface Found {
   id: string;
+  product_id: string;
   sku: string | null;
   barcode: string | null;
   size: string;
@@ -31,6 +34,7 @@ interface Line extends Found {
 
 type VariantRow = {
   id: string;
+  product_id: string;
   sku: string | null;
   barcode: string | null;
   size: string;
@@ -39,12 +43,12 @@ type VariantRow = {
   inventory_levels: Array<{ branch_id: string; quantity: number; reserved: number }> | null;
 };
 
-const SELECT = "id, sku, barcode, size, color_en, products!inner(name_en), inventory_levels(branch_id, quantity, reserved)";
+const SELECT = "id, product_id, sku, barcode, size, color_en, products!inner(name_en), inventory_levels(branch_id, quantity, reserved)";
 
 function toFound(v: VariantRow): Found {
   const available: Record<string, number> = {};
   for (const l of v.inventory_levels ?? []) available[l.branch_id] = l.quantity - l.reserved;
-  return { id: v.id, sku: v.sku, barcode: v.barcode, size: v.size, color_en: v.color_en, name: v.products?.name_en ?? "", available };
+  return { id: v.id, product_id: v.product_id, sku: v.sku, barcode: v.barcode, size: v.size, color_en: v.color_en, name: v.products?.name_en ?? "", available };
 }
 
 const branchLabel = (b: Branch) => b.name_ar || b.name;
@@ -61,6 +65,11 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   // search: SKU / barcode / product name (debounced)
   useEffect(() => {
@@ -179,9 +188,12 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
                     onClick={() => add(f)}
                     className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-40"
                   >
-                    <span dir="ltr" className="min-w-0 truncate">
-                      {f.name} — {f.size} {f.color_en}
-                      <span className="ms-2 font-mono text-xs text-muted-foreground">{f.sku}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Thumb src={photoFor(photos, f.product_id, f.color_en)} size="md" />
+                      <span dir="ltr" className="min-w-0 truncate">
+                        {f.name} — {f.size} {f.color_en}
+                        <span className="ms-2 font-mono text-xs text-muted-foreground">{f.sku}</span>
+                      </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">متوفّر {a}</span>
                   </button>
@@ -208,9 +220,14 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
               const bad = !Number.isInteger(qty) || qty < 1 || qty > a;
               return (
                 <tr key={line.id} className="border-b last:border-0">
-                  <td className="p-2" dir="ltr">
-                    {line.name} — {line.size} {line.color_en}
-                    <span className="block font-mono text-xs text-muted-foreground">{line.sku}</span>
+                  <td className="p-2">
+                    <span className="flex items-center gap-3">
+                      <Thumb src={photoFor(photos, line.product_id, line.color_en)} size="sm" />
+                      <span dir="ltr" className="min-w-0">
+                        {line.name} — {line.size} {line.color_en}
+                        <span className="block font-mono text-xs text-muted-foreground">{line.sku}</span>
+                      </span>
+                    </span>
                   </td>
                   <td className="p-2 font-mono">{a}</td>
                   <td className="p-2">

@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 const STATUS_AR: Record<string, string> = {
   draft: "مسودة",
@@ -26,7 +28,7 @@ interface PoItem {
   quantity_ordered: number;
   quantity_received: number;
   unit_cost_usd_cents: number | null;
-  product_variants: { sku: string | null; size: string; color_en: string; products: { name_en: string } };
+  product_variants: { sku: string | null; size: string; color_en: string; product_id: string; products: { name_en: string } };
 }
 
 interface Po {
@@ -42,6 +44,8 @@ interface Po {
 
 interface DraftLine {
   variant_id: string;
+  product_id: string;
+  color_en: string;
   label: string;
   sku: string | null;
   quantity: number;
@@ -50,6 +54,7 @@ interface DraftLine {
 
 interface SearchHit {
   id: string;
+  product_id: string;
   sku: string | null;
   size: string;
   color_en: string;
@@ -76,6 +81,11 @@ export function Purchasing({ branchId }: { branchId: string }) {
 
   // receiving inputs keyed `${poId}:${variantId}`
   const [recv, setRecv] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   const load = useCallback(async () => {
     const [{ data: s }, { data: p }] = await Promise.all([
@@ -83,7 +93,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
       supabase
         .from("purchase_orders")
         .select(
-          "id, number, status, note, expected_at, created_at, suppliers(name), purchase_order_items(variant_id, quantity_ordered, quantity_received, unit_cost_usd_cents, product_variants(sku, size, color_en, products(name_en)))",
+          "id, number, status, note, expected_at, created_at, suppliers(name), purchase_order_items(variant_id, quantity_ordered, quantity_received, unit_cost_usd_cents, product_variants(sku, size, color_en, product_id, products(name_en)))",
         )
         .order("created_at", { ascending: false })
         .limit(30),
@@ -116,7 +126,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
       setResults([]);
       return;
     }
-    const select = "id, sku, size, color_en, products!inner(name_en)";
+    const select = "id, product_id, sku, size, color_en, products!inner(name_en)";
     const { data: skuHits } = await supabase
       .from("product_variants")
       .select(select)
@@ -149,6 +159,8 @@ export function Purchasing({ branchId }: { branchId: string }) {
             ...prev,
             {
               variant_id: v.id,
+              product_id: v.product_id,
+              color_en: v.color_en,
               label: `${v.products.name_en} — ${v.size} ${v.color_en}`,
               sku: v.sku,
               quantity: 1,
@@ -269,11 +281,14 @@ export function Purchasing({ branchId }: { branchId: string }) {
                 <button
                   key={v.id}
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-right text-sm hover:bg-muted"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-right text-sm hover:bg-muted"
                   onClick={() => addLine(v)}
                 >
-                  <span>
-                    {v.products.name_en} — {v.size} {v.color_en}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Thumb src={photoFor(photos, v.product_id, v.color_en)} size="md" />
+                    <span className="min-w-0 truncate">
+                      {v.products.name_en} — {v.size} {v.color_en}
+                    </span>
                   </span>
                   <span className="font-mono text-xs text-muted-foreground" dir="ltr">{v.sku}</span>
                 </button>
@@ -286,9 +301,12 @@ export function Purchasing({ branchId }: { branchId: string }) {
           <ul className="mt-3 space-y-2 text-sm">
             {lines.map((l) => (
               <li key={l.variant_id} className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
-                <span className="flex-1">
-                  {l.label}
-                  <span className="text-xs text-muted-foreground" dir="ltr"> {l.sku}</span>
+                <span className="flex min-w-0 flex-1 items-center gap-3">
+                  <Thumb src={photoFor(photos, l.product_id, l.color_en)} size="md" />
+                  <span className="min-w-0">
+                    {l.label}
+                    <span className="text-xs text-muted-foreground" dir="ltr"> {l.sku}</span>
+                  </span>
                 </span>
                 <label className="flex items-center gap-1 text-xs text-muted-foreground">
                   الكمية
@@ -399,8 +417,13 @@ export function Purchasing({ branchId }: { branchId: string }) {
                     return (
                       <tr key={it.variant_id} className="border-b last:border-0">
                         <td className="p-2">
-                          {it.product_variants.products.name_en} — {it.product_variants.size} {it.product_variants.color_en}
-                          <span className="block text-xs text-muted-foreground" dir="ltr">{it.product_variants.sku}</span>
+                          <span className="flex items-center gap-3">
+                            <Thumb src={photoFor(photos, it.product_variants.product_id, it.product_variants.color_en)} size="sm" />
+                            <span className="min-w-0">
+                              {it.product_variants.products.name_en} — {it.product_variants.size} {it.product_variants.color_en}
+                              <span className="block text-xs text-muted-foreground" dir="ltr">{it.product_variants.sku}</span>
+                            </span>
+                          </span>
                         </td>
                         <td className="p-2 font-mono">{it.quantity_ordered}</td>
                         <td className="p-2 font-mono">{it.quantity_received}</td>

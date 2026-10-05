@@ -2,6 +2,8 @@ import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
 import { Nav } from "../../components/nav";
 import { MovementForm } from "../../components/movement-form";
@@ -32,7 +34,7 @@ export default async function InventoryPage() {
     supabase
       .from("product_variants")
       .select(
-        "id, sku, size, color_ar, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
+        "id, sku, size, color_ar, color_en, product_id, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
       )
       .order("sku")
       .range(from, from + 999);
@@ -46,14 +48,16 @@ export default async function InventoryPage() {
     }
     return { data: all };
   };
-  const [{ data: variants }, { data: branches }, { data: movements }] = await Promise.all([
+  const [{ data: variants }, { data: branches }, { data: movements }, photos] = await Promise.all([
     loadVariants(),
     supabase.from("branches").select("id, name").eq("is_active", true).order("created_at"),
     supabase
       .from("inventory_movements")
-      .select("id, delta, reason, created_at, product_variants(sku), branches(name)")
+      .select("id, delta, reason, created_at, product_variants(sku, product_id, color_en), branches(name)")
       .order("created_at", { ascending: false })
       .limit(15),
+    // same query API as the browser client; the helper is typed for that one
+    loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]),
   ]);
 
   const branchList = branches ?? [];
@@ -75,6 +79,7 @@ export default async function InventoryPage() {
             variants={(variants ?? []).map((v) => ({
               id: v.id,
               label: `${(v.products as unknown as { name_en: string })?.name_en ?? ""} — ${v.size} ${v.color_ar} (${v.sku})`,
+              photo: photoFor(photos, v.product_id, v.color_en),
             }))}
             branches={branchList}
           />
@@ -115,11 +120,16 @@ export default async function InventoryPage() {
                     return (
                       <tr key={v.id} className="border-b last:border-0">
                         <td className="p-3">
-                          <span dir="ltr">{(v.products as unknown as { name_en: string })?.name_en}</span>
-                          <span className="ms-2 text-xs text-muted-foreground">
-                            {v.size} {v.color_ar}
+                          <span className="flex items-center gap-3">
+                            <Thumb src={photoFor(photos, v.product_id, v.color_en)} size="sm" />
+                            <span>
+                              <span dir="ltr">{(v.products as unknown as { name_en: string })?.name_en}</span>
+                              <span className="ms-2 text-xs text-muted-foreground">
+                                {v.size} {v.color_ar}
+                              </span>
+                              {low ? <Badge variant="destructive" className="ms-2">منخفض</Badge> : null}
+                            </span>
                           </span>
-                          {low ? <Badge variant="destructive" className="ms-2">منخفض</Badge> : null}
                         </td>
                         <td className="p-3 font-mono text-xs" dir="ltr">{v.sku}</td>
                         {branchList.map((b) => {
@@ -159,8 +169,16 @@ export default async function InventoryPage() {
                 <tbody>
                   {movements.map((m) => (
                     <tr key={m.id} className="border-b last:border-0">
-                      <td className="p-3 font-mono text-xs" dir="ltr">
-                        {(m.product_variants as unknown as { sku: string })?.sku}
+                      <td className="p-3">
+                        {(() => {
+                          const pv = m.product_variants as unknown as { sku: string; product_id: string; color_en: string | null } | null;
+                          return (
+                            <span className="flex items-center gap-3">
+                              <Thumb src={photoFor(photos, pv?.product_id, pv?.color_en)} size="sm" />
+                              <span className="font-mono text-xs" dir="ltr">{pv?.sku}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="p-3">{(m.branches as unknown as { name: string })?.name}</td>
                       <td className="p-3" dir="ltr">

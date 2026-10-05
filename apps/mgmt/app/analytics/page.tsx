@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
 import { Nav } from "../../components/nav";
 import { PrintButton } from "../../components/print-button";
@@ -81,6 +83,17 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const { data, error } = await supabase.rpc("site_analytics", { p_days: days });
   const a = (error ? null : data) as Analytics | null;
 
+  // the top lists carry slugs only: look up their ids for the photos
+  const slugs = [...new Set([...(a?.top_viewed ?? []), ...(a?.top_added ?? [])].map((r) => r.slug))];
+  const [{ data: slugRows }, photoMap] = await Promise.all([
+    slugs.length ? supabase.from("products").select("id, slug").in("slug", slugs) : Promise.resolve({ data: [] }),
+    // same query API as the browser client; the helper is typed for that one
+    slugs.length ? loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]) : null,
+  ]);
+  const photos: Record<string, string | null> = Object.fromEntries(
+    ((slugRows ?? []) as Array<{ id: string; slug: string }>).map((p) => [p.slug, photoFor(photoMap, p.id)]),
+  );
+
   return (
     <div className="min-h-dvh bg-background">
       <div className="print:hidden">
@@ -89,7 +102,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="hidden text-lg font-bold tracking-[0.3em] print:block">BACH WEARS</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-bach.png" alt="BACH" className="mb-2 hidden h-5 w-auto print:block" />
             <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
               تحليلات الموقع
               <span className="print:hidden">
@@ -127,14 +141,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
             ما قدرنا نجيب التحليلات{error ? ` (${error.message})` : ""}.
           </p>
         ) : (
-          <Report a={a} />
+          <Report a={a} photos={photos} />
         )}
       </main>
     </div>
   );
 }
 
-function Report({ a }: { a: Analytics }) {
+function Report({ a, photos }: { a: Analytics; photos: Record<string, string | null> }) {
   const t = a.totals;
   const f = a.funnel;
   const steps: Array<[string, number]> = [
@@ -271,8 +285,8 @@ function Report({ a }: { a: Analytics }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
-        <ProductTable title="الأكثر مشاهدة" rows={a.top_viewed} />
-        <ProductTable title="الأكثر إضافة للسلة" rows={a.top_added} />
+        <ProductTable title="الأكثر مشاهدة" rows={a.top_viewed} photos={photos} />
+        <ProductTable title="الأكثر إضافة للسلة" rows={a.top_added} photos={photos} />
       </div>
 
       <Section title="يوم بيوم">
@@ -311,7 +325,7 @@ function Report({ a }: { a: Analytics }) {
   );
 }
 
-function ProductTable({ title, rows }: { title: string; rows: ProductRow[] }) {
+function ProductTable({ title, rows, photos }: { title: string; rows: ProductRow[]; photos: Record<string, string | null> }) {
   return (
     <Section title={title}>
       {rows.length === 0 ? (
@@ -329,7 +343,12 @@ function ProductTable({ title, rows }: { title: string; rows: ProductRow[] }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.slug} className="border-b last:border-0">
-                <td className="py-2">{r.name}</td>
+                <td className="py-2">
+                  <span className="flex items-center gap-3">
+                    <Thumb src={photos[r.slug]} size="sm" />
+                    <span className="min-w-0">{r.name}</span>
+                  </span>
+                </td>
                 <td className="py-2 font-mono">{r.views}</td>
                 <td className="py-2 font-mono">{r.adds}</td>
                 <td className="py-2 font-mono text-muted-foreground">{pct(r.adds, r.views)}</td>

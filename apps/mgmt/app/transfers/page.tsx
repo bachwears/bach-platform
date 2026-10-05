@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
 import { AddBranch, BranchTransfer } from "../../components/branch-transfer";
 import { Nav } from "../../components/nav";
@@ -19,7 +21,13 @@ interface MovementRow {
   branch_id: string;
   branches: { name: string; name_ar: string | null } | null;
   profiles: { full_name: string | null } | null;
-  product_variants: { sku: string | null; size: string; color_en: string; products: { name_en: string } | null } | null;
+  product_variants: {
+    sku: string | null;
+    size: string;
+    color_en: string;
+    product_id: string;
+    products: { name_en: string } | null;
+  } | null;
 }
 
 interface Transfer {
@@ -30,7 +38,7 @@ interface Transfer {
   by: string;
   note: string | null;
   pieces: number;
-  lines: Array<{ label: string; sku: string | null; qty: number }>;
+  lines: Array<{ label: string; sku: string | null; qty: number; photo: string | null }>;
 }
 
 export default async function TransfersPage() {
@@ -42,20 +50,22 @@ export default async function TransfersPage() {
   const role = profile?.role ?? "";
   const allowed = ALLOWED.has(role);
 
-  const [{ data: branches }, { data: moves }] = allowed
+  const [{ data: branches }, { data: moves }, photos] = allowed
     ? await Promise.all([
         supabase.from("branches").select("id, name, name_ar").eq("is_active", true).order("created_at"),
         supabase
           .from("inventory_movements")
           .select(
-            "id, delta, reason, note, reference_id, created_at, branch_id, branches(name, name_ar), profiles(full_name), product_variants(sku, size, color_en, products(name_en))",
+            "id, delta, reason, note, reference_id, created_at, branch_id, branches(name, name_ar), profiles(full_name), product_variants(sku, size, color_en, product_id, products(name_en))",
           )
           .in("reason", ["transfer_out", "transfer_in"])
           .not("reference_id", "is", null)
           .order("created_at", { ascending: false })
           .limit(500),
+        // same query API as the browser client; the helper is typed for that one
+        loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]),
       ])
-    : [{ data: null }, { data: null }];
+    : [{ data: null }, { data: null }, null];
 
   // one transfer = the movements sharing a reference_id
   const byRef = new Map<string, Transfer>();
@@ -76,7 +86,12 @@ export default async function TransfersPage() {
     if (m.reason === "transfer_out") {
       t.from = branch;
       const v = m.product_variants;
-      t.lines.push({ label: `${v?.products?.name_en ?? ""} — ${v?.size ?? ""} ${v?.color_en ?? ""}`, sku: v?.sku ?? null, qty: -m.delta });
+      t.lines.push({
+        label: `${v?.products?.name_en ?? ""} — ${v?.size ?? ""} ${v?.color_en ?? ""}`,
+        sku: v?.sku ?? null,
+        qty: -m.delta,
+        photo: photoFor(photos, v?.product_id, v?.color_en),
+      });
       t.pieces += -m.delta;
     } else {
       t.to = branch;
@@ -156,10 +171,13 @@ export default async function TransfersPage() {
                         {t.note ? <p className="text-muted-foreground">ملاحظة: {t.note}</p> : null}
                         <ul className="space-y-1">
                           {t.lines.map((l, i) => (
-                            <li key={i} className="flex justify-between gap-3">
-                              <span dir="ltr">
-                                {l.label}
-                                {l.sku ? <span className="ms-2 font-mono text-xs text-muted-foreground">{l.sku}</span> : null}
+                            <li key={i} className="flex items-center justify-between gap-3">
+                              <span className="flex min-w-0 items-center gap-3">
+                                <Thumb src={l.photo} size="sm" />
+                                <span dir="ltr" className="min-w-0">
+                                  {l.label}
+                                  {l.sku ? <span className="ms-2 font-mono text-xs text-muted-foreground">{l.sku}</span> : null}
+                                </span>
                               </span>
                               <span className="font-mono">× {l.qty}</span>
                             </li>

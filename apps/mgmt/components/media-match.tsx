@@ -6,6 +6,8 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 import { NOT_SAVED } from "../lib/access";
 import { fetchAllPages } from "../lib/fetch-all";
 
@@ -55,6 +57,11 @@ export function MediaMatch() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   const pub = (path: string) => supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 
@@ -285,9 +292,12 @@ export function MediaMatch() {
                   key={h.id}
                   type="button"
                   onClick={() => void openProduct(h)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted"
                 >
-                  <span dir="ltr">{h.name_en}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Thumb src={photoFor(photos, h.id)} size="md" />
+                    <span dir="ltr" className="min-w-0 truncate">{h.name_en}</span>
+                  </span>
                   <Badge variant={h.status === "published" ? "success" : "secondary"}>
                     {h.status === "published" ? "منشور" : "مسودة"}
                   </Badge>

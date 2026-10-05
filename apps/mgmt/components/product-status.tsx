@@ -1,5 +1,6 @@
 "use client";
 
+import { Printer } from "lucide-react";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
@@ -24,6 +25,7 @@ export const PRODUCT_SECTIONS: Array<[string, string]> = [
 ];
 
 export interface SavedState {
+  id: string;
   name: string;
   slug: string;
   status: string;
@@ -87,6 +89,15 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <a
+            href={`/labels?product=${saved.id}`}
+            title="اطبع ليبلات هالمنتج"
+            aria-label="اطبع ليبل"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-muted"
+          >
+            <Printer className="h-4 w-4" aria-hidden />
+            <span className="hidden sm:inline">اطبع ليبل</span>
+          </a>
           <a
             href={`https://bachwears.com/products/${saved.slug}`}
             target="_blank"

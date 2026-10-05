@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
 import { PrintButton } from "./print-button";
 import { fetchAllPages } from "../lib/fetch-all";
@@ -17,7 +19,9 @@ interface DashOrder {
     quantity: number;
     line_total_usd_cents: number;
     name_en: string;
+    color_en: string | null;
     product_variants: {
+      product_id: string;
       products: { cost_usd_cents: number | null; categories: { name_ar: string } | null } | null;
     } | null;
   }>;
@@ -49,13 +53,13 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   // the window starts at Beirut midnight, not the server's (UTC)
   const from = beirutDayStart(days);
 
-  const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ] = await Promise.all([
+  const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ, photos] = await Promise.all([
     // paged: PostgREST max_rows would otherwise cap long windows at 1000 rows
     fetchAllPages((a, b) =>
       supabase
         .from("orders")
         .select(
-          "id, channel, status, created_at, subtotal_usd_cents, discount_usd_cents, total_usd_cents, order_items(quantity, line_total_usd_cents, name_en, product_variants(products(cost_usd_cents, categories(name_ar))))",
+          "id, channel, status, created_at, subtotal_usd_cents, discount_usd_cents, total_usd_cents, order_items(quantity, line_total_usd_cents, name_en, color_en, product_variants(product_id, products(cost_usd_cents, categories(name_ar))))",
         )
         .gte("created_at", from.toISOString())
         .not("status", "in", '("cancelled")')
@@ -87,12 +91,14 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     fetchAllPages((from, to) =>
       supabase
         .from("inventory_levels")
-        .select("quantity, reserved, reorder_threshold, product_variants(sku, products(name_en, status))")
+        .select("quantity, reserved, reorder_threshold, product_variants(sku, product_id, color_en, products(name_en, status))")
         .order("quantity", { ascending: true })
         .order("variant_id")
         .range(from, to),
     ),
     supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
+    // same query API as the browser client; the helper is typed for that one
+    loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]),
   ]);
 
   const orders = (ordersQ.data ?? []) as unknown as DashOrder[];
@@ -117,14 +123,15 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
   let cogs = 0;
   let cogsKnown = true;
-  const byProduct = new Map<string, { qty: number; revenue: number }>();
+  const byProduct = new Map<string, { qty: number; revenue: number; photo: string | null }>();
   const byCategory = new Map<string, number>();
   for (const o of orders) {
     for (const i of o.order_items) {
       const cost = i.product_variants?.products?.cost_usd_cents;
       if (cost == null) cogsKnown = false;
       else cogs += cost * i.quantity;
-      const p = byProduct.get(i.name_en) ?? { qty: 0, revenue: 0 };
+      const p = byProduct.get(i.name_en) ?? { qty: 0, revenue: 0, photo: null };
+      p.photo ??= photoFor(photos, i.product_variants?.product_id, i.color_en);
       p.qty += i.quantity;
       p.revenue += i.line_total_usd_cents;
       byProduct.set(i.name_en, p);
@@ -138,7 +145,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       if (cost != null) cogs -= cost * i.quantity;
       const name = i.order_items?.name_en;
       if (name) {
-        const p = byProduct.get(name) ?? { qty: 0, revenue: 0 };
+        const p = byProduct.get(name) ?? { qty: 0, revenue: 0, photo: null };
         p.qty -= i.quantity;
         p.revenue -= i.credit_usd_cents;
         byProduct.set(name, p);
@@ -162,7 +169,12 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     quantity: number;
     reserved: number;
     reorder_threshold: number;
-    product_variants: { sku: string | null; products: { name_en: string; status?: string } | null } | null;
+    product_variants: {
+      sku: string | null;
+      product_id: string;
+      color_en: string | null;
+      products: { name_en: string; status?: string } | null;
+    } | null;
   }>)
     .filter((l) => l.quantity - l.reserved <= l.reorder_threshold)
     .slice(0, 200);
@@ -193,7 +205,8 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       {/* Branded header — screen + print */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4">
         <div>
-          <p className="hidden text-lg font-bold tracking-[0.3em] print:block">BACH WEARS</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-bach.png" alt="BACH" className="mb-2 hidden h-5 w-auto print:block" />
           <h1 className="text-2xl font-semibold tracking-tight">
             مرحبا {name || "بشار"}
           </h1>
@@ -272,7 +285,12 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
               <tbody>
                 {topProducts.map(([nameEn, p]) => (
                   <tr key={nameEn} className="border-b last:border-0">
-                    <td className="py-2">{nameEn}</td>
+                    <td className="py-2">
+                      <span className="flex items-center gap-3">
+                        <Thumb src={p.photo} size="sm" />
+                        <span className="min-w-0">{nameEn}</span>
+                      </span>
+                    </td>
                     <td className="py-2 text-center font-mono text-muted-foreground">×{p.qty}</td>
                     <td className="py-2 text-left font-mono">{usd(p.revenue)}</td>
                   </tr>
@@ -326,7 +344,12 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
             <tbody>
               {lowStock.slice(0, 15).map((l, i) => (
                 <tr key={i} className="border-b last:border-0">
-                  <td className="py-2">{l.product_variants?.products?.name_en}</td>
+                  <td className="py-2">
+                    <span className="flex items-center gap-3">
+                      <Thumb src={photoFor(photos, l.product_variants?.product_id, l.product_variants?.color_en)} size="sm" />
+                      <span className="min-w-0">{l.product_variants?.products?.name_en}</span>
+                    </span>
+                  </td>
                   <td className="py-2 font-mono text-xs" dir="ltr">{l.product_variants?.sku}</td>
                   <td className="py-2 font-mono">{l.quantity - l.reserved}</td>
                   <td className="py-2 font-mono text-muted-foreground">{l.reorder_threshold}</td>

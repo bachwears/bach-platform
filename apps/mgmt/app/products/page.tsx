@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
@@ -159,6 +160,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   <th className="p-3 text-start font-medium">المخزون</th>
                   <th className="p-3 text-start font-medium">الفاريانتس</th>
                   <th className="p-3 text-start font-medium">الحالة</th>
+                  <th className="w-10 p-3" aria-label="ليبل" />
                 </tr>
               </thead>
               <tbody>
@@ -226,6 +228,16 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                       <td className="p-3">{p.variantCount}</td>
                       <td className="p-3">
                         <Badge variant={status.variant}>{status.label}</Badge>
+                      </td>
+                      <td className="p-2">
+                        <Link
+                          href={`/labels?product=${p.id}`}
+                          title="اطبع ليبلات هالمنتج"
+                          aria-label={`اطبع ليبلات ${p.name_en}`}
+                          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Printer className="h-4 w-4" aria-hidden />
+                        </Link>
                       </td>
                     </tr>
                   );

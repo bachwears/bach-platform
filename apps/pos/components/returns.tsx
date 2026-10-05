@@ -301,7 +301,8 @@ export function Returns({
       <div className="mx-auto max-w-md space-y-4 p-6 print:p-0">
         <div className="rounded-lg border p-6 print:border-0" dir="ltr">
           <div className="text-center">
-            <h2 className="text-xl font-bold tracking-widest">BACH WEARS</h2>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-bach.png" alt="BACH" className="mx-auto h-5 w-auto dark:invert print:invert-0" />
             <p className="text-sm text-muted-foreground">{branchName}</p>
             <p className="mt-2 font-mono text-lg">
               {slip.kind === "return" ? "Return" : "Exchange"} — Invoice #{slip.orderNumber}

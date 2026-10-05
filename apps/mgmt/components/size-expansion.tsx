@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 const LETTER_SIZES = ["S", "M", "L", "XL", "XXL"];
 const PANT_SIZES = ["30", "32", "34", "36", "38"];
@@ -42,6 +44,11 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [doneCount, setDoneCount] = useState(0);
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -166,10 +173,13 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
                 className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-right"
                 onClick={() => (open ? setOpenId(null) : openProduct(p))}
               >
-                <span>
-                  {p.name_en}
-                  <span className="block text-xs text-muted-foreground" dir="ltr">
-                    {p.sku}
+                <span className="flex min-w-0 items-center gap-3">
+                  <Thumb src={photoFor(photos, p.id)} size="md" />
+                  <span className="min-w-0">
+                    {p.name_en}
+                    <span className="block text-xs text-muted-foreground" dir="ltr">
+                      {p.sku}
+                    </span>
                   </span>
                 </span>
                 <span className="flex items-center gap-2">

@@ -91,6 +91,7 @@ export default async function EditProductPage({
 
   const activeVariants = variants.filter((v) => v.is_active);
   const saved: SavedState = {
+    id: product.id,
     name: product.name_en,
     slug: product.slug,
     status: product.status,

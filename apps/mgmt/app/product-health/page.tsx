@@ -3,6 +3,8 @@ import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
 import { Nav } from "../../components/nav";
 import { ISSUES, analyze, type HealthRow } from "../../lib/product-health";
@@ -19,6 +21,8 @@ export default async function ProductHealthPage({
   const supabase = await supabaseServer();
 
   const { data: hint } = await supabase.from("hint_registry").select("*").eq("key", "health-score").maybeSingle();
+  // same query API as the browser client; the helper is typed for that one
+  const photosLoad = loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]);
   const { data } = await supabase
     .from("products")
     .select(
@@ -28,6 +32,7 @@ export default async function ProductHealthPage({
     .limit(PAGE_SIZE);
 
   const products = (data ?? []) as unknown as HealthRow[];
+  const photos = await photosLoad;
   const { perProduct, counts, critical, clean } = analyze(products);
   const score = products.length ? Math.round((clean / products.length) * 100) : 100;
 
@@ -107,10 +112,10 @@ export default async function ProductHealthPage({
                 {sorted.slice(0, SHOW_LIMIT).map(({ product: p, issues }) => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/50">
                     <td className="p-3">
-                      <Link href={`/products/${p.id}`} className="underline-offset-2 hover:underline">
-                        {p.name_en}
+                      <Link href={`/products/${p.id}`} className="flex items-center gap-3 underline-offset-2 hover:underline">
+                        <Thumb src={photoFor(photos, p.id)} size="sm" />
+                        <span className="min-w-0">{p.name_en}</span>
                       </Link>
-                      
                     </td>
                     <td className="p-3">
                       <Badge variant={p.status === "published" ? "default" : "secondary"}>

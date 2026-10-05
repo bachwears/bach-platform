@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Textarea } from "@bach/ui/components/textarea";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 import { NOT_SAVED } from "../lib/access";
 import { fmt } from "../lib/time";
@@ -37,6 +39,7 @@ interface ItemInfo {
   name_en: string;
   size: string;
   color_en: string;
+  product_variants: { product_id: string } | null;
 }
 
 export function ReturnsRequestsQueue() {
@@ -45,6 +48,7 @@ export function ReturnsRequestsQueue() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
 
   const load = useCallback(async () => {
     const supabase = supabaseBrowser();
@@ -64,9 +68,9 @@ export function ReturnsRequestsQueue() {
     if (itemIds.length) {
       const { data: items } = await supabase
         .from("order_items")
-        .select("id, name_en, size, color_en")
+        .select("id, name_en, size, color_en, product_variants(product_id)")
         .in("id", itemIds);
-      setItemMap(Object.fromEntries(((items ?? []) as ItemInfo[]).map((i) => [i.id, i])));
+      setItemMap(Object.fromEntries(((items ?? []) as unknown as ItemInfo[]).map((i) => [i.id, i])));
     }
     setLoaded(true);
   }, []);
@@ -74,6 +78,10 @@ export function ReturnsRequestsQueue() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   async function setStatus(r: RequestRow, status: string) {
     const patch: Record<string, unknown> = { status, staff_notes: notes[r.id] ?? r.staff_notes };
@@ -121,12 +129,15 @@ export function ReturnsRequestsQueue() {
                     </span>
                   </div>
 
-                  <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                     {r.items.map((i, idx) => {
                       const info = itemMap[i.order_item_id];
                       return (
-                        <li key={idx} dir="ltr" className="text-end">
-                          {info ? `${info.name_en} — ${info.size} ${info.color_en}` : i.order_item_id} × {i.quantity}
+                        <li key={idx} className="flex items-center gap-3">
+                          <Thumb src={photoFor(photos, info?.product_variants?.product_id, info?.color_en)} size="md" />
+                          <span dir="ltr" className="min-w-0">
+                            {info ? `${info.name_en} — ${info.size} ${info.color_en}` : i.order_item_id} × {i.quantity}
+                          </span>
                         </li>
                       );
                     })}

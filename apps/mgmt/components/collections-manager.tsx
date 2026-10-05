@@ -7,6 +7,8 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 interface Collection {
   id: string;
@@ -38,6 +40,11 @@ export function CollectionsManager() {
   const [results, setResults] = useState<Array<{ id: string; name_en: string; status: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   async function load() {
     const { data } = await supabase
@@ -177,11 +184,14 @@ export function CollectionsManager() {
                             <button
                               key={r.id}
                               type="button"
-                              className="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-muted/50"
+                              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-muted/50"
                               onClick={() => void add(c.id, r.id)}
                             >
-                              <span dir="ltr">{r.name_en}</span>
-                              <span className="text-xs text-muted-foreground">{r.status === "published" ? "منشور" : "مسودة"}</span>
+                              <span className="flex min-w-0 items-center gap-3">
+                                <Thumb src={photoFor(photos, r.id)} size="md" />
+                                <span dir="ltr" className="min-w-0 truncate">{r.name_en}</span>
+                              </span>
+                              <span className="shrink-0 text-xs text-muted-foreground">{r.status === "published" ? "منشور" : "مسودة"}</span>
                             </button>
                           ))}
                         </div>
@@ -192,8 +202,11 @@ export function CollectionsManager() {
                     ) : (
                       <ul className="divide-y">
                         {members.map((m) => (
-                          <li key={m.product_id} className="flex items-center justify-between py-2 text-sm">
-                            <span dir="ltr">{m.products.name_en}</span>
+                          <li key={m.product_id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                            <span className="flex min-w-0 items-center gap-3">
+                              <Thumb src={photoFor(photos, m.product_id)} size="md" />
+                              <span dir="ltr" className="min-w-0">{m.products.name_en}</span>
+                            </span>
                             <button
                               type="button"
                               className="text-muted-foreground hover:text-destructive"

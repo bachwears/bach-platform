@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
+import { Thumb } from "@bach/ui/components/thumb";
+import { thumbUrl } from "@bach/ui/lib/photos";
 
 import { Nav } from "../../../components/nav";
 import { OrderStatusControl } from "../../../components/order-status-control";
@@ -21,7 +23,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     supabase
       .from("orders")
       .select(
-        "*, branches(name), profiles(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path)))), order_payments(*), customers(full_name, phone)",
+        "*, branches(name), profiles(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path, color_en, sort)))), order_payments(*), customers(full_name, phone)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -126,17 +128,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <td className="p-3">
                     <span className="flex items-center gap-3">
                       {(() => {
-                        // front photo helps picking the right piece off the shelf
+                        // front photo in the line's colour helps picking the right piece off the shelf
                         const media =
-                          (i.product_variants as { products?: { media_assets?: Array<{ kind: string; storage_path: string }> } } | null)
-                            ?.products?.media_assets ?? [];
-                        const front = media.find((m) => m.kind === "front")?.storage_path;
-                        return front ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={front} alt="" className="h-14 w-11 shrink-0 rounded-sm bg-muted object-cover" />
-                        ) : (
-                          <span className="h-14 w-11 shrink-0 rounded-sm bg-muted" />
-                        );
+                          (i.product_variants as {
+                            products?: { media_assets?: Array<{ kind: string; storage_path: string; color_en: string | null; sort: number }> };
+                          } | null)?.products?.media_assets ?? [];
+                        const colour = String(i.color_en ?? "").trim().toLowerCase();
+                        const fronts = media.filter((m) => m.storage_path.includes("/front-")).sort((a, b) => a.sort - b.sort);
+                        const front =
+                          fronts.find((m) => colour && (m.color_en ?? "").trim().toLowerCase() === colour)?.storage_path ??
+                          media.find((m) => m.kind === "front")?.storage_path;
+                        return <Thumb src={thumbUrl(front)} size="lg" />;
                       })()}
                       <span>
                     {String(i.name_en)}

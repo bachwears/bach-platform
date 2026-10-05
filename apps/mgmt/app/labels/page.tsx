@@ -5,7 +5,12 @@ import { Nav } from "../../components/nav";
 
 const LABEL_ROLES = new Set(["super_admin", "store_manager", "inventory_manager"]);
 
-export default async function LabelsPage() {
+export default async function LabelsPage({ searchParams }: { searchParams: Promise<{ product?: string | string[] }> }) {
+  // "Print label" from the catalogue links here with ?product=<id> (one or more)
+  const { product } = await searchParams;
+  const productIds = (Array.isArray(product) ? product : product ? [product] : []).filter((id) =>
+    /^[0-9a-f-]{36}$/i.test(id),
+  );
   const supabase = await supabaseServer();
   const {
     data: { user },
@@ -21,12 +26,12 @@ export default async function LabelsPage() {
         <div className="print:hidden">
           <h1 className="text-2xl font-semibold tracking-tight">طباعة الليبلات</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            ليبلات باركود للقطع — عالطابعة الحرارية (Gprinter GP-2120TUA). اختار القطع والعدد،
-            وبعدين اطبع: كل ليبل بيطلع عصفحة لحالو بقياس الرول.
+            ليبلات باركود للقطع — عالطابعة الحرارية (Gprinter GP-2120TUA). دوّر وزيد القطع، أو الصق
+            أكتر من كود، أو زيد فئة كاملة بالجملة؛ وبعدين اطبع: كل ليبل بيطلع عصفحة لحالو بقياس الرول.
           </p>
         </div>
         {LABEL_ROLES.has(profile?.role ?? "") ? (
-          <LabelPrinting />
+          <LabelPrinting productIds={productIds} />
         ) : (
           <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بطباعة الليبلات.</p>
         )}
