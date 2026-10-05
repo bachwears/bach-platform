@@ -5,7 +5,8 @@ import { Badge } from "@bach/ui/components/badge";
 
 import { Nav } from "../../../components/nav";
 import { OrderStatusControl } from "../../../components/order-status-control";
-import { STATUS_LABELS, paymentLabel } from "../../../lib/order-status";
+import { PICKUP_BADGE, statusLabelFor } from "../../../components/fulfilment";
+import { paymentLabel } from "../../../lib/order-status";
 import { fmt } from "../../../lib/time";
 
 function usd(cents: number): string {
@@ -41,6 +42,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const todayRate = Number(rateRow?.lbp_per_usd ?? 0);
   const canManage = ["super_admin", "store_manager", "support_agent"].includes(profile?.role ?? "");
   const rate = Number(order.lbp_per_usd);
+  const isPickup = (order as { fulfilment?: string }).fulfilment === "pickup";
 
   return (
     <div className="min-h-dvh bg-background">
@@ -52,8 +54,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <span className="font-mono">#{order.number}</span>
             </h1>
             <Badge variant={order.status === "completed" ? "default" : "secondary"}>
-              {STATUS_LABELS[order.status] ?? order.status}
+              {statusLabelFor(order.status, (order as { fulfilment?: string }).fulfilment)}
             </Badge>
+            {isPickup ? <Badge variant="outline">{PICKUP_BADGE}</Badge> : null}
           </div>
           <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
             → رجوع للطلبات
@@ -73,7 +76,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         {order.channel === "online" || order.ship_address ? (
           <div className="grid gap-4 rounded-lg border p-4 text-sm sm:grid-cols-2">
             <div className="space-y-1">
-              <h2 className="font-medium">التوصيل</h2>
+              <h2 className="font-medium">{isPickup ? PICKUP_BADGE : "التوصيل"}</h2>
               <p>{order.ship_name ?? "—"}</p>
               {order.ship_phone ? (
                 <p className="flex flex-wrap items-center gap-3" dir="ltr">
@@ -98,7 +101,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <h2 className="font-medium">طريقة الدفع</h2>
               <p>{paymentLabel(order.payment_method)}</p>
               {order.payment_method === "cod" ? (
-                <p className="text-xs text-muted-foreground">بيندفع للمندوب وقت التسليم.</p>
+                <p className="text-xs text-muted-foreground">
+                  {isPickup ? "بيندفع بالمحل وقت الاستلام — كاش أو Whish." : "بيندفع للمندوب وقت التسليم."}
+                </p>
               ) : null}
             </div>
           </div>
@@ -175,7 +180,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <h2 className="font-medium">الدفعات</h2>
             {(order.order_payments ?? []).length === 0 ? (
               <p className="text-muted-foreground">
-                {order.payment_method === "cod" ? "لسّا ما في دفعات — بيندفع للمندوب وقت التسليم." : "لسّا ما في دفعات مسجّلة."}
+                {order.payment_method === "cod"
+                  ? isPickup
+                    ? "لسّا ما في دفعات — بيندفع بالمحل وقت الاستلام."
+                    : "لسّا ما في دفعات — بيندفع للمندوب وقت التسليم."
+                  : "لسّا ما في دفعات مسجّلة."}
               </p>
             ) : null}
             {(order.order_payments ?? []).map((p: Record<string, unknown>) => (
@@ -198,6 +207,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   paymentMethod={order.payment_method}
                   totalUsdCents={order.total_usd_cents}
                   lbpPerUsd={todayRate}
+                  fulfilment={(order as { fulfilment?: string }).fulfilment}
                 />
               </div>
             )}

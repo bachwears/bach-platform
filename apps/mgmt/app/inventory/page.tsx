@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { HintDot } from "@bach/ui/components/hint-dot";
@@ -61,7 +62,12 @@ export default async function InventoryPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-8 p-4 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">المخزون</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">المخزون</h1>
+          <Link href="/transfers" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            التحويل بين الفروع
+          </Link>
+        </div>
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">تسجيل حركة</h2>

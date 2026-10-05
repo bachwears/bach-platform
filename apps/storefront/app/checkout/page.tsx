@@ -28,6 +28,13 @@ function usd(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/** Free pickup from the shop (site_content 'pickup'); offered only once the address is set. */
+interface PickupInfo {
+  address: string;
+  hours: string;
+  payNote: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const locale = useLocale();
@@ -46,6 +53,8 @@ export default function CheckoutPage() {
   const [payMethod, setPayMethod] = useState("cod");
   const [walletBalance, setWalletBalance] = useState(0);
   const deliveryRule = useDeliveryRule();
+  const [pickup, setPickup] = useState<PickupInfo | null>(null);
+  const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -58,6 +67,18 @@ export default function CheckoutPage() {
         router.replace(lhref(locale, "/cart"));
         return;
       }
+      void supabase
+        .from("site_content")
+        .select("value")
+        .eq("key", "pickup")
+        .maybeSingle()
+        .then(({ data: row }) => {
+          const v = row?.value as { enabled?: boolean; address?: string; hours?: string; pay_note?: string } | undefined;
+          // no address yet = nowhere to send the customer: keep the option hidden
+          if (v?.enabled && v.address?.trim()) {
+            setPickup({ address: v.address.trim(), hours: v.hours?.trim() ?? "", payNote: v.pay_note?.trim() ?? "" });
+          }
+        });
       const [{ data, error: loadError }, { data: rateRow }] = await Promise.all([
         supabase
           .from("product_variants")
@@ -123,6 +144,8 @@ export default function CheckoutPage() {
               .select("ship_city, ship_address")
               .eq("customer_id", c.id)
               .eq("channel", "online")
+              // a pickup order holds the shop's address, not the customer's
+              .eq("fulfilment", "delivery")
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle()
@@ -150,7 +173,9 @@ export default function CheckoutPage() {
       : 0;
   // Delivery is judged on the pieces after the promo (before any wallet reward),
   // the same rule the checkout RPC applies.
-  const delivery = deliveryFor(subtotal - promoDiscount, deliveryRule);
+  // Pickup from the shop is free (the RPC charges no fee either).
+  const isPickup = fulfilment === "pickup" && pickup !== null;
+  const delivery = isPickup ? 0 : deliveryFor(subtotal - promoDiscount, deliveryRule);
   // wallet payers get 10% off the pieces (integer cents, as the RPC rounds); delivery is paid in full
   const walletDiscount = Math.round((subtotal - promoDiscount) / 10);
   const walletPays = subtotal - promoDiscount - walletDiscount + delivery;
@@ -171,7 +196,8 @@ export default function CheckoutPage() {
   }, [payMethod, walletOffered]);
     const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
-  const canPlace = !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && city.trim() && address.trim();
+  const canPlace =
+    !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && (isPickup || (city.trim() && address.trim()));
 
   async function placeOrder() {
     if (!canPlace) return;
@@ -183,13 +209,14 @@ export default function CheckoutPage() {
         p_items: readCart().map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
         p_name: name.trim(),
         p_phone: phone,
-        p_city: city.trim(),
-        p_address: address.trim(),
+        p_city: isPickup ? "" : city.trim(),
+        p_address: isPickup ? "" : address.trim(),
         p_note: note.trim() || null,
         p_email: email.trim() || null,
         p_promocode: promoState.status === "ok" ? promo.trim() : null,
         p_payment_method: payMethod === "wallet" ? "cod" : payMethod,
         p_use_wallet: payMethod === "wallet",
+        p_fulfilment: isPickup ? "pickup" : "delivery",
       });
     let { data, error: err } = await call();
     // A stale sign-in (e.g. after a password change elsewhere) must not block a
@@ -208,6 +235,7 @@ export default function CheckoutPage() {
         [/name required/, t(locale, "sf.co.errName")],
         [/valid phone/, t(locale, "sf.co.errPhone")],
         [/delivery address/, t(locale, "sf.co.errAddress")],
+        [/pickup not available/, t(locale, "sf.co.errPickup")],
         [/valid email/, t(locale, "sf.co.errEmail")],
         [/no longer available/, t(locale, "sf.co.errGone")],
         [/invalid quantity|cart must have/, t(locale, "sf.co.errQty")],
@@ -262,9 +290,10 @@ export default function CheckoutPage() {
           discount: promoDiscount + (payingWallet ? walletDiscount : 0),
           delivery,
           rate,
-          city: city.trim(),
-          address: address.trim(),
+          city: isPickup ? "" : city.trim(),
+          address: isPickup ? "" : address.trim(),
           wallet: payMethod === "wallet",
+          pickup: isPickup && pickup ? { address: pickup.address, hours: pickup.hours } : undefined,
         }),
       );
     } catch {
@@ -273,20 +302,19 @@ export default function CheckoutPage() {
     router.replace(lhref(locale, `/confirmed?n=${data![0].order_number}`));
   }
 
-  const payOption = (key: string, title: string, sub: React.ReactNode) => (
+  const radioOption = (checked: boolean, onSelect: () => void, title: string, sub: React.ReactNode) => (
     <button
-      key={key}
       type="button"
       role="radio"
-      aria-checked={payMethod === key}
-      onClick={() => setPayMethod(key)}
+      aria-checked={checked}
+      onClick={onSelect}
       className="flex w-full items-start gap-4 border-b py-4 text-start"
     >
       <span
         aria-hidden
-        className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center border ${payMethod === key ? "border-foreground" : "border-border"}`}
+        className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center border ${checked ? "border-foreground" : "border-border"}`}
       >
-        {payMethod === key ? <span className="h-2 w-2 bg-foreground" /> : null}
+        {checked ? <span className="h-2 w-2 bg-foreground" /> : null}
       </span>
       <span>
         <span className="type-label block">{title}</span>
@@ -294,6 +322,8 @@ export default function CheckoutPage() {
       </span>
     </button>
   );
+  const payOption = (key: string, title: string, sub: React.ReactNode) =>
+    radioOption(payMethod === key, () => setPayMethod(key), title, sub);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -334,21 +364,68 @@ export default function CheckoutPage() {
               </div>
             </Step>
 
-            <Step n={2} title={t(locale, "sf.co.stepAddress")}>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field label={t(locale, "sf.co.city")}>
-                  <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
-                </Field>
-                <Field label={t(locale, "sf.co.address")}>
-                  <input className={INPUT} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
-                </Field>
-              </div>
-              <Field label={t(locale, "sf.co.notes")}>
-                <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
-              </Field>
-            </Step>
+            {pickup ? (
+              <Step n={2} title={t(locale, "sf.co.stepMethod")}>
+                <div role="radiogroup" aria-label={t(locale, "sf.co.stepMethod")} className="border-t">
+                  {radioOption(
+                    fulfilment === "delivery",
+                    () => setFulfilment("delivery"),
+                    t(locale, "sf.co.optDelivery"),
+                    t(locale, "sf.co.optDeliverySub", {
+                      v: deliveryFor(subtotal - promoDiscount, deliveryRule)
+                        ? usd(deliveryFor(subtotal - promoDiscount, deliveryRule))
+                        : t(locale, "sf.co.deliveryFree"),
+                    }),
+                  )}
+                  {radioOption(
+                    fulfilment === "pickup",
+                    () => setFulfilment("pickup"),
+                    t(locale, "sf.co.optPickup"),
+                    t(locale, "sf.co.optPickupSub", { v: [pickup.address, pickup.hours].filter(Boolean).join(" · ") }),
+                  )}
+                </div>
+              </Step>
+            ) : null}
 
-            <Step n={3} title={t(locale, "sf.co.payment")}>
+            {isPickup && pickup ? (
+              <Step n={3} title={t(locale, "sf.co.stepPickup")}>
+                <dl className="space-y-4 text-sm">
+                  <div>
+                    <dt className="type-meta text-muted-foreground">{t(locale, "sf.co.pickupAddress")}</dt>
+                    <dd className="mt-1">{pickup.address}</dd>
+                  </div>
+                  {pickup.hours ? (
+                    <div>
+                      <dt className="type-meta text-muted-foreground">{t(locale, "sf.co.pickupHours")}</dt>
+                      <dd className="mt-1">{pickup.hours}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+                <p className="text-xs text-muted-foreground">
+                  {pickup.payNote ? `${pickup.payNote}. ` : ""}
+                  {t(locale, "sf.co.pickupReady")}
+                </p>
+                <Field label={t(locale, "sf.co.notesPickup")}>
+                  <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+                </Field>
+              </Step>
+            ) : (
+              <Step n={pickup ? 3 : 2} title={t(locale, "sf.co.stepAddress")}>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Field label={t(locale, "sf.co.city")}>
+                    <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                  </Field>
+                  <Field label={t(locale, "sf.co.address")}>
+                    <input className={INPUT} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
+                  </Field>
+                </div>
+                <Field label={t(locale, "sf.co.notes")}>
+                  <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+                </Field>
+              </Step>
+            )}
+
+            <Step n={pickup ? 4 : 3} title={t(locale, "sf.co.payment")}>
               <div role="radiogroup" aria-label={t(locale, "sf.co.payment")} className="border-t">
                 {walletOffered &&
                   payOption(
@@ -358,12 +435,15 @@ export default function CheckoutPage() {
                       Balance ${(walletBalance / 100).toFixed(2)} · you pay ≈ ${(walletPays / 100).toFixed(2)}
                     </span>,
                   )}
-                {methods.includes("cod") && payOption("cod", t(locale, "sf.co.cod"), t(locale, "sf.co.codSub"))}
+                {methods.includes("cod") &&
+                  (isPickup && pickup
+                    ? payOption("cod", t(locale, "sf.co.payAtShop"), pickup.payNote || t(locale, "sf.co.pickupCashNote"))
+                    : payOption("cod", t(locale, "sf.co.cod"), t(locale, "sf.co.codSub")))}
                 {methods.includes("stripe") && payOption("stripe", t(locale, "sf.co.card"), t(locale, "sf.co.cardSub"))}
               </div>
             </Step>
 
-            <Step n={4} title={t(locale, "sf.co.promo")}>
+            <Step n={pickup ? 5 : 4} title={t(locale, "sf.co.promo")}>
               {signedIn ? (
                 <div>
                   <div className="flex items-end gap-4">
@@ -455,10 +535,11 @@ export default function CheckoutPage() {
               </p>
             )}
             <p className="type-meta mt-3 flex justify-between">
-              <span>{t(locale, "sf.co.delivery")}</span>
+              <span>{t(locale, isPickup ? "sf.co.pickupLine" : "sf.co.delivery")}</span>
               <span className="tabular-nums">{delivery ? usd(delivery) : t(locale, "sf.co.deliveryFree")}</span>
             </p>
-            <DeliveryProgress goods={subtotal - promoDiscount} className="mt-3" />
+            {/* free-delivery progress means nothing when collecting from the shop */}
+            {isPickup ? null : <DeliveryProgress goods={subtotal - promoDiscount} className="mt-3" />}
             <p className="type-label mt-4 flex justify-between border-t pt-4">
               <span>{t(locale, "sf.co.total")}</span>
               <span className="tabular-nums">{usd(total)}</span>
@@ -470,7 +551,7 @@ export default function CheckoutPage() {
             )}
             {/* the pieces as paid (after promo and any wallet reward), delivery excluded */}
             <PointsEarn goods={total - delivery} signedIn={signedIn} className="mt-2" />
-            <p className="mt-4 text-xs text-muted-foreground">{t(locale, "sf.co.cashNote")}</p>
+            <p className="mt-4 text-xs text-muted-foreground">{isPickup ? (payMethod === "cod" ? t(locale, "sf.co.pickupCashNote") : "") : t(locale, "sf.co.cashNote")}</p>
             <Link href={lhref(locale, "/cart")} className="type-meta mt-4 inline-block underline underline-offset-4 hover:opacity-60">
               {t(locale, "sf.co.editBag")}
             </Link>

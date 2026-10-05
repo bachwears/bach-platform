@@ -17,6 +17,7 @@ import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
+import { FitFinder } from "../../../components/fit-finder";
 import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 
@@ -416,11 +417,11 @@ export default async function ProductPage({
               available: (v.inventory_levels ?? []).reduce((s, l) => s + l.quantity - l.reserved, 0),
             }))}
           />
-          {guide && (
-            <div className="mt-4">
-              <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />
-            </div>
-          )}
+          {/* size guide + Fit Finder (the finder hides itself on one-size pieces) */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 empty:hidden">
+            {guide && <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />}
+            <FitFinder guide={guide} categoryCodes={lineage} sizes={sizeRun(variants.map((v) => v.size), product.fit)} />
+          </div>
           {displayDescription ? (
             <p className="mt-8 text-sm leading-relaxed text-muted-foreground lg:hidden">{displayDescription}</p>
           ) : null}

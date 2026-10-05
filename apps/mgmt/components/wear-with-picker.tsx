@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
-import { HintDot } from "@bach/ui/components/hint-dot";
 import { Input } from "@bach/ui/components/input";
 
 import { NOT_SAVED } from "../lib/access";
@@ -94,18 +93,7 @@ export function WearWithPicker({ productId, initial }: { productId: string; init
   };
 
   return (
-    <section className="space-y-4 rounded-lg border p-5">
-      <h2 className="flex items-center gap-2 font-medium">
-        البسها مع (Wear with)
-        <HintDot
-          hint={{
-            title: "البسها مع",
-            what: "٢ لـ ٤ قطع منبيعها بتطلع تحت صور هالمنتج بالموقع، كل وحدة بكبسة + للإضافة السريعة. أحسن شي القطع يلّي الموديل لابسها بالصور (بنطلون، شوز…) إذا موجودين عنّا.",
-            source: "جدول product_pairings. إذا ما في اختيارات، الموقع بيفرجي «Complete the look» من نفس الكولكشن.",
-            edit: "من هون: دوّر عالقطعة بالاسم وزيدها، رتّبها بالأسهم، أو شيلها. بيبيّن عالموقع فوراً.",
-          }}
-        />
-      </h2>
+    <div className="space-y-4">
       {err && <p className="text-sm text-destructive">{err}</p>}
 
       {picked.length ? (
@@ -174,6 +162,6 @@ export function WearWithPicker({ productId, initial }: { productId: string; init
       ) : (
         <p className="text-xs text-muted-foreground">وصلت للحد ({MAX} قطع). شيل وحدة لتزيد غيرها.</p>
       )}
-    </section>
+    </div>
   );
 }

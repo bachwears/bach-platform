@@ -8,7 +8,10 @@ import { t } from "@bach/i18n";
 
 import { lhref, useLocale } from "../lib/locale-client";
 
-type Step = "email" | "password" | "register";
+type Step = "email" | "password" | "code" | "register";
+
+// Supabase lets an email code be re-sent once a minute.
+const RESEND_SECONDS = 60;
 
 const INPUT =
   "h-11 w-full border-0 border-b border-border bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground";
@@ -19,6 +22,10 @@ const SECONDARY = "type-label grid h-12 w-full place-items-center border border-
  * One page to log in or register, email first. We deliberately do not look
  * the email up (that would reveal who has an account): the email step leads
  * to the password, with registration one tap away carrying the email over.
+ *
+ * Two-step sign-in (opt-in from the account page): once the password is right,
+ * that session is dropped straight away and a 6-digit code is emailed; the
+ * session that counts is the one verifyOtp creates from the code.
  */
 export function AuthFlow({ initial }: { initial: "email" | "register" }) {
   const router = useRouter();
@@ -33,6 +40,9 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [next, setNext] = useState("/account");
+  const [code, setCode] = useState("");
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const focusRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -65,20 +75,40 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
     setError("");
   }, [step]);
 
+  // resend countdown, only while the code step is on screen
+  useEffect(() => {
+    if (step !== "code") return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [step]);
+
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canSignIn = !busy && emailOk && password;
   const canCreate = !busy && name.trim() && emailOk && password.length >= 8 && password === confirm;
+  const canVerify = !busy && /^\d{6}$/.test(code);
+  const resendIn = Math.max(0, Math.ceil((resendAt - now) / 1000));
 
   async function signIn() {
     if (!canSignIn) return;
     setBusy(true);
     setError("");
-    const { error: err } = await supabaseBrowser().auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    setBusy(false);
+    const supabase = supabaseBrowser();
+    const address = email.trim().toLowerCase();
+    const { error: err } = await supabase.auth.signInWithPassword({ email: address, password });
+    // With the auth hook on, Supabase itself refuses a password-only session for
+    // two-step customers (after checking the password): go straight to the code.
+    if (err && err.message.includes("two_step_required")) {
+      const sent = await sendCode();
+      setBusy(false);
+      if (sent) {
+        setPassword("");
+        setCode("");
+        setStep("code");
+      }
+      return;
+    }
     if (err) {
+      setBusy(false);
       setError(
         err.message.includes("Invalid login")
           ? t(locale, "sf.login.wrong")
@@ -86,6 +116,72 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
             ? t(locale, "sf.login.unconfirmed")
             : t(locale, "sf.login.failed", { m: err.message }),
       );
+      return;
+    }
+    // Password is right. Does this customer want an email code as well?
+    const { data: twoStep, error: lookupErr } = await supabase.rpc("two_step_required", { p_email: address });
+    // PGRST202: the lookup isn't deployed yet, so nobody can have switched it on
+    if ((lookupErr && lookupErr.code !== "PGRST202") || twoStep === true) {
+      await supabase.auth.signOut({ scope: "local" });
+      if (lookupErr) {
+        setBusy(false);
+        setError(lookupErr.message.includes("too many") ? t(locale, "sf.twostep.tooMany") : t(locale, "sf.twostep.lookupFailed"));
+        return;
+      }
+      const sent = await sendCode();
+      setBusy(false);
+      if (sent) {
+        setPassword("");
+        setCode("");
+        setStep("code");
+      }
+      return;
+    }
+    setBusy(false);
+    router.replace(lhref(locale, next));
+  }
+
+  /** Email the 6-digit code (never creates an account). */
+  async function sendCode(): Promise<boolean> {
+    const { error: err } = await supabaseBrowser().auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { shouldCreateUser: false },
+    });
+    if (err) {
+      setError(
+        err.status === 429 || /seconds|rate limit/i.test(err.message)
+          ? t(locale, "sf.twostep.wait")
+          : t(locale, "sf.twostep.sendFailed", { m: err.message }),
+      );
+      return false;
+    }
+    setResendAt(Date.now() + RESEND_SECONDS * 1000);
+    setNow(Date.now());
+    return true;
+  }
+
+  async function resend() {
+    if (busy || resendIn > 0) return;
+    setBusy(true);
+    setError("");
+    const sent = await sendCode();
+    setBusy(false);
+    if (sent) setCode("");
+  }
+
+  async function verify() {
+    if (!canVerify) return;
+    setBusy(true);
+    setError("");
+    const { error: err } = await supabaseBrowser().auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code,
+      type: "email",
+    });
+    setBusy(false);
+    if (err) {
+      // Supabase answers the same for a wrong and an expired code
+      setError(err.status === 429 ? t(locale, "sf.twostep.tooMany") : t(locale, "sf.twostep.badCode"));
       return;
     }
     router.replace(lhref(locale, next));
@@ -146,7 +242,9 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
 
   return (
     <main className="mx-auto max-w-md px-4 pb-24 pt-12 sm:pt-20">
-      <h1 className="type-heading">{step === "register" ? t(locale, "sf.new.title") : t(locale, "sf.auth.title")}</h1>
+      <h1 className="type-heading">
+        {step === "register" ? t(locale, "sf.new.title") : step === "code" ? t(locale, "sf.twostep.codeTitle") : t(locale, "sf.auth.title")}
+      </h1>
       {step === "register" ? <p className="mt-2 text-xs text-muted-foreground">{t(locale, "sf.new.sub")}</p> : null}
 
       <form
@@ -156,6 +254,7 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
           e.preventDefault();
           if (step === "email" && emailOk) setStep("password");
           else if (step === "password") void signIn();
+          else if (step === "code") void verify();
           else if (step === "register") void create();
         }}
       >
@@ -207,6 +306,40 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
                 {t(locale, "sf.auth.createInstead")}
               </button>
             </div>
+          </>
+        ) : step === "code" ? (
+          <>
+            {emailRow}
+            <p className="text-xs leading-relaxed text-muted-foreground">{t(locale, "sf.twostep.codeSent")}</p>
+            <label className="block">
+              <span className="type-meta text-muted-foreground">{t(locale, "sf.twostep.code")}</span>
+              <input
+                ref={focusRef}
+                className={`${INPUT} tracking-[0.3em] tabular-nums`}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                dir="ltr"
+              />
+            </label>
+            {error && (
+              <p role="alert" className="text-xs text-destructive">
+                {error}
+              </p>
+            )}
+            <button type="submit" className={PRIMARY} disabled={!canVerify}>
+              {busy ? t(locale, "sf.twostep.verifying") : t(locale, "sf.twostep.verify")}
+            </button>
+            <button
+              type="button"
+              className="type-meta underline underline-offset-4 hover:opacity-60 disabled:no-underline disabled:opacity-40"
+              disabled={busy || resendIn > 0}
+              onClick={() => void resend()}
+            >
+              {resendIn > 0 ? t(locale, "sf.twostep.resendIn", { s: resendIn }) : t(locale, "sf.twostep.resend")}
+            </button>
           </>
         ) : (
           <>

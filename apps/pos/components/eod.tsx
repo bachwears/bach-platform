@@ -19,6 +19,9 @@ interface Totals {
   cashOutLbp: number;
   creditUsed: number;
   returnsCount: number;
+  /** online orders collected at this shop and paid in cash (part of cash in) */
+  pickupUsd: number;
+  pickupLbp: number;
 }
 
 interface Closeout {
@@ -66,7 +69,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
     setError("");
     const from = new Date(`${date}T00:00:00`);
     const to = new Date(from.getTime() + 24 * 3600 * 1000);
-    const [ordersQ, paysQ, retsQ, closeQ] = await Promise.all([
+    const [ordersQ, paysQ, retsQ, closeQ, pickupQ] = await Promise.all([
       supabase
         .from("orders")
         .select("id, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, status")
@@ -93,6 +96,17 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
         .eq("branch_id", branchId)
         .eq("business_date", date)
         .maybeSingle(),
+      // Pickup orders paid in cash at the counter: the money is in this drawer,
+      // counted on the day it was collected (not the day it was ordered).
+      supabase
+        .from("order_payments")
+        .select("currency, amount_minor, orders!inner(channel, fulfilment, branch_id)")
+        .eq("method", "cod")
+        .eq("orders.channel", "online")
+        .eq("orders.fulfilment", "pickup")
+        .eq("orders.branch_id", branchId)
+        .gte("created_at", from.toISOString())
+        .lt("created_at", to.toISOString()),
     ]);
 
     const orders = ordersQ.data ?? [];
@@ -107,7 +121,15 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
       cashOutLbp: 0,
       creditUsed: 0,
       returnsCount: (retsQ.data ?? []).length,
+      pickupUsd: 0,
+      pickupLbp: 0,
     };
+    for (const p of pickupQ.data ?? []) {
+      if (p.currency === "USD") t.pickupUsd += Number(p.amount_minor);
+      else t.pickupLbp += Number(p.amount_minor);
+    }
+    t.cashInUsd += t.pickupUsd;
+    t.cashInLbp += t.pickupLbp;
     for (const p of paysQ.data ?? []) {
       if (p.method === "credit") t.creditUsed += Number(p.amount_minor);
       else if (p.currency === "USD") t.cashInUsd += Number(p.amount_minor);
@@ -226,6 +248,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
               </h3>
               <dl className="mt-2 space-y-1.5 text-sm">
                 <Row label="Cash in (USD)" value={usd(totals.cashInUsd)} />
+                {totals.pickupUsd > 0 && <Row label="incl. online pickups (USD)" value={usd(totals.pickupUsd)} />}
+                {totals.pickupLbp > 0 && <Row label="incl. online pickups (LBP)" value={lbp(totals.pickupLbp)} />}
                 <Row label="Cash in (LBP)" value={lbp(totals.cashInLbp)} />
                 {(totals.cashOutUsd > 0 || totals.cashOutLbp > 0) && (
                   <>

@@ -10,6 +10,7 @@ import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { CameraScanner } from "./camera-scanner";
 import { CustomerPoints } from "./customer-points";
+import { type ReceiptData, ReceiptView } from "./receipt";
 
 import {
   type BarcodeAlias,
@@ -40,19 +41,6 @@ interface CartLine {
   lineDiscountPct?: number;
 }
 
-interface Receipt {
-  number: number | null;
-  offlineRef?: string;
-  lines: CartLine[];
-  subtotal: number;
-  discount: number;
-  tva: number;
-  total: number;
-  paidUsdCents: number;
-  paidLbp: number;
-  changeLbp: number;
-  rate: number;
-}
 
 /** Invoice discount a cashier may give alone (basis points = 10%). */
 const MAX_CASHIER_DISCOUNT_BP = 1000;
@@ -100,7 +88,7 @@ export function Cashier({
   const [paidLbpStr, setPaidLbpStr] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [custQuery, setCustQuery] = useState("");
   const [custResults, setCustResults] = useState<Array<{ id: string; full_name: string | null; phone: string | null }>>([]);
   const [customer, setCustomer] = useState<{ id: string; name: string; phone: string | null } | null>(null);
@@ -420,7 +408,14 @@ export function Cashier({
     setReceipt({
       number,
       offlineRef,
-      lines: cart,
+      lines: cart.map((l) => ({
+        key: l.variantId,
+        nameEn: l.nameEn,
+        size: l.size,
+        colorEn: l.colorEn,
+        quantity: l.quantity,
+        unitUsdCents: l.unitUsdCents,
+      })),
       subtotal,
       discount,
       tva: tvaCents,
@@ -541,55 +536,7 @@ export function Cashier({
     return (
       <div className="mx-auto max-w-md space-y-4 p-6 print:m-0 print:max-w-none print:p-0">
         {/* C200I thermal receipt: 80mm roll, ~72mm printable. */}
-        <style>{`@media print { @page { size: 80mm auto; margin: 0; } .receipt-80 { width: 72mm; margin: 0 auto; font-size: 11px; } }`}</style>
-        <div className="receipt-80 rounded-lg border p-6 print:rounded-none print:border-0 print:p-1" dir="ltr">
-          <div className="text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-bach.png" alt="BACH WEARS" className="mx-auto h-5 w-auto" />
-            <p className="text-sm text-muted-foreground">{branchName}</p>
-            {receipt.number != null ? (
-              <p className="mt-2 font-mono text-lg">Invoice #{receipt.number}</p>
-            ) : (
-              <p className="mt-2 font-mono text-lg">OFFLINE-{receipt.offlineRef}</p>
-            )}
-            <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-GB")}</p>
-          </div>
-          <div className="my-4 border-t border-dashed" />
-          {receipt.lines.map((l) => (
-            <div key={l.variantId} className="flex justify-between py-1 text-sm">
-              <span>
-                {l.nameEn} — {l.size} {l.colorEn} × {l.quantity}
-              </span>
-              <span className="font-mono">{usd(l.unitUsdCents * l.quantity)}</span>
-            </div>
-          ))}
-          <div className="my-4 border-t border-dashed" />
-          <div className="space-y-1 text-sm">
-            <Row label="Subtotal" value={usd(receipt.subtotal)} />
-            {receipt.discount > 0 && <Row label="Discount" value={`- ${usd(receipt.discount)}`} />}
-            {receipt.tva > 0 && <Row label="TVA" value={usd(receipt.tva)} />}
-            <div className="flex justify-between text-base font-bold">
-              <span>Total</span>
-              <span className="font-mono">
-                {usd(receipt.total)} / LBP {((receipt.total / 100) * receipt.rate).toLocaleString("en-US")}
-              </span>
-            </div>
-            {receipt.paidUsdCents > 0 && <Row label="Paid USD" value={usd(receipt.paidUsdCents)} />}
-            {receipt.paidLbp > 0 && <Row label="Paid LBP" value={`LBP ${receipt.paidLbp.toLocaleString("en-US")}`} />}
-            {receipt.changeLbp > 0 && (
-              <Row label="Change (LBP)" value={`LBP ${receipt.changeLbp.toLocaleString("en-US")}`} />
-            )}
-            <p className="pt-2 text-center text-xs text-muted-foreground">
-              Exchange rate: LBP {receipt.rate.toLocaleString("en-US")} / $
-            </p>
-          </div>
-          {receipt.number == null && (
-            <p className="mt-3 text-center text-xs text-muted-foreground" dir="rtl">
-              رقم مؤقت — الفاتورة الرسمية بتنسجّل تلقائيًا لما يرجع النت.
-            </p>
-          )}
-          <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us.</p>
-        </div>
+        <ReceiptView receipt={receipt} branchName={branchName} />
         <div className="flex gap-3 print:hidden">
           <Button className="flex-1" onClick={() => window.print()}>
             طباعة

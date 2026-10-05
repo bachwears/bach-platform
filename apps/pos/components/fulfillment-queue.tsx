@@ -23,12 +23,21 @@ const NEXT: Record<string, { to: string; label: string }> = {
   delivered: { to: "completed", label: "سكّر الطلب" },
 };
 
+// Pickup orders walk the same statuses: 'shipped' = ready for pickup, 'delivered' = collected.
+const PICKUP_STATUS_AR: Record<string, string> = { shipped: "جاهز للاستلام", delivered: "انستلم" };
+const PICKUP_NEXT: Record<string, { to: string; label: string }> = {
+  packed: { to: "shipped", label: "جاهز للاستلام — بلّغ الزبون" },
+  shipped: { to: "delivered", label: "انستلم" },
+};
+
 const CANCELLABLE = new Set(["pending", "confirmed", "picking"]);
 
 interface QueueOrder {
   id: string;
   number: number;
   status: string;
+  fulfilment: string | null;
+  payment_method: string | null;
   total_usd_cents: number;
   created_at: string;
   ship_name: string | null;
@@ -56,7 +65,7 @@ export function FulfillmentQueue() {
     const { data, error: err } = await supabase
       .from("orders")
       .select(
-        "id, number, status, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity)",
+        "id, number, status, fulfilment, payment_method, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity)",
       )
       .eq("channel", "online")
       .in("status", ["pending", "confirmed", "picking", "packed", "shipped", "delivered"])
@@ -76,10 +85,15 @@ export function FulfillmentQueue() {
     return () => clearInterval(t);
   }, [load]);
 
-  async function advance(id: string, to: string) {
+  /** `whishCents`: a pickup paid by Whish at the counter (otherwise the total is recorded as cash). */
+  async function advance(id: string, to: string, whishCents?: number) {
     setBusy(id);
     setError("");
-    const { error: err } = await supabase.rpc("advance_online_order", { p_order_id: id, p_next: to });
+    const { error: err } = await supabase.rpc("advance_online_order", {
+      p_order_id: id,
+      p_next: to,
+      ...(whishCents ? { p_paid_usd_cents: 0, p_paid_lbp: 0, p_paid_whish_usd_cents: whishCents } : {}),
+    });
     setBusy(null);
     if (err) {
       setError(`ما مشي الحال: ${err.message}`);
@@ -104,14 +118,20 @@ export function FulfillmentQueue() {
           <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر.</p>
         ) : null
       ) : (
-        orders.map((o) => (
+        orders.map((o) => {
+          const pickup = o.fulfilment === "pickup";
+          const next = (pickup ? PICKUP_NEXT[o.status] : undefined) ?? NEXT[o.status];
+          // collecting a pay-at-the-shop order: cash or Whish at the counter
+          const collectAtShop = pickup && o.status === "shipped" && o.payment_method === "cod";
+          return (
           <div key={o.id} className="space-y-3 rounded-lg border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3">
                 <span className="font-mono text-lg font-semibold">#{o.number}</span>
                 <Badge variant={o.status === "pending" ? "default" : "secondary"}>
-                  {STATUS_AR[o.status] ?? o.status}
+                  {(pickup ? PICKUP_STATUS_AR[o.status] : undefined) ?? STATUS_AR[o.status] ?? o.status}
                 </Badge>
+                {pickup ? <Badge variant="outline">استلام من المحل</Badge> : null}
                 <span className="text-sm text-muted-foreground" dir="ltr">
                   {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
                 </span>
@@ -124,10 +144,18 @@ export function FulfillmentQueue() {
                 <span className="text-muted-foreground">الزبون: </span>
                 {o.ship_name} · <span dir="ltr">{o.ship_phone}</span>
               </p>
-              <p>
-                <span className="text-muted-foreground">العنوان: </span>
-                {o.ship_city} — {o.ship_address}
-              </p>
+              {pickup ? (
+                <p>
+                  <span className="text-muted-foreground">التسليم: </span>
+                  الزبون بيستلم من المحل
+                  {o.payment_method === "cod" ? " — بيدفع هون (كاش أو Whish)" : " — مدفوع سلف"}
+                </p>
+              ) : (
+                <p>
+                  <span className="text-muted-foreground">العنوان: </span>
+                  {o.ship_city} — {o.ship_address}
+                </p>
+              )}
             </div>
             {o.note && <p className="text-sm text-muted-foreground">ملاحظة: {o.note}</p>}
 
@@ -145,11 +173,24 @@ export function FulfillmentQueue() {
             </ul>
 
             <div className="flex flex-wrap gap-2">
-              {NEXT[o.status] && (
-                <Button disabled={busy === o.id} onClick={() => void advance(o.id, NEXT[o.status]!.to)}>
-                  {busy === o.id ? "لحظة…" : NEXT[o.status]!.label}
+              {collectAtShop ? (
+                <>
+                  <Button disabled={busy === o.id} onClick={() => void advance(o.id, "delivered")}>
+                    {busy === o.id ? "لحظة…" : `انستلم — قبضنا ${usd(o.total_usd_cents)} كاش`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={busy === o.id}
+                    onClick={() => void advance(o.id, "delivered", o.total_usd_cents)}
+                  >
+                    انستلم — دفع Whish
+                  </Button>
+                </>
+              ) : next ? (
+                <Button disabled={busy === o.id} onClick={() => void advance(o.id, next.to)}>
+                  {busy === o.id ? "لحظة…" : next.label}
                 </Button>
-              )}
+              ) : null}
               {CANCELLABLE.has(o.status) && (
                 <Button
                   variant="outline"
@@ -165,7 +206,8 @@ export function FulfillmentQueue() {
               )}
             </div>
           </div>
-        ))
+          );
+        })
       )}
     </div>
   );

@@ -8,7 +8,9 @@ import { ChevronRight } from "lucide-react";
 import { t, type Locale } from "@bach/i18n";
 
 import { AccountPassword } from "../../components/account-password";
+import { AccountPrivacy } from "../../components/account-privacy";
 import { AccountProfile, type ProfileCustomer } from "../../components/account-profile";
+import { AccountTwoStep } from "../../components/account-two-step";
 import { lhref, useLocale } from "../../lib/locale-client";
 import { loyaltyRule, ptsUnit, rewardValue, usdShort, useLoyalty } from "../../lib/loyalty";
 
@@ -544,6 +546,28 @@ export default function AccountPage() {
           {userEmail && (
             <Row title={t(locale, "sf.acct.password")}>
               <AccountPassword locale={locale} email={userEmail} />
+            </Row>
+          )}
+
+          {/* hidden until the two-step migration adds the column */}
+          {customer?.id && userEmail && "two_step_email" in customer && (
+            <Row
+              title={t(locale, "sf.twostep.title")}
+              meta={t(locale, (customer as { two_step_email?: boolean }).two_step_email ? "sf.twostep.on" : "sf.twostep.off")}
+            >
+              <AccountTwoStep
+                locale={locale}
+                customerId={customer.id}
+                email={userEmail}
+                enabled={Boolean((customer as { two_step_email?: boolean }).two_step_email)}
+                onSaved={(on) => setCustomer((c) => (c ? { ...c, two_step_email: on } : c))}
+              />
+            </Row>
+          )}
+
+          {customer?.id && (
+            <Row title={t(locale, "sf.privacy.title")}>
+              <AccountPrivacy locale={locale} />
             </Row>
           )}
 

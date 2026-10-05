@@ -108,6 +108,26 @@ const EVENTS: Record<string, EventDesign> = {
     ],
     cta: (p) => ({ label: "Track your order", url: track(p) }),
   },
+  order_ready_pickup: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: () => "Ready for pickup.",
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Where", String(p.pickup_address ?? "")],
+      ["Opening hours", String(p.pickup_hours ?? "")],
+      isCod(p) ? ["Pay at the shop", `${String(p.total_usd ?? "")} — cash or Whish`] : ["Payment", "Paid — just collect it"],
+    ],
+    cta: (p) => ({ label: "View your order", url: track(p) }),
+  },
+  order_collected: {
+    eyebrow: (p) => `Order #${p.order_number}`,
+    title: (p) => (firstName(p) ? `Collected — enjoy it, ${firstName(p)}.` : "Thank you for collecting your order."),
+    details: (p) => [
+      ["Order", `#${p.order_number}`],
+      ["Need anything?", String(p.care_phone ?? "+961 71 566 296")],
+    ],
+    cta: (p) => ({ label: "View your order", url: track(p) }),
+  },
   order_delivered: {
     eyebrow: (p) => `Order #${p.order_number}`,
     title: (p) => (firstName(p) ? `Delivered — enjoy it, ${firstName(p)}.` : "Your order has arrived."),

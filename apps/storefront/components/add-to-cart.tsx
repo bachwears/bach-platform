@@ -141,6 +141,15 @@ export function AddToCart({
   const [savedSize, setSavedSize] = useState<string | null>(null);
   // the size picked on the page (sizes are listed inline for a quick pick)
   const [pickedSize, setPickedSize] = useState<string | null>(null);
+  // "Use this size" in the Fit Finder picks the size here
+  useEffect(() => {
+    const onPick = (e: Event) => {
+      const size = (e as CustomEvent<{ size?: string }>).detail?.size;
+      if (size) setPickedSize(size);
+    };
+    window.addEventListener("bach-fit-pick", onPick);
+    return () => window.removeEventListener("bach-fit-pick", onPick);
+  }, []);
   const [mainVisible, setMainVisible] = useState(true);
   const mainRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);

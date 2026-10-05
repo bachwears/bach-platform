@@ -15,6 +15,9 @@ interface Tracked {
   total_usd_cents: number;
   payment: string | null;
   city: string | null;
+  /** 'pickup' = collected from the shop: 'shipped' reads "ready for pickup", 'delivered' "collected" */
+  fulfilment?: "delivery" | "pickup";
+  pickup_address?: string | null;
   items: Array<{ name: string; size: string; color: string; qty: number }>;
 }
 
@@ -71,6 +74,14 @@ export default function TrackOrderPage() {
   }
 
   const stepIndex = order ? STEPS.indexOf(order.status as (typeof STEPS)[number]) : -1;
+  const isPickup = order?.fulfilment === "pickup";
+  // pickup orders reuse the same steps under their own names
+  const statusLabel = (s: string) =>
+    isPickup && s === "shipped"
+      ? t(locale, "sf.ostatus.readyPickup")
+      : isPickup && s === "delivered"
+        ? t(locale, "sf.ostatus.collected")
+        : t(locale, `sf.ostatus.${s}`);
   const dateFmt = (iso: string) =>
     new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Beirut", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -138,7 +149,7 @@ export default function TrackOrderPage() {
           <section className="mt-14" aria-live="polite">
             <div className="flex items-baseline justify-between gap-4 border-b pb-4">
               <p className="type-label">#{order.number}</p>
-              <p className="type-label">{t(locale, `sf.ostatus.${order.status}`)}</p>
+              <p className="type-label">{statusLabel(order.status)}</p>
             </div>
 
             {stepIndex >= 0 ? (
@@ -150,7 +161,7 @@ export default function TrackOrderPage() {
                       className={`h-3 w-3 shrink-0 border ${i <= stepIndex ? "border-foreground bg-foreground" : "border-border"}`}
                     />
                     <span className={`type-meta ${i <= stepIndex ? "" : "text-muted-foreground"}`}>
-                      {t(locale, `sf.ostatus.${s}`)}
+                      {statusLabel(s)}
                     </span>
                     {i === stepIndex ? (
                       <span className="text-xs text-muted-foreground" dir="ltr">
@@ -182,8 +193,14 @@ export default function TrackOrderPage() {
             </p>
             <p className="mt-2 text-xs text-muted-foreground" dir="ltr">
               {t(locale, "sf.trackOrder.placed")} {dateFmt(order.created_at)}
-              {order.city ? ` · ${order.city}` : ""}
+              {!isPickup && order.city ? ` · ${order.city}` : ""}
             </p>
+            {isPickup ? (
+              <p className="mt-2 text-xs">
+                {t(locale, "sf.trackOrder.pickupAt")}
+                {order.pickup_address ? <span className="text-muted-foreground"> · {order.pickup_address}</span> : null}
+              </p>
+            ) : null}
             <p className="mt-8 text-xs text-muted-foreground">
               {t(locale, "sf.trackOrder.help")}{" "}
               <a href="https://wa.me/96171566296" target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-4">

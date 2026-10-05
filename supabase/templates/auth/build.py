@@ -24,12 +24,16 @@ RULE = "#e6e2dc"
 SUBJECTS = {
     "confirmation": "Confirm your BACH Wears account",
     "recovery": "Reset your BACH Wears password",
-    "magic_link": "Your BACH Wears sign-in link",
+    "magic_link": "{{ .Token }} is your BACH Wears sign-in code",
     "email_change": "Confirm your new email for BACH Wears",
     "invite": "You're invited to BACH Wears",
     "reauthentication": "{{ .Token }} is your BACH Wears code",
     "password_changed_notification": "Your BACH Wears password was changed",
 }
+
+# Two-step sign-in sends the magic-link email: the 6-digit code leads, the
+# one-tap link stays as a fallback on the same device.
+CODE_AND_LINK = {"magic_link"}
 
 # Security notices carry no one-time link; their button points at a fixed page.
 NOTICE_URLS = {
@@ -61,11 +65,12 @@ CONTENT = {
     ),
     "magic_link": (
         "Sign in",
-        "Your sign-in link.",
-        "Use the button below to sign in to BACH Wears. The link works once.",
+        "Your sign-in code.",
+        "Enter this code on the sign-in page to finish signing in to BACH Wears:",
         "Sign in",
-        "Sign in to BACH Wears with one tap.",
-        "Didn't try to sign in? You can safely ignore this email.",
+        "Your BACH Wears sign-in code.",
+        "Didn't try to sign in? Someone may know your password — change it from your account. "
+        "Your account stays locked to them without this code.",
     ),
     "email_change": (
         "Your account",
@@ -105,8 +110,24 @@ CONTENT = {
 }
 
 
-def page(subject, eyebrow, title, body, button, preheader, ignore, url=None):
-    if button and url:
+def page(subject, eyebrow, title, body, button, preheader, ignore, url=None, code_first=False):
+    code = f"""
+          <tr><td style="padding:24px 40px 0;">
+            <div style="display:inline-block;padding:16px 24px;border:1px solid {RULE};font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:30px;font-weight:600;letter-spacing:0.3em;color:{INK};">{{{{ .Token }}}}</div>
+          </td></tr>
+          <tr><td style="padding:20px 40px 0;font-family:{FONT};font-size:12px;line-height:1.6;color:{MUTED};">The code expires in 1 hour.</td></tr>"""
+    if code_first:
+        action = code + f"""
+          <tr><td style="padding:28px 40px 0;font-family:{FONT};font-size:14px;line-height:1.6;color:{BODY};">On this device? You can sign in with one tap instead:</td></tr>
+          <tr><td style="padding:16px 40px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td bgcolor="{INK}" style="background:{INK};">
+                <a href="{{{{ .ConfirmationURL }}}}" target="_blank"
+                   style="display:inline-block;padding:16px 34px;font-family:{FONT};font-size:14px;font-weight:600;letter-spacing:0.04em;color:#ffffff;text-decoration:none;">{button}</a>
+              </td>
+            </tr></table>
+          </td></tr>"""
+    elif button and url:
         action = f"""
           <tr><td style="padding:32px 40px 0;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -131,11 +152,7 @@ def page(subject, eyebrow, title, body, button, preheader, ignore, url=None):
             <a href="{{{{ .ConfirmationURL }}}}" target="_blank" style="color:{MUTED};word-break:break-all;">{{{{ .ConfirmationURL }}}}</a>
           </td></tr>"""
     else:
-        action = f"""
-          <tr><td style="padding:24px 40px 0;">
-            <div style="display:inline-block;padding:16px 24px;border:1px solid {RULE};font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:30px;font-weight:600;letter-spacing:0.3em;color:{INK};">{{{{ .Token }}}}</div>
-          </td></tr>
-          <tr><td style="padding:20px 40px 0;font-family:{FONT};font-size:12px;line-height:1.6;color:{MUTED};">The code expires in 1 hour.</td></tr>"""
+        action = code
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -179,5 +196,7 @@ def page(subject, eyebrow, title, body, button, preheader, ignore, url=None):
 
 if __name__ == "__main__":
     for kind, parts in CONTENT.items():
-        (HERE / f"{kind}.html").write_text(page(SUBJECTS[kind], *parts, url=NOTICE_URLS.get(kind)))
+        (HERE / f"{kind}.html").write_text(
+            page(SUBJECTS[kind], *parts, url=NOTICE_URLS.get(kind), code_first=kind in CODE_AND_LINK)
+        )
     print("rendered:", ", ".join(CONTENT))

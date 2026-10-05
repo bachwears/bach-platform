@@ -4,6 +4,8 @@ import { Badge } from "@bach/ui/components/badge";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { Nav } from "../../components/nav";
+import { PICKUP_BADGE, statusLabelFor } from "../../components/fulfilment";
+import { PickupSettings } from "../../components/pickup-settings";
 import { STATUS_LABELS, paymentLabel } from "../../lib/order-status";
 import { beirutDayStart, fmt } from "../../lib/time";
 
@@ -28,13 +30,13 @@ export default async function OrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, number, channel, status, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
+      "id, number, channel, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
     )
     .order("created_at", { ascending: false })
     .limit(q ? 500 : 100);
   if (status && STATUS_LABELS[status]) query = query.eq("status", status);
 
-  const [{ data: rows }, { data: todayOrders }, { data: todayPays }] = await Promise.all([
+  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }] = await Promise.all([
     query,
     supabase
       .from("orders")
@@ -49,7 +51,12 @@ export default async function OrdersPage({
       .eq("method", "cash")
       .gte("orders.created_at", startOfDay.toISOString())
       .not("orders.status", "in", '("cancelled","returned")'),
+    supabase.auth.getUser().then(async ({ data: { user } }) =>
+      supabase.from("profiles").select("role").eq("id", user?.id ?? "").maybeSingle(),
+    ),
   ]);
+  // site_content is writable by these roles (RLS); others see the pickup card read-only
+  const canEditPickup = ["super_admin", "store_manager", "marketing_manager"].includes(profile?.role ?? "");
 
   type Row = NonNullable<typeof rows>[number];
   const customerOf = (o: Row) => {
@@ -108,6 +115,8 @@ export default async function OrdersPage({
             <p className="text-xs text-muted-foreground">دفع كاش بالمحل بس</p>
           </div>
         </div>
+
+        <PickupSettings canEdit={canEditPickup} />
 
         <form action="/orders" className="flex flex-wrap items-center gap-2">
           {status ? <input type="hidden" name="status" value={status} /> : null}
@@ -188,7 +197,12 @@ export default async function OrdersPage({
                           </span>
                         ) : null}
                       </td>
-                      <td className="p-3">{CHANNEL_LABELS[o.channel] ?? o.channel}</td>
+                      <td className="p-3">
+                        {CHANNEL_LABELS[o.channel] ?? o.channel}
+                        {o.fulfilment === "pickup" ? (
+                          <span className="block text-xs text-muted-foreground">{PICKUP_BADGE}</span>
+                        ) : null}
+                      </td>
                       <td className="p-3">{paymentLabel(o.payment_method)}</td>
                       <td className="p-3">{(o.branches as unknown as { name: string } | null)?.name}</td>
                       <td className="p-3">{(o.profiles as unknown as { full_name: string } | null)?.full_name ?? "—"}</td>
@@ -196,7 +210,7 @@ export default async function OrdersPage({
                       <td className="p-3 font-mono">{usd(o.total_usd_cents)}</td>
                       <td className="p-3">
                         <Badge variant={o.status === "completed" ? "default" : "secondary"}>
-                          {STATUS_LABELS[o.status] ?? o.status}
+                          {statusLabelFor(o.status, o.fulfilment)}
                         </Badge>
                       </td>
                     </tr>

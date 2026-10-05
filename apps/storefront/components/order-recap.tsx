@@ -18,6 +18,8 @@ interface Recap {
   city: string;
   address: string;
   wallet: boolean;
+  /** set when the order is collected from the shop (free pickup) */
+  pickup?: { address: string; hours: string };
 }
 
 function usd(cents: number) {
@@ -83,7 +85,7 @@ export function OrderRecap({ n }: { n: string }) {
       ) : null}
       {recap.delivery != null ? (
         <p className="type-meta mt-3 flex justify-between">
-          <span>{t(locale, "sf.co.delivery")}</span>
+          <span>{t(locale, recap.pickup ? "sf.co.pickupLine" : "sf.co.delivery")}</span>
           <span className="tabular-nums">{recap.delivery ? usd(recap.delivery) : t(locale, "sf.co.deliveryFree")}</span>
         </p>
       ) : null}
@@ -98,15 +100,27 @@ export function OrderRecap({ n }: { n: string }) {
       ) : null}
 
       <dl className="mt-8 space-y-4 text-sm">
-        <div>
-          <dt className="type-meta text-muted-foreground">{t(locale, "sf.confirmed.deliverTo")}</dt>
-          <dd className="mt-1">
-            {recap.address}, {recap.city}
-          </dd>
-        </div>
+        {recap.pickup ? (
+          <div>
+            <dt className="type-meta text-muted-foreground">{t(locale, "sf.confirmed.pickupAt")}</dt>
+            <dd className="mt-1">
+              {recap.pickup.address}
+              {recap.pickup.hours ? <span className="block text-muted-foreground">{recap.pickup.hours}</span> : null}
+            </dd>
+          </div>
+        ) : (
+          <div>
+            <dt className="type-meta text-muted-foreground">{t(locale, "sf.confirmed.deliverTo")}</dt>
+            <dd className="mt-1">
+              {recap.address}, {recap.city}
+            </dd>
+          </div>
+        )}
         <div>
           <dt className="type-meta text-muted-foreground">{t(locale, "sf.co.payment")}</dt>
-          <dd className="mt-1">{t(locale, recap.wallet ? "sf.confirmed.paidWallet" : "sf.co.cod")}</dd>
+          <dd className="mt-1">
+            {t(locale, recap.wallet ? "sf.confirmed.paidWallet" : recap.pickup ? "sf.confirmed.payAtShop" : "sf.co.cod")}
+          </dd>
         </div>
       </dl>
       <div className="mt-8 text-center">{track}</div>

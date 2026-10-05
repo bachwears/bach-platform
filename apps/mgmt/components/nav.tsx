@@ -27,6 +27,7 @@ const ITEMS: PortalNavItem[] = [
     links: [
       { href: "/inventory", label: "المخزون" },
       { href: "/purchasing", label: "المشتريات" },
+      { href: "/transfers", label: "التحويل بين الفروع" },
     ],
   },
   {
