@@ -11,7 +11,7 @@ import { PdpAccordion } from "../../../components/pdp-accordion";
 import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-colour";
 import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
-import { ProductCard } from "../../../components/product-card";
+import { ProductCard, type CardProduct } from "../../../components/product-card";
 import { CARD_COLUMNS, toCardProduct, type CardRow } from "../../../lib/card";
 import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
@@ -172,7 +172,7 @@ export default async function ProductPage({
         .eq("category_id", product.category_id)
         .neq("id", product.id)
         .order("created_at", { ascending: false })
-        .limit(24)
+        .limit(80)
     : Promise.resolve({ data: [] });
 
   // "Complete the look": products from other categories sharing a collection,
@@ -183,7 +183,7 @@ export default async function ProductPage({
       ? supabase.from("product_seasons").select("product_id").in("season", seasons).limit(60)
       : Promise.resolve({ data: [] as Array<{ product_id: string }> });
 
-  const [{ data: relatedRaw }, { data: lookIdRows }, { data: guideRow }] = await Promise.all([
+  const [{ data: relatedRaw }, { data: lookIdRows }, { data: guideRow }, { data: pairRows }] = await Promise.all([
     relatedQ,
     lookIdsQ,
     category
@@ -192,7 +192,13 @@ export default async function ProductPage({
           .select("name_en, name_ar, note_en, note_ar, headers_en, headers_ar, rows, category_codes")
           .overlaps("category_codes", lineage.length ? lineage : [category.code])
       : Promise.resolve({ data: [] }),
+    // "Wear with": the pieces staff paired with this one in MGMT (in their order)
+    supabase.from("product_pairings").select("paired_id, sort").eq("product_id", product.id).order("sort"),
   ]);
+  const pairIds = (pairRows ?? []).map((r) => r.paired_id as string);
+  const { data: pairRaw } = pairIds.length
+    ? await supabase.from("products").select(cardSelect).eq("status", "published").in("id", pairIds)
+    : { data: [] };
 
   const lookIds = [...new Set((lookIdRows ?? []).map((r) => r.product_id))].filter((id) => id !== product.id);
   const { data: lookRaw } = lookIds.length
@@ -212,7 +218,34 @@ export default async function ProductPage({
       .map(toCard)
       .filter((c) => c.front)
       .slice(0, 4);
-  const related = firstFour(relatedRaw);
+  // "Wear with": staff picks, photographed and published, in the order they were set.
+  const wearWith = ((pairRaw ?? []) as Parameters<typeof toCard>[0][])
+    .sort((a, b) => pairIds.indexOf((a as unknown as { id: string }).id) - pairIds.indexOf((b as unknown as { id: string }).id))
+    .map(toCard)
+    .filter((c) => c.front)
+    .slice(0, 4);
+
+  // "Similar items": same category, a similar price, in stock — and when sizes are
+  // gone here, pieces that still have those sizes come first (it rescues the sale).
+  const myPrice = Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents);
+  const run = sizeRun(variants.map((v) => v.size), product.fit);
+  const goneHere = run.filter(
+    (size) =>
+      !variants.some((v) => v.size === size && (v.inventory_levels ?? []).reduce((n, l) => n + l.quantity - l.reserved, 0) > 0),
+  );
+  const cardPrice = (c: CardProduct) => Math.min(c.sale_price_usd_cents ?? c.price_usd_cents, c.price_usd_cents);
+  const related = ((relatedRaw ?? []) as Parameters<typeof toCard>[0][])
+    .map(toCard)
+    .filter((c) => c.front && (c.variants ?? []).some((v) => !v.soldOut))
+    .map((c) => ({
+      c,
+      inBand: Math.abs(cardPrice(c) - myPrice) <= myPrice * 0.25,
+      rescues: goneHere.filter((size) => (c.variants ?? []).some((v) => v.size === size && !v.soldOut)).length,
+      gap: Math.abs(cardPrice(c) - myPrice),
+    }))
+    .sort((a, b) => Number(b.inBand) - Number(a.inBand) || b.rescues - a.rescues || a.gap - b.gap)
+    .slice(0, 4)
+    .map((x) => x.c);
   // "Complete the look" leads with its priciest piece: it sets the reference the
   // rest of the outfit is weighed against (same four pieces, re-ordered).
   const look = firstFour(lookRaw).sort(
@@ -421,9 +454,19 @@ export default async function ProductPage({
       </PdpColourProvider>
 
       <section className="mx-auto mt-20 max-w-[1440px] space-y-16 px-4 pb-16 sm:px-8">
+        {wearWith.length > 0 && (
+          <div>
+            <h2 className="type-heading">{t(locale, "sf.pdp.wearWith")}</h2>
+            <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+              {wearWith.map((p) => (
+                <ProductCard key={p.slug} product={p} locale={locale} />
+              ))}
+            </div>
+          </div>
+        )}
         {related.length > 0 && (
           <div>
-            <h2 className="type-heading">{t(locale, "sf.pdp.related")}</h2>
+            <h2 className="type-heading">{t(locale, "sf.pdp.similar")}</h2>
             <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p.slug} product={p} locale={locale} />
@@ -431,7 +474,8 @@ export default async function ProductPage({
             </div>
           </div>
         )}
-        {look.length > 0 && (
+        {/* until staff pick a "Wear with", the collection-based outfit stands in */}
+        {wearWith.length === 0 && look.length > 0 && (
           <div>
             <h2 className="type-heading">{t(locale, "sf.pdp.completeLook")}</h2>
             <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">

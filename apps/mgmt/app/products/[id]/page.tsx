@@ -7,6 +7,7 @@ import { PhotoColor } from "../../../components/photo-color";
 import { ProductPhotos, type ProductPhoto } from "../../../components/product-photos";
 import { ProductForm } from "../../../components/product-form";
 import { VariantManager, type Variant } from "../../../components/variant-manager";
+import { WearWithPicker, type PairedPiece } from "../../../components/wear-with-picker";
 
 export default async function EditProductPage({
   params,
@@ -16,7 +17,7 @@ export default async function EditProductPage({
   const { id } = await params;
   const supabase = await supabaseServer();
 
-  const [{ data: product }, { data: categories }, { data: variants }, { data: media }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variants }, { data: media }, { data: pairs }] = await Promise.all([
     supabase.from("products").select("*, product_seasons(season)").eq("id", id).single(),
     supabase.from("categories").select("id, name_ar, code").eq("is_active", true).order("sort"),
     supabase
@@ -26,7 +27,22 @@ export default async function EditProductPage({
       .order("created_at"),
     // "*" keeps this working whether or not the color_en column has landed yet
     supabase.from("media_assets").select("*").eq("product_id", id),
+    supabase
+      .from("product_pairings")
+      .select("sort, paired:products!product_pairings_paired_id_fkey(id, name_en, price_usd_cents, media_assets(kind, storage_path))")
+      .eq("product_id", id)
+      .order("sort"),
   ]);
+  const paired: PairedPiece[] = ((pairs ?? []) as unknown as Array<{
+    paired: { id: string; name_en: string; price_usd_cents: number; media_assets: Array<{ kind: string; storage_path: string }> | null } | null;
+  }>)
+    .filter((r) => r.paired)
+    .map(({ paired: p }) => ({
+      id: p!.id,
+      name_en: p!.name_en,
+      price_usd_cents: p!.price_usd_cents,
+      photo: (p!.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null,
+    }));
 
   if (!product) notFound();
 
@@ -87,6 +103,7 @@ export default async function EditProductPage({
           heroColor={((media ?? []).find((m) => m.kind === "front") as { color_en?: string | null } | undefined)?.color_en ?? null}
         />
         <VariantManager productId={product.id} variants={(variants ?? []) as Variant[]} />
+        <WearWithPicker productId={product.id} initial={paired} />
       </main>
     </div>
   );
