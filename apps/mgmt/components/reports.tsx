@@ -126,10 +126,10 @@ export function Reports() {
       fetchAllPages((a, b) => supabase.from("order_returns").select("created_at, credit_usd_cents, order_return_payments(direction, currency, amount_minor)").gte("created_at", fromIso).lt("created_at", toIso).order("id").range(a, b)),
     ]);
     if (e1 || e2 || e3) throw new Error((e1 ?? e2 ?? e3)!.message);
-    const days = new Map<string, { orders: number; gross: number; disc: number; tva: number; total: number; cashUsd: number; cashLbp: number; codUsd: number; codLbp: number; outUsd: number; outLbp: number }>();
+    const days = new Map<string, { orders: number; gross: number; disc: number; tva: number; total: number; returns: number; cashUsd: number; cashLbp: number; codUsd: number; codLbp: number; outUsd: number; outLbp: number }>();
     const day = (iso: string) => beirutYmd(iso);
     const get = (k: string) => {
-      if (!days.has(k)) days.set(k, { orders: 0, gross: 0, disc: 0, tva: 0, total: 0, cashUsd: 0, cashLbp: 0, codUsd: 0, codLbp: 0, outUsd: 0, outLbp: 0 });
+      if (!days.has(k)) days.set(k, { orders: 0, gross: 0, disc: 0, tva: 0, total: 0, returns: 0, cashUsd: 0, cashLbp: 0, codUsd: 0, codLbp: 0, outUsd: 0, outLbp: 0 });
       return days.get(k)!;
     };
     for (const o of orders ?? []) {
@@ -154,6 +154,8 @@ export function Reports() {
     }
     for (const r of rets ?? []) {
       const d = get(day(r.created_at));
+      // a return's credit comes off that day's sales
+      d.returns += r.credit_usd_cents;
       for (const p of (r.order_return_payments ?? []) as Array<{ direction: string; currency: string; amount_minor: number }>) {
         if (p.direction !== "out") continue;
         if (p.currency === "USD") d.outUsd += Number(p.amount_minor);
@@ -161,12 +163,12 @@ export function Reports() {
       }
     }
     const rows = [...days.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([k, d]) => [
-      k, d.orders, usdNum(d.gross), usdNum(d.disc), usdNum(d.tva), usdNum(d.total),
+      k, d.orders, usdNum(d.gross), usdNum(d.disc), usdNum(d.tva), usdNum(d.total), usdNum(d.returns), usdNum(d.total - d.returns),
       usdNum(d.cashUsd), d.cashLbp, usdNum(d.codUsd), d.codLbp, usdNum(d.outUsd), d.outLbp,
       usdNum(d.cashUsd - d.outUsd), d.cashLbp - d.outLbp,
     ]);
     downloadCsv(`bach-daily-journal-${from}-to-${to}.csv`,
-      ["Date", "Orders", "Gross USD", "Discounts USD", "TVA USD", "Net Sales USD", "Cash In USD", "Cash In LBP", "COD Collected USD", "COD Collected LBP", "Refunds Out USD", "Refunds Out LBP", "Net Cash USD", "Net Cash LBP"],
+      ["Date", "Orders", "Gross USD", "Discounts USD", "TVA USD", "Sales USD", "Returns USD", "Net Sales USD", "Cash In USD", "Cash In LBP", "COD Collected USD", "COD Collected LBP", "Refunds Out USD", "Refunds Out LBP", "Net Cash USD", "Net Cash LBP"],
       rows);
     return rows.length;
   }

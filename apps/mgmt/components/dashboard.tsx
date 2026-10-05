@@ -23,6 +23,20 @@ interface DashOrder {
   }>;
 }
 
+interface DashReturn {
+  credit_usd_cents: number;
+  created_at: string;
+  orders: { channel: string } | null;
+  order_return_items: Array<{
+    quantity: number;
+    credit_usd_cents: number;
+    order_items: { name_en: string } | null;
+    product_variants: {
+      products: { cost_usd_cents: number | null; categories: { name_ar: string } | null } | null;
+    } | null;
+  }>;
+}
+
 function usd(cents: number) {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -59,7 +73,9 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     fetchAllPages((a, b) =>
       supabase
         .from("order_returns")
-        .select("credit_usd_cents, kind")
+        .select(
+          "credit_usd_cents, created_at, orders!order_returns_order_id_fkey(channel), order_return_items(quantity, credit_usd_cents, order_items(name_en), product_variants(products(cost_usd_cents, categories(name_ar))))",
+        )
         .gte("created_at", from.toISOString())
         .order("id")
         .range(a, b),
@@ -82,12 +98,21 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   const orders = (ordersQ.data ?? []) as unknown as DashOrder[];
   const rate = rateQ.data ? Number(rateQ.data.lbp_per_usd) : 0;
 
-  // KPIs
-  const revenue = orders.reduce((s, o) => s + o.total_usd_cents, 0);
+  const returns = (returnsQ.data ?? []) as unknown as DashReturn[];
+  const returnsValue = returns.reduce((s, r) => s + r.credit_usd_cents, 0);
+
+  // KPIs — net of returns: a return's credit comes off sales on the day it was
+  // returned, and the returned pieces' cost comes off the cost of goods (they
+  // are back on the shelf). An exchange's new pieces are a new sale.
+  const gross = orders.reduce((s, o) => s + o.total_usd_cents, 0);
+  const revenue = gross - returnsValue;
   const discounts = orders.reduce((s, o) => s + o.discount_usd_cents, 0);
-  const orderCount = orders.length;
+  // fully returned orders aren't sales any more
+  const orderCount = orders.filter((o) => o.status !== "returned").length;
   const avgOrder = orderCount ? Math.round(revenue / orderCount) : 0;
-  const posRevenue = orders.filter((o) => o.channel === "pos").reduce((s, o) => s + o.total_usd_cents, 0);
+  const returnedOn = (channel: string) =>
+    returns.filter((r) => r.orders?.channel === channel).reduce((s, r) => s + r.credit_usd_cents, 0);
+  const posRevenue = orders.filter((o) => o.channel === "pos").reduce((s, o) => s + o.total_usd_cents, 0) - returnedOn("pos");
   const onlineRevenue = revenue - posRevenue;
 
   let cogs = 0;
@@ -107,6 +132,21 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       byCategory.set(cat, (byCategory.get(cat) ?? 0) + i.line_total_usd_cents);
     }
   }
+  for (const r of returns) {
+    for (const i of r.order_return_items) {
+      const cost = i.product_variants?.products?.cost_usd_cents;
+      if (cost != null) cogs -= cost * i.quantity;
+      const name = i.order_items?.name_en;
+      if (name) {
+        const p = byProduct.get(name) ?? { qty: 0, revenue: 0 };
+        p.qty -= i.quantity;
+        p.revenue -= i.credit_usd_cents;
+        byProduct.set(name, p);
+      }
+      const cat = i.product_variants?.products?.categories?.name_ar ?? "غير مصنّف";
+      byCategory.set(cat, (byCategory.get(cat) ?? 0) - i.credit_usd_cents);
+    }
+  }
   const margin = revenue - cogs;
 
   let cashUsd = 0;
@@ -117,8 +157,6 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
     else cashLbp += Number(p.amount_minor);
   }
 
-  const returns = returnsQ.data ?? [];
-  const returnsValue = returns.reduce((s, r) => s + r.credit_usd_cents, 0);
 
   const lowStock = ((lowStockQ.data ?? []) as unknown as Array<{
     quantity: number;
@@ -134,15 +172,21 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   const series: Array<{ label: string; value: number }> = [];
   for (let d = barDays - 1; d >= 0; d--) {
     const key = addDays(beirutYmd(), -d);
-    const value = orders
-      .filter((o) => beirutYmd(o.created_at) === key)
-      .reduce((s, o) => s + o.total_usd_cents, 0);
+    const value =
+      orders.filter((o) => beirutYmd(o.created_at) === key).reduce((s, o) => s + o.total_usd_cents, 0) -
+      returns.filter((r) => beirutYmd(r.created_at) === key).reduce((s, r) => s + r.credit_usd_cents, 0);
     series.push({ label: key.slice(8), value });
   }
-  const maxDay = Math.max(...series.map((s) => s.value), 1);
+  const maxDay = Math.max(...series.map((s) => Math.max(s.value, 0)), 1);
 
-  const topProducts = [...byProduct.entries()].sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 6);
-  const topCategories = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const topProducts = [...byProduct.entries()]
+    .filter(([, p]) => p.qty > 0)
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .slice(0, 6);
+  const topCategories = [...byCategory.entries()]
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 py-8 print:max-w-none print:space-y-4 print:p-0">
@@ -176,7 +220,11 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
       {/* KPI grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
-        <Kpi label="المبيعات" value={usd(revenue)} sub={rate ? lbp((revenue / 100) * rate) : undefined} />
+        <Kpi
+          label="المبيعات (صافي)"
+          value={usd(revenue)}
+          sub={returnsValue ? `${usd(gross)} − مرتجع ${usd(returnsValue)}` : rate ? lbp((revenue / 100) * rate) : undefined}
+        />
         <Kpi label="عدد الطلبات" value={String(orderCount)} sub={`متوسط الطلب ${usd(avgOrder)}`} />
         <Kpi
           label="هامش الربح"
@@ -184,7 +232,12 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
           sub={cogsKnown ? `كلفة البضاعة ${usd(cogs)}` : `كلفة ناقصة لبعض القطع — التقدير ${usd(cogs)}`}
           tone={margin >= 0 ? "good" : "bad"}
         />
-        <Kpi label="المرتجعات" value={usd(returnsValue)} sub={`${returns.length} عملية`} tone={returnsValue > 0 ? "bad" : undefined} />
+        <Kpi
+          label="المرتجعات"
+          value={usd(returnsValue)}
+          sub={returns.length ? `${returns.length} عملية — منطرحة من المبيعات والربح` : "ولا عملية"}
+          tone={returnsValue > 0 ? "bad" : undefined}
+        />
         <Kpi label="مبيعات المحل" value={usd(posRevenue)} sub={revenue ? `${Math.round((posRevenue / revenue) * 100)}%` : "—"} />
         <Kpi label="مبيعات الأونلاين" value={usd(onlineRevenue)} sub={revenue ? `${Math.round((onlineRevenue / revenue) * 100)}%` : "—"} />
         <Kpi label="كاش مقبوض" value={usd(cashUsd)} sub={lbp(cashLbp)} />
