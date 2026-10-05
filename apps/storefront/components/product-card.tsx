@@ -8,6 +8,7 @@ import { t, type Locale } from "@bach/i18n";
 import { colorFill } from "../lib/colors";
 import { photoSrc } from "../lib/media";
 import { availableFirst } from "../lib/sizes";
+import { trackRecClick } from "../lib/track";
 import { QuickShop, type QuickShopSize } from "./quick-shop";
 import { RetryImg } from "./retry-img";
 
@@ -56,6 +57,7 @@ export function ProductCard({
   revealDelay,
   variant = "full",
   priority = false,
+  source,
 }: {
   product: CardProduct;
   locale?: Locale;
@@ -64,6 +66,8 @@ export function ProductCard({
   variant?: "full" | "mini";
   /** above the fold (first row of a grid): load the first photo eagerly, at high priority */
   priority?: boolean;
+  /** the row or grid the card sits in ("similar", "wear_with", "shop_featured", …), for analytics */
+  source?: string;
 }) {
   const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   // Product names stay English in every locale (founder decision 2026-09-07).
@@ -106,6 +110,7 @@ export function ProductCard({
   return (
     <div
       className="group"
+      onClick={source ? (e) => (e.target as Element).closest("a") && trackRecClick(product.slug, source) : undefined}
       {...(revealDelay != null
         ? { "data-reveal": "", style: { ["--anim-delay" as string]: `${revealDelay}ms` } }
         : {})}
@@ -117,7 +122,7 @@ export function ProductCard({
           <p className="type-meta tabular-nums">
             {usd(onSale ? product.sale_price_usd_cents! : product.price_usd_cents)}
           </p>
-          {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} align="center" /> : null}
+          {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} align="center" slug={product.slug} source={source} /> : null}
         </div>
       ) : (
         <div className="relative mt-3 pe-10">
@@ -136,7 +141,7 @@ export function ProductCard({
             )}
           </p>
           <ColorChips colors={product.colors} selected={colour} onPick={variants.length ? setColour : undefined} />
-          {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} /> : null}
+          {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} slug={product.slug} source={source} /> : null}
         </div>
       )}
     </div>

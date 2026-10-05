@@ -37,6 +37,7 @@ const ROUTES: Array<[string, StaffRole[]]> = [
   ["/payments", []],
   ["/marketing", CATALOG],
   ["/site-content", CATALOG],
+  ["/analytics", ["store_manager", "marketing_manager"]],
   ["/help-articles", ["marketing_manager"]],
 ];
 

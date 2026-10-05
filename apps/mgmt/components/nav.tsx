@@ -43,6 +43,7 @@ const ITEMS: PortalNavItem[] = [
     links: [
       { href: "/marketing", label: "الحملات والعروض" },
       { href: "/site-content", label: "محتوى الموقع" },
+      { href: "/analytics", label: "تحليلات الموقع" },
     ],
   },
   {

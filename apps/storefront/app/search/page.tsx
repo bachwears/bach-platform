@@ -4,6 +4,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
+import { SearchTracker } from "../../components/track-events";
 import { toCardProduct } from "../../lib/card";
 import { SearchField } from "../../components/search-field";
 import { getLocale, lhref } from "../../lib/locale";
@@ -159,6 +160,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <div className="mx-auto max-w-3xl pt-6 sm:pt-0">
           <SearchField initial={q} placeholder={t(locale, "sf.nav.searchPlaceholder")} />
         </div>
+        <SearchTracker queryLength={words.length ? q.length : 0} results={results.length} />
 
         <nav aria-label={t(locale, "sf.search.categories")} className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2">
           {topCats.map((c) => (
@@ -196,14 +198,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <h2 className="type-heading mb-6 mt-16">{t(locale, "sf.search.suggested")}</h2>
             <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {suggested.map(toCard).map((p) => (
-                <ProductCard key={p.slug} product={p} locale={locale} />
+                <ProductCard key={p.slug} product={p} locale={locale} source="search" />
               ))}
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
             {shown.map((p) => (
-              <ProductCard key={p.slug} product={p} locale={locale} />
+              <ProductCard key={p.slug} product={p} locale={locale} source="search" />
             ))}
           </div>
         )}

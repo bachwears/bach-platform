@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { onCartChange, readCart } from "../lib/cart";
 import { useDeliveryRule } from "../lib/delivery";
 import { useLocale } from "../lib/locale-client";
+import { track } from "../lib/track";
 
 function usd(cents: number) {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
@@ -56,7 +57,19 @@ export function useBagGoods(): number | null {
 export function DeliveryProgress({ goods, className = "" }: { goods: number; className?: string }) {
   const locale = useLocale();
   const rule = useDeliveryRule();
-  if (goods <= 0 || rule.freeOver <= 0) return null;
+  // once per mount, with the gap left to free delivery (0 = unlocked). The short
+  // wait lets the saved threshold replace the default before it's reported.
+  const seen = useRef(false);
+  const shown = goods > 0 && rule.freeOver > 0;
+  useEffect(() => {
+    if (!shown || seen.current) return;
+    const id = setTimeout(() => {
+      seen.current = true;
+      track("delivery_bar_seen", { value: Math.max(0, rule.freeOver - goods) });
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [shown, goods, rule.freeOver]);
+  if (!shown) return null;
   const gap = rule.freeOver - goods;
   const done = gap <= 0;
   const pct = Math.min(100, Math.round((goods / rule.freeOver) * 100));

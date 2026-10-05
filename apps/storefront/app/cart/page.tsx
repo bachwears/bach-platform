@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -14,6 +14,7 @@ import { onCartChange, readCart, setQuantity } from "../../lib/cart";
 import { colourPhoto, photoSrc } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
+import { track } from "../../lib/track";
 
 interface Detail {
   id: string;
@@ -178,6 +179,14 @@ export default function CartPage() {
   const overStock = rows.some((r) => r.line.quantity > r.d!.available);
   const bagEmpty = loaded && rows.length === 0;
 
+  // one bag_view per visit to the bag, with what the pieces come to
+  const viewSent = useRef(false);
+  useEffect(() => {
+    if (!loaded || viewSent.current) return;
+    viewSent.current = true;
+    track("bag_view", { value: subtotal });
+  }, [loaded, subtotal]);
+
   // Recommendations for the empty bag: newest photographed pieces.
   useEffect(() => {
     if (!bagEmpty || suggested.length) return;
@@ -295,7 +304,7 @@ export default function CartPage() {
                 <div className="grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
                   {favs.map((f) => (
                     <div key={f.productId}>
-                      <ProductCard product={f.card} locale={locale} />
+                      <ProductCard product={f.card} locale={locale} source="favourites" />
                       <button
                         type="button"
                         className="type-meta mt-3 underline underline-offset-4 hover:opacity-60"
@@ -342,7 +351,7 @@ export default function CartPage() {
                 <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
                   {suggested.map((p) => (
                     <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">
-                      <ProductCard product={p} locale={locale} variant="mini" />
+                      <ProductCard product={p} locale={locale} variant="mini" source="bag_empty" />
                     </li>
                   ))}
                 </ul>
@@ -450,7 +459,7 @@ export default function CartPage() {
               <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:gap-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {addOns.map((p) => (
                   <li key={p.slug} className="w-[31%] shrink-0 snap-start sm:w-[22%] lg:w-[15%]">
-                    <ProductCard product={p} locale={locale} variant="mini" />
+                    <ProductCard product={p} locale={locale} variant="mini" source={gap > 0 ? "close_gap" : "finishing"} />
                   </li>
                 ))}
               </ul>

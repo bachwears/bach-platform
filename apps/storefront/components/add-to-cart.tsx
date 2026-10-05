@@ -9,6 +9,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
+import { arrivedVia, track } from "../lib/track";
 import { usePdpColour } from "./pdp-colour";
 import { WISHLIST_EVENT } from "./pdp-topbar";
 import { lhref, useLocale } from "../lib/locale-client";
@@ -214,6 +215,12 @@ export function AddToCart({
     setNotifyState("idle");
   }
 
+  // credited to the recommendation row that led here, when there was one
+  function trackAdd() {
+    const via = arrivedVia(productId);
+    track("add_to_bag", { product: productId, source: "pdp", meta: via ? { via } : undefined });
+  }
+
   function openSheet() {
     setAdded(null);
     setAlertFor(null);
@@ -222,6 +229,7 @@ export function AddToCart({
     const ready = sizes.length === 1 && sizes[0]!.available > 0 ? sizes[0]! : picked;
     if (ready) {
       addToCart(ready.id);
+      trackAdd();
       setAdded(ready);
     }
     setSheet(true);
@@ -489,6 +497,7 @@ export function AddToCart({
                               return;
                             }
                             addToCart(v.id);
+                            trackAdd();
                             setAdded(v);
                           }}
                           className={`flex h-12 w-full items-center justify-between gap-4 text-start ${out ? "text-muted-foreground" : "hover:opacity-60"}`}

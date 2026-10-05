@@ -6,6 +6,7 @@ import { t } from "@bach/i18n";
 
 import { addToCart } from "../lib/cart";
 import { useLocale } from "../lib/locale-client";
+import { track } from "../lib/track";
 
 export interface QuickShopSize {
   variantId: string;
@@ -23,6 +24,8 @@ export function QuickShop({
   name,
   color,
   align = "end",
+  slug,
+  source,
 }: {
   sizes: QuickShopSize[];
   name: string;
@@ -30,6 +33,9 @@ export function QuickShop({
   color?: string | null;
   /** "center": the + sits centred under the price (mini cards) */
   align?: "end" | "center";
+  /** for analytics: the product and the row the card sits in */
+  slug?: string;
+  source?: string;
 }) {
   const locale = useLocale();
   const [open, setOpen] = useState(false);
@@ -97,6 +103,7 @@ export function QuickShop({
                     className="type-label grid h-10 min-w-10 place-items-center px-2 underline-offset-4 enabled:hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:line-through"
                     onClick={() => {
                       addToCart(s.variantId);
+                      track("add_to_bag", { product: slug, source });
                       setAdded(color ? `${color} / ${s.size}` : s.size);
                     }}
                   >

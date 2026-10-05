@@ -456,7 +456,7 @@ export default async function ShopPage({
           >
             {cards.map((p, i) => (
               // the first row (2 on phones, 4 on desktop) is what the shopper sees first
-              <ProductCard key={p.slug} product={p} locale={locale} priority={i < 4} />
+              <ProductCard key={p.slug} product={p} locale={locale} priority={i < 4} source={sort === "featured" ? "shop_featured" : "shop"} />
             ))}
           </div>
           {items.length > show ? (

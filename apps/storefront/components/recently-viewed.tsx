@@ -59,7 +59,7 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
       <h2 className="type-heading">{t(locale, "sf.pdp.recentlyViewed")}</h2>
       <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
         {items.map((p) => (
-          <ProductCard key={p.slug} product={p} locale={locale} />
+          <ProductCard key={p.slug} product={p} locale={locale} source="recent" />
         ))}
       </div>
     </div>

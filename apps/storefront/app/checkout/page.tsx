@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -12,6 +12,7 @@ import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { DeliveryProgress } from "../../components/delivery-progress";
 import { lhref, useLocale } from "../../lib/locale-client";
+import { track } from "../../lib/track";
 
 interface SummaryLine {
   name: string;
@@ -155,6 +156,13 @@ export default function CheckoutPage() {
   const walletOffered = walletBalance > 0 && walletBalance >= walletPays;
   const payingWallet = payMethod === "wallet" && walletOffered;
   const total = subtotal - promoDiscount + delivery - (payingWallet ? walletDiscount : 0);
+  // one checkout_start per visit, once the bag's prices are in
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || summary.length === 0) return;
+    started.current = true;
+    track("checkout_start", { value: subtotal });
+  }, [summary.length, subtotal]);
   // The wallet option hides when the balance no longer covers the order (e.g. a promo
   // was removed): fall back to cash on delivery rather than keep a hidden choice.
   useEffect(() => {
@@ -215,6 +223,8 @@ export default function CheckoutPage() {
       }
       return;
     }
+    // amounts only; goods = pieces after the promo (what free delivery is judged on)
+    track("order_placed", { value: total, meta: { goods: subtotal - promoDiscount } });
     if (payMethod === "stripe") {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`, {

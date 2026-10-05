@@ -13,6 +13,7 @@ import { MarketingPopup } from "../components/marketing-popup";
 import { FooterGate } from "../components/footer-gate";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
+import { PageViewTracker } from "../components/track-events";
 import { ThemeScript } from "@bach/ui/components/theme-script";
 import { getSiteContent } from "../lib/cached";
 import { getLocale } from "../lib/locale";
@@ -82,6 +83,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           </FooterGate>
         </div>
         <ScrollReveal />
+        <PageViewTracker />
         <BirthdayPopup />
         <MarketingPopup />
         <AssistantWidget />

@@ -17,6 +17,7 @@ import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
 import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
+import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 
 interface VariantRow {
@@ -336,6 +337,7 @@ export default async function ProductPage({
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <PdpTopBar productId={product.id} name={displayName} />
+      <ProductViewTracker productId={product.id} slug={product.slug} />
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">
           {gallery.length ? (
@@ -459,7 +461,7 @@ export default async function ProductPage({
             <h2 className="type-heading">{t(locale, "sf.pdp.wearWith")}</h2>
             <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {wearWith.map((p) => (
-                <ProductCard key={p.slug} product={p} locale={locale} />
+                <ProductCard key={p.slug} product={p} locale={locale} source="wear_with" />
               ))}
             </div>
           </div>
@@ -469,7 +471,7 @@ export default async function ProductPage({
             <h2 className="type-heading">{t(locale, "sf.pdp.similar")}</h2>
             <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {related.map((p) => (
-                <ProductCard key={p.slug} product={p} locale={locale} />
+                <ProductCard key={p.slug} product={p} locale={locale} source="similar" />
               ))}
             </div>
           </div>
@@ -480,7 +482,7 @@ export default async function ProductPage({
             <h2 className="type-heading">{t(locale, "sf.pdp.completeLook")}</h2>
             <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
               {look.map((p) => (
-                <ProductCard key={p.slug} product={p} locale={locale} />
+                <ProductCard key={p.slug} product={p} locale={locale} source="complete_look" />
               ))}
             </div>
           </div>
