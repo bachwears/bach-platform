@@ -66,6 +66,7 @@
   "sf.pdp.otherSizes": "See other sizes",
   "sf.pdp.yourSize": "Your saved size",
   "sf.pdp.yourSizeOut": "Your saved size ({s}) isn't available in this colour.",
+  "sf.pdp.pickedOut": "Size {s} isn't available in this colour. Try another colour, or tap a crossed-out size to hear when it's back.",
   "sf.pdp.fit": "Fit",
   "sf.pdp.material": "Material",
   "sf.pdp.care": "Care",

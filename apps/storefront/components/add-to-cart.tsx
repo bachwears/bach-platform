@@ -382,8 +382,14 @@ export function AddToCart({
           </div>
         </div>
       )}
-      {savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
+      {pickedSize == null && savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
         <p className="type-meta text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
+      )}
+      {/* a size picked from the Fit Finder that this colour can't sell */}
+      {pickedSize != null && !picked && sizes.length > 0 && (
+        <p className="type-meta text-muted-foreground" role="status">
+          {t(locale, "sf.pdp.pickedOut", { s: pickedSize })}
+        </p>
       )}
 
       <div className="flex gap-2">
