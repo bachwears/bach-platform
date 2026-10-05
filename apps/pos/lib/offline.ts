@@ -1,6 +1,7 @@
 "use client";
 
 import { fetchAllPages } from "./fetch-all";
+import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ---- Local catalog (local-first search; survives connection loss) ----
@@ -18,6 +19,8 @@ export interface CatalogItem {
   price_usd_cents: number;
   sale_price_usd_cents: number | null;
   available: number;
+  /** small front photo in this colour (400px), for telling pieces apart */
+  photo?: string | null;
 }
 
 const CATALOG_KEY = "bach-pos-catalog";
@@ -48,10 +51,25 @@ export function readCatalog(branchId: string): CatalogBlob | null {
   }
 }
 
+/**
+ * Photo of a variant from the till's saved catalogue (any branch), for screens
+ * that list pieces (invoices, returns, stocktake). Null when it isn't saved yet.
+ */
+export function variantPhotos(): (variantId: string | null | undefined) => string | null {
+  let byId = new Map<string, string | null>();
+  try {
+    const raw = localStorage.getItem(CATALOG_KEY);
+    if (raw) byId = new Map((JSON.parse(raw) as CatalogBlob).items.map((i) => [i.id, i.photo ?? null]));
+  } catch {
+    // no saved catalogue: rows show an empty frame
+  }
+  return (id) => (id ? (byId.get(id) ?? null) : null);
+}
+
 export async function refreshCatalog(supabase: SupabaseClient, branchId: string): Promise<CatalogBlob | null> {
   // Over 1,000 sellable variants: read every page, or the rest silently vanish
   // from the till and their barcodes come back "not found".
-  const [{ data, error }, { data: aliasRows }] = await Promise.all([
+  const [{ data, error }, { data: aliasRows }, photos] = await Promise.all([
     fetchAllPages((from, to) =>
       supabase
         .from("product_variants")
@@ -74,6 +92,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
         .order("id")
         .range(from, to),
     ),
+    loadFrontPhotos(supabase).catch(() => null),
   ]);
   if (error || !data) return readCatalog(branchId);
   const items: CatalogItem[] = (data as unknown as Array<Record<string, unknown>>).map((v) => {
@@ -94,6 +113,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
       sale_price_usd_cents: p.sale_price_usd_cents,
       available: level ? level.quantity - level.reserved : 0,
       product_id: v.product_id as string,
+      photo: photoFor(photos, v.product_id as string, v.color_en as string),
     };
   });
   const aliases: BarcodeAlias[] = ((aliasRows ?? []) as Array<{ barcode: string; product_id: string }>).map((a) => ({

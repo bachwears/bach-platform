@@ -5,7 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
-import { barcodeForms, latinDigits } from "../lib/offline";
+import { Thumb } from "@bach/ui/components/thumb";
+import { barcodeForms, latinDigits, variantPhotos } from "../lib/offline";
 
 interface CountRow {
   variant_id: string;
@@ -44,6 +45,9 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
   const [results, setResults] = useState<SearchHit[]>([]);
   const [error, setError] = useState("");
   const [lastScanned, setLastScanned] = useState<string | null>(null);
+  // photos come from the till's saved catalogue (read after mount: localStorage)
+  const [photoOf, setPhotoOf] = useState<ReturnType<typeof variantPhotos>>(() => () => null);
+  useEffect(() => setPhotoOf(() => variantPhotos()), []);
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<{ adjusted: number; total_delta: number } | null>(null);
 
@@ -294,7 +298,8 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                   scanRef.current?.focus();
                 }}
               >
-                <span>
+                <span className="flex items-center gap-3">
+                  <Thumb src={photoOf(v.id)} size="sm" />
                   {v.products.name_en} — {v.size} {v.color_en}
                 </span>
                 <span className="font-mono text-xs text-muted-foreground" dir="ltr">{v.sku}</span>
@@ -323,10 +328,15 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                 return (
                   <tr key={r.variant_id} className={`border-b last:border-0 ${lastScanned === r.variant_id ? "bg-muted/50" : ""}`}>
                     <td className="p-3">
-                      {r.name}
-                      <span className="block text-xs text-muted-foreground">
-                        {r.size} {r.color} <span dir="ltr">{r.sku}</span>
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <Thumb src={photoOf(r.variant_id)} />
+                        <div>
+                          {r.name}
+                          <span className="block text-xs text-muted-foreground">
+                            {r.size} {r.color} <span dir="ltr">{r.sku}</span>
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-3 font-mono">{r.system_qty}</td>
                     <td className="p-3">
@@ -369,9 +379,12 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
           <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto text-sm">
             {uncounted.map((u) => (
               <li key={u.variant_id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted">
-                <span>
-                  {u.name} — {u.size} {u.color}
-                  <span className="text-xs text-muted-foreground" dir="ltr"> {u.sku}</span>
+                <span className="flex items-center gap-3">
+                  <Thumb src={photoOf(u.variant_id)} size="sm" />
+                  <span>
+                    {u.name} — {u.size} {u.color}
+                    <span className="text-xs text-muted-foreground" dir="ltr"> {u.sku}</span>
+                  </span>
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground">{u.quantity}</span>

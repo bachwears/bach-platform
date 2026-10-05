@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
+import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 const STATUS_AR: Record<string, string> = {
   pending: "جديد",
@@ -46,7 +48,14 @@ interface QueueOrder {
   ship_city: string | null;
   ship_address: string | null;
   note: string | null;
-  order_items: Array<{ name_en: string; size: string; color_en: string; sku: string | null; quantity: number }>;
+  order_items: Array<{
+    name_en: string;
+    size: string;
+    color_en: string;
+    sku: string | null;
+    quantity: number;
+    product_variants: { product_id: string } | null;
+  }>;
 }
 
 function usd(cents: number) {
@@ -177,12 +186,17 @@ export function FulfillmentQueue() {
   const [loaded, setLoaded] = useState(false);
   // the pickup order whose mixed-payment panel is open
   const [collecting, setCollecting] = useState<string | null>(null);
+  // small photos so the picker grabs the right piece
+  const [photos, setPhotos] = useState<PhotoMap | null>(null);
+  useEffect(() => {
+    void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
+  }, []);
 
   const load = useCallback(async () => {
     const { data, error: err } = await supabase
       .from("orders")
       .select(
-        "id, number, status, fulfilment, payment_method, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity)",
+        "id, number, status, fulfilment, payment_method, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity, product_variants(product_id))",
       )
       .eq("channel", "online")
       .in("status", ["pending", "confirmed", "picking", "packed", "shipped", "delivered"])
@@ -282,9 +296,12 @@ export function FulfillmentQueue() {
 
             <ul className="space-y-1 rounded-md bg-muted/50 p-3 text-sm">
               {o.order_items.map((i, idx) => (
-                <li key={idx} className="flex justify-between">
-                  <span>
-                    {i.name_en} — {i.size} {i.color_en} × {i.quantity}
+                <li key={idx} className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-3">
+                    <Thumb src={photoFor(photos, i.product_variants?.product_id, i.color_en)} />
+                    <span>
+                      {i.name_en} — {i.size} {i.color_en} × {i.quantity}
+                    </span>
                   </span>
                   <span className="font-mono text-xs text-muted-foreground" dir="ltr">
                     {i.sku}

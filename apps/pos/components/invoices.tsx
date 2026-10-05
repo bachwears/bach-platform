@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
+import { variantPhotos } from "../lib/offline";
 
 import { CustomerPoints } from "./customer-points";
 import { type ReceiptData, ReceiptView } from "./receipt";
@@ -31,6 +33,7 @@ interface Inv {
   branches: { name: string } | null;
   customers: { id: string; full_name: string | null; phone: string | null; balance_usd_cents: number } | null;
   order_items: Array<{
+    variant_id: string | null;
     name_en: string;
     size: string;
     color_en: string;
@@ -44,7 +47,7 @@ interface Inv {
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const SELECT =
-  "id, number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
+  "id, number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(variant_id, name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
 
 const METHOD_EN: Record<string, string> = { credit: "Store credit", whish: "Whish", cod: "Cash on delivery", stripe: "Card" };
 
@@ -91,6 +94,9 @@ export function Invoices() {
   const [searched, setSearched] = useState(false);
   // a past invoice open for printing: the till receipt (POS) or a packing slip (online)
   const [printing, setPrinting] = useState<Inv | null>(null);
+  // photos come from the till's saved catalogue (read after mount: localStorage)
+  const [photoOf, setPhotoOf] = useState<ReturnType<typeof variantPhotos>>(() => () => null);
+  useEffect(() => setPhotoOf(() => variantPhotos()), []);
 
   async function search(text: string) {
     setQ(text);
@@ -209,7 +215,10 @@ export function Invoices() {
               <ul className="space-y-1">
                 {o.order_items.map((i, idx) => (
                   <li key={idx} className="flex items-center justify-between gap-2">
-                    <span dir="ltr">{i.name_en} — {i.size} {i.color_en} × {i.quantity}</span>
+                    <span className="flex items-center gap-3">
+                      <Thumb src={photoOf(i.variant_id)} size="sm" />
+                      <span dir="ltr">{i.name_en} — {i.size} {i.color_en} × {i.quantity}</span>
+                    </span>
                     <span className="font-mono text-xs" dir="ltr">{usd(i.line_total_usd_cents)}</span>
                   </li>
                 ))}

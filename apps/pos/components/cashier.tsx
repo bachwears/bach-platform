@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { CameraScanner } from "./camera-scanner";
@@ -39,6 +40,7 @@ interface CartLine {
   quantity: number;
   available: number;
   lineDiscountPct?: number;
+  photo?: string | null;
 }
 
 
@@ -277,6 +279,7 @@ export function Cashier({
             v.price_usd_cents_override ?? Math.min(v.sale_price_usd_cents ?? v.price_usd_cents, v.price_usd_cents),
           quantity: 1,
           available,
+          photo: v.photo ?? null,
         },
       ];
     });
@@ -635,10 +638,13 @@ export function Cashier({
                     disabled={avail <= 0}
                     onClick={() => addVariant(v)}
                   >
-                    <span>
-                      {v.name_en} — {v.size} {v.color_en}
-                      <span className="block text-xs text-muted-foreground" dir="ltr">
-                        {v.sku}
+                    <span className="flex items-center gap-3">
+                      <Thumb src={v.photo} />
+                      <span>
+                        {v.name_en} — {v.size} {v.color_en}
+                        <span className="block text-xs text-muted-foreground" dir="ltr">
+                          {v.sku}
+                        </span>
                       </span>
                     </span>
                     <span className="text-sm">
@@ -691,10 +697,15 @@ export function Cashier({
                 {cart.map((l) => (
                   <tr key={l.variantId} className="border-b last:border-0">
                     <td className="p-3">
-                      {l.nameEn}
-                      <span className="block text-xs text-muted-foreground">
-                        {l.size} {l.colorEn} <span dir="ltr">{l.sku}</span>
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <Thumb src={l.photo ?? catalog.find((c) => c.id === l.variantId)?.photo} />
+                        <div>
+                          {l.nameEn}
+                          <span className="block text-xs text-muted-foreground">
+                            {l.size} {l.colorEn} <span dir="ltr">{l.sku}</span>
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2" dir="ltr">

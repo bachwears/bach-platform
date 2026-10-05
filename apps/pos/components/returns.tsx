@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Thumb } from "@bach/ui/components/thumb";
+import { variantPhotos } from "../lib/offline";
 
 import { fetchLatestRate, RATE_CHANGED_MSG } from "../lib/rate";
 
@@ -90,6 +92,9 @@ export function Returns({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NewLine[]>([]);
   const [newCart, setNewCart] = useState<NewLine[]>([]);
+  // photos come from the till's saved catalogue (read after mount: localStorage)
+  const [photoOf, setPhotoOf] = useState<ReturnType<typeof variantPhotos>>(() => () => null);
+  useEffect(() => setPhotoOf(() => variantPhotos()), []);
   // settlement inputs
   const [payUsd, setPayUsd] = useState("");
   const [payLbp, setPayLbp] = useState("");
@@ -381,10 +386,15 @@ export function Returns({
                   return (
                     <tr key={i.id} className="border-b last:border-0">
                       <td className="p-3">
-                        {i.name_en}
-                        <span className="block text-xs text-muted-foreground">
-                          {i.size} {i.color_en} <span dir="ltr">{i.sku}</span>
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <Thumb src={photoOf(i.variant_id)} />
+                          <div>
+                            {i.name_en}
+                            <span className="block text-xs text-muted-foreground">
+                              {i.size} {i.color_en} <span dir="ltr">{i.sku}</span>
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       <td className="p-3 font-mono">{i.quantity}</td>
                       <td className="p-3 font-mono">{i.returned}</td>
@@ -471,7 +481,8 @@ export function Returns({
                           setResults([]);
                         }}
                       >
-                        <span>
+                        <span className="flex items-center gap-3">
+                          <Thumb src={photoOf(r.variantId)} size="sm" />
                           {r.nameEn} — {r.size} {r.colorEn}
                         </span>
                         <span className="font-mono text-sm">{usd(r.unitUsdCents)}</span>
@@ -482,7 +493,8 @@ export function Returns({
               </div>
               {newCart.map((l) => (
                 <div key={l.variantId} className="flex items-center justify-between text-sm">
-                  <span>
+                  <span className="flex items-center gap-3">
+                    <Thumb src={photoOf(l.variantId)} size="sm" />
                     {l.nameEn} — {l.size} {l.colorEn} × {l.quantity}
                   </span>
                   <span className="flex items-center gap-2">
