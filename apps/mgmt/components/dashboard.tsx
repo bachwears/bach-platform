@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
+import { Icon } from "@bach/ui/components/icon";
 import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
@@ -223,6 +224,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
         </p>
       </div>
       <PageHeader
+        icon="home"
         title={`مرحبا ${name || "بشار"}`}
         description={`لوحة القيادة — كيف ماشي الشغل آخر ${days} يوم: المبيعات، الربح، المرتجعات والمخزون الناقص. سعر الصرف ${rate.toLocaleString("en-US")} ل.ل/$`}
         hint={{
@@ -349,7 +351,8 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
       {/* Low stock */}
       <section className="border p-4">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+        <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <Icon name="lowStock" size={16} />
           مخزون تحت الحد ({lowStock.length})
         </h2>
         {lowStock.length === 0 ? (

@@ -37,6 +37,7 @@ export default async function ExchangeRatePage() {
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="rate"
           title="سعر الصرف"
           description="سعر الليرة مقابل الدولار المعتمد بكل المنصة — الكاشير، المتجر، والتقارير."
         />

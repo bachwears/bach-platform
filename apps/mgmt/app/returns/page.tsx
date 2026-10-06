@@ -21,6 +21,7 @@ export default async function ReturnsRequestsPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="returns"
           title="طلبات الإرجاع والتبديل"
           description="الطلبات يلي بيقدّمها الزبائن من الموقع بتوصل لهون — اقبلها أو ارفضها، والإرجاع الفعلي بيتسجّل من شاشة المرتجعات بالكاشير."
           hint={{

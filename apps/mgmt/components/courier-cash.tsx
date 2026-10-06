@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 export interface WaitingOrder {
   id: string;
@@ -75,9 +76,9 @@ export function CourierCash({ orders, canRecord }: { orders: WaitingOrder[]; can
 
   if (!orders.length)
     return (
-      <p className="border p-6 text-center text-sm text-muted-foreground">
-        ما في مصاري عند شركة الشحن هلّق — كل طلب «دفع عند الاستلام» بيوصل للزبون بيطلع هون لحتى تسجّل استلام مصاريه.
-      </p>
+      <EmptyState icon="courier" title="ما في مصاري عند شركة الشحن هلّق.">
+        كل طلب «دفع عند الاستلام» بيوصل للزبون بيطلع هون لحتى تسجّل استلام مصاريه.
+      </EmptyState>
     );
 
   return (

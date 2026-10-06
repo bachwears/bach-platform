@@ -85,6 +85,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       <Nav />
       <main className="mx-auto max-w-6xl space-y-8 p-4 py-8">
         <PageHeader
+          icon="inventory"
           title="المخزون"
           description="كم قطعة عنّا من كل مقاس ولون بكل فرع — سجّل استلام، جرد أو تصحيح من «تسجيل حركة»."
           hint={{

@@ -8,6 +8,7 @@ import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
 
 import { fmt } from "../lib/time";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: "سوبر أدمن",
@@ -228,7 +229,7 @@ export function StaffManager() {
         {loading ? (
           <p className="text-sm text-muted-foreground">عم نحمّل الحسابات…</p>
         ) : staff.length === 0 ? (
-          <p className="border p-6 text-center text-sm text-muted-foreground">ما في حسابات بعد — اعمل أول حساب من «حساب موظف جديد» فوق.</p>
+          <EmptyState icon="staff" title="ما في حسابات بعد — اعمل أول حساب من «حساب موظف جديد» فوق." />
         ) : (
           <ul className="divide-y border">
             {staff.map((s) => (

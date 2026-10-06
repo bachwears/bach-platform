@@ -8,6 +8,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { NOT_SAVED } from "../lib/access";
 import { Label } from "@bach/ui/components/label";
+import { Icon } from "@bach/ui/components/icon";
 
 export interface CategoryRow {
   id: string;
@@ -198,7 +199,8 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
           </select>
         </div>
         <Button type="submit" disabled={busy}>
-          {busy ? "عم نزيد…" : "+ زيد الفئة"}
+          <Icon name="add" size={16} />
+          {busy ? "عم نزيد…" : "زيد الفئة"}
         </Button>
       </form>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

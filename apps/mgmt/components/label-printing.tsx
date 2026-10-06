@@ -1,10 +1,10 @@
 "use client";
 
-import { Printer } from "lucide-react";
 
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+import { Icon } from "@bach/ui/components/icon";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
@@ -290,7 +290,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
             ))}
           </select>
           <Button disabled={!labels.length || labelsCount > MAX_LABELS} onClick={() => window.print()}>
-            <Printer className="me-1.5 inline h-4 w-4 align-[-2px]" aria-hidden /> اطبع {labels.length > 0 ? `(${labels.length})` : ""}
+            <Icon name="print" size={16} /> اطبع {labels.length > 0 ? `(${labels.length})` : ""}
           </Button>
           {queue.length > 0 && (
             <Button variant="ghost" onClick={() => setQueue([])}>

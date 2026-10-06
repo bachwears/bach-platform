@@ -28,6 +28,7 @@ export default async function CategoriesPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="categories"
           title="الفئات"
           description="أقسام الكاتالوغ (قمصان، جينز…) يلّي بتطلع بقائمة الموقع — زيد فئة، حطّها تحت فئة تانية، أو وقّفها."
           hint={{

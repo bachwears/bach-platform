@@ -21,6 +21,7 @@ export default async function MarketingPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="campaigns"
           title="الحملات والعروض"
           description="الموسم، الحملات، أكواد الخصم، البوب-أب، برنامج النقاط والنشرة البريدية — كلو من هون."
         />

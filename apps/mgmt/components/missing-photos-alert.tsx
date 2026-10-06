@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ImageOff } from "lucide-react";
 import { supabaseServer } from "@bach/supabase/server";
+import { Icon } from "@bach/ui/components/icon";
 
 /**
  * Published products without a front photo are hidden from the storefront
@@ -36,8 +37,9 @@ export async function MissingPhotosAlert({ className = "" }: { className?: strin
         >
           شوف القطع المخفية
         </Link>
-        <Link href="/media-import" className="border px-4 py-2 font-medium hover:bg-muted">
-          نزّل صور
+        <Link href="/media-import" className="inline-flex items-center gap-2 border px-4 py-2 font-medium hover:bg-muted">
+          <Icon name="upload" size={16} />
+          ارفع صور
         </Link>
       </div>
     </div>

@@ -16,6 +16,7 @@ export default async function MediaImportPage() {
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="photosUpload"
           title="رفع الصور"
           description={
             <>

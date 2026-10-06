@@ -19,6 +19,7 @@ export default async function ReportsPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="reports"
           title="التقارير"
           description="صدّر بياناتك CSV/Excel — للمحاسبة، للتحليل، أو للأرشيف."
           hint={{

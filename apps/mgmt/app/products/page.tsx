@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Printer } from "lucide-react";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { Icon } from "@bach/ui/components/icon";
 import { PageHeader } from "@bach/ui/components/page-header";
 
 import { MissingPhotosAlert } from "../../components/missing-photos-alert";
 import { Nav } from "../../components/nav";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "success" | "secondary" | "outline" }> = {
   published: { label: "منشور", variant: "success" },
@@ -93,6 +94,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="products"
           title="المنتجات"
           description="كل قطع الكاتالوغ — دوّر بالاسم أو الـ SKU، وافتح أي قطعة لتعدّل صورها وأسعارها ومقاساتها."
           hint={{
@@ -103,7 +105,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           }}
           actions={
             <Button asChild>
-              <Link href="/products/new">+ منتج جديد</Link>
+              <Link href="/products/new">
+                <Icon name="add" size={16} />
+                منتج جديد
+              </Link>
             </Button>
           }
         />
@@ -155,21 +160,24 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         ) : null}
 
         {!products.length ? (
-          <div className="space-y-2 border p-8 text-center text-sm text-muted-foreground">
-            <p>
-              {q
+          <EmptyState
+            icon="products"
+            title={
+              q
                 ? "ما في قطعة بهالاسم أو الـ SKU — جرّب كلمة أقصر أو امسح البحث."
                 : filter !== "all"
                   ? "ما في قطع بهالفلتر."
-                  : "ما في منتجات بعد — ابدأ بإضافة أول قطعة."}
-            </p>
-            <Link
-              href={q || filter !== "all" ? "/products" : "/products/new"}
-              className="inline-block text-foreground underline underline-offset-4"
-            >
-              {q || filter !== "all" ? "اعرض كل المنتجات" : "+ منتج جديد"}
-            </Link>
-          </div>
+                  : "ما في منتجات بعد — ابدأ بإضافة أول قطعة."
+            }
+            action={
+              <Link
+                href={q || filter !== "all" ? "/products" : "/products/new"}
+                className="inline-block text-sm text-foreground underline underline-offset-4"
+              >
+                {q || filter !== "all" ? "اعرض كل المنتجات" : "منتج جديد"}
+              </Link>
+            }
+          />
         ) : (
           <div className="overflow-x-auto border">
             <table className="w-full min-w-[720px] text-sm">
@@ -258,7 +266,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           aria-label={`اطبع ليبلات ${p.name_en}`}
                           className="grid h-9 w-9 place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
-                          <Printer className="h-4 w-4" aria-hidden />
+                          <Icon name="print" size={18} />
                         </Link>
                       </td>
                     </tr>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+import { Icon } from "@bach/ui/components/icon";
 
 interface Subscriber {
   email: string;
@@ -58,6 +59,7 @@ export function NewsletterCard() {
           </p>
         </div>
         <Button size="sm" variant="outline" disabled={!subs.length} onClick={exportCsv}>
+          <Icon name="download" size={16} />
           نزّل لائحة المشتركين (CSV)
         </Button>
       </div>

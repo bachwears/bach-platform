@@ -6,6 +6,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { fetchAllPages } from "../lib/fetch-all";
 import { addDays, beirutMidnightOf, beirutStamp, beirutYmd } from "../lib/time";
+import { Icon } from "@bach/ui/components/icon";
 
 function csvEscape(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -281,6 +282,7 @@ export function Reports() {
             <p className="mt-1 flex-1 text-sm text-muted-foreground">{r.desc}</p>
             <p className="mt-1 text-xs text-muted-foreground">{r.ranged ? "حسب الفترة المختارة" : "لقطة كاملة"}</p>
             <Button className="mt-3" size="sm" disabled={busy !== ""} onClick={() => void run(r.title, r.fn)}>
+              <Icon name="download" size={16} />
               {busy === r.title ? "عم نجهّز…" : "نزّل CSV (Excel)"}
             </Button>
           </div>

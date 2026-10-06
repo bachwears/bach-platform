@@ -17,6 +17,7 @@ export default async function CollectionsPage() {
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="collections"
           title="الكولكشنات"
           description="مجموعات قطع بتلبق مع بعض — قطع الكولكشن الواحد بتكمّل بعضها على الموقع تلقائياً («Complete the look»)."
         />

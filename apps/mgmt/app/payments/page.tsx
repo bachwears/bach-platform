@@ -17,6 +17,7 @@ export default async function PaymentsPage() {
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="payments"
           title="إعدادات الدفع"
           description="طرق الدفع المقبولة بالمحل والموقع — التفعيل والإطفاء من هون."
         />

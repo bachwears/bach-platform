@@ -17,6 +17,7 @@ export default async function HelpArticlesPage() {
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="helpEditor"
           title="تعديل مقالات المساعدة"
           description="المقالات يلّي بتبيّن بالموقع (بالإنكليزي) وبالكاشير والإدارة (بالعربي)، وبيقراها المساعد."
           hint={{

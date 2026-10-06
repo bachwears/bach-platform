@@ -6,13 +6,13 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 
 import { NOT_SAVED } from "../lib/access";
-import { Banknote, CreditCard, Smartphone, Truck } from "lucide-react";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 
-const KIND_META: Record<string, { icon: typeof Banknote; note: string }> = {
-  cash: { icon: Banknote, note: "كاش بالمحل — الكاشير." },
-  cod: { icon: Truck, note: "الدفع عند الاستلام للطلبات الأونلاين." },
-  whish: { icon: Smartphone, note: "ويش موني — جاهز للتفعيل لما يجهز الحساب." },
-  stripe: { icon: CreditCard, note: "فيزا/ماستركارد عبر Stripe — التكامل جاهز بالكامل؛ التفعيل = مفاتيح + هالزر، بلا أي تعديل كود. بانتظار السجل التجاري." },
+const KIND_META: Record<string, { icon: IconName; note: string }> = {
+  cash: { icon: "cash", note: "كاش بالمحل — الكاشير." },
+  cod: { icon: "courier", note: "الدفع عند الاستلام للطلبات الأونلاين." },
+  whish: { icon: "whish", note: "ويش موني — جاهز للتفعيل لما يجهز الحساب." },
+  stripe: { icon: "card", note: "فيزا/ماستركارد عبر Stripe — التكامل جاهز بالكامل؛ التفعيل = مفاتيح + هالزر، بلا أي تعديل كود. بانتظار السجل التجاري." },
 };
 
 interface Method {
@@ -74,7 +74,7 @@ export function PaymentsConfig() {
       {methods.map((m) => (
         <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 border p-4">
           <div className="flex items-start gap-3">
-            {(() => { const I = KIND_META[m.kind]?.icon; return I ? <I className="h-6 w-6 text-muted-foreground" aria-hidden /> : null; })()}
+            {KIND_META[m.kind] ? <Icon name={KIND_META[m.kind]!.icon} size={24} className="text-muted-foreground" /> : null}
             <div>
               <p className="font-medium">
                 {m.display_name_ar} <span className="text-sm text-muted-foreground" dir="ltr">· {m.display_name_en}</span>

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { Badge } from "@bach/ui/components/badge";
+import { Icon } from "@bach/ui/components/icon";
+import { OrderStatus } from "@bach/ui/components/order-status";
 import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
-import { PICKUP_BADGE, statusLabelFor } from "../../components/fulfilment";
+import { PICKUP_BADGE } from "../../components/fulfilment";
 import { PickupSettings } from "../../components/pickup-settings";
 import { STATUS_LABELS, paymentLabel } from "../../lib/order-status";
 import { beirutDayStart, fmt } from "../../lib/time";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 const CHANNEL_LABELS: Record<string, string> = { pos: "المحل", online: "أونلاين" };
 
@@ -106,6 +108,7 @@ export default async function OrdersPage({
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="orders"
           title="الطلبات"
           description="كل طلبات المحل والأونلاين — افتح أي طلب لتشوف تفاصيلو وتغيّر حالتو."
           hint={{
@@ -182,20 +185,23 @@ export default async function OrdersPage({
 
         <div className="overflow-x-auto border">
           {orders.length === 0 ? (
-            <div className="space-y-3 p-8 text-center text-sm text-muted-foreground">
-              <p>
-                {q
+            <EmptyState
+              icon="orders"
+              title={
+                q
                   ? "ما في طلب بهالرقم أو الاسم أو التلفون — جرّب آخر أرقام التلفون، أو امسح البحث."
                   : status
                     ? `ما في طلبات حالتها «${STATUS_LABELS[status] ?? status}» هلّق.`
-                    : "ما في طلبات بعد — أول بيعة بالكاشير أو أول طلب أونلاين بيطلع هون."}
-              </p>
-              {status ? (
-                <Link href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"} className="inline-block underline underline-offset-4 hover:text-foreground">
-                  اعرض كل الطلبات
-                </Link>
-              ) : null}
-            </div>
+                    : "ما في طلبات بعد — أول بيعة بالكاشير أو أول طلب أونلاين بيطلع هون."
+              }
+              action={
+                status ? (
+                  <Link href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"} className="inline-block text-sm underline underline-offset-4 hover:text-foreground">
+                    اعرض كل الطلبات
+                  </Link>
+                ) : null
+              }
+            />
           ) : (
             <table className="w-full min-w-[960px] text-sm">
               <thead>
@@ -237,7 +243,7 @@ export default async function OrdersPage({
                       <td className="p-3">
                         {CHANNEL_LABELS[o.channel] ?? o.channel}
                         {o.fulfilment === "pickup" ? (
-                          <span className="block text-xs text-muted-foreground">{PICKUP_BADGE}</span>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><Icon name="branch" size={12} />{PICKUP_BADGE}</span>
                         ) : null}
                       </td>
                       <td className="p-3">{paymentLabel(o.payment_method)}</td>
@@ -246,9 +252,7 @@ export default async function OrdersPage({
                       <td className="p-3 font-mono">{items}</td>
                       <td className="p-3 font-mono">{usd(o.total_usd_cents)}</td>
                       <td className="p-3">
-                        <Badge variant={o.status === "completed" ? "default" : "secondary"}>
-                          {statusLabelFor(o.status, o.fulfilment)}
-                        </Badge>
+                        <OrderStatus status={o.status} fulfilment={o.fulfilment} />
                       </td>
                     </tr>
                   );

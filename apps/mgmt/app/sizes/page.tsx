@@ -21,6 +21,7 @@ export default async function SizesPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="sizes"
           title="المقاسات"
           description="القطع يلّي إجت بمقاس واحد (OS) — وزّع مخزون كل موديل على مقاساته الحقيقية متل ما هي عالرف. الباركود القديم بيضل شغّال عالكاشير."
           hint={{

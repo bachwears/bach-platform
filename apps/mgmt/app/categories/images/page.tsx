@@ -39,6 +39,7 @@ export default async function CategoryImagesPage() {
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="categoryImages"
           title="صور الفئات"
           description="الصورة العريضة فوق كل صفحة فئة بالموقع — وحدة للكمبيوتر (21:9) ووحدة للموبايل (4:5)."
           hint={{

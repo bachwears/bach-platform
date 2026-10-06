@@ -22,6 +22,7 @@ export default async function PurchasingPage() {
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="purchasing"
           title="المشتريات"
           description="الموردين وطلبات الشراء — من الطلب للاستلام، والمخزون بيتحدّث لحالو عند الاستلام."
           hint={{

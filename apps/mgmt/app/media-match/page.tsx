@@ -19,6 +19,7 @@ export default async function MediaMatchPage() {
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="photosMatch"
           title="مطابقة الصور"
           description="الصور يلّي ما انربطت تلقائياً بقطعة — اختار الصورة، دوّر عالقطعة، حدّد نوع اللقطة واربط. وفيك تعدّل خانات صور أي قطعة."
         />

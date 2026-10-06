@@ -61,6 +61,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       ) : (
         <main className="mx-auto max-w-6xl space-y-8 p-4 py-8">
           <PageHeader
+            icon="home"
             title={`أهلا ${profile?.full_name ?? user?.email ?? ""}`}
             description={`دورك: ${ROLE_LABELS[profile?.role ?? ""] ?? profile?.role ?? "—"} — اختار شو بدك تعمل، من هون أو من القائمة.`}
           />

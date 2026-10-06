@@ -52,6 +52,7 @@ export default async function ProductHealthPage({
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="dataHealth"
           title="صحة بيانات المنتجات"
           description="شو ناقص بكل قطعة قبل ما تكون جاهزة للنشر — اكبس على القطعة وكمّل بياناتها من صفحتها."
         />

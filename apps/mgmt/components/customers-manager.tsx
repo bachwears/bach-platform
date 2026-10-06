@@ -8,7 +8,7 @@ import { Input } from "@bach/ui/components/input";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { NOT_SAVED } from "../lib/access";
-import { STATUS_LABELS } from "../lib/order-status";
+import { OrderStatus } from "@bach/ui/components/order-status";
 import { fmt } from "../lib/time";
 
 interface Cust {
@@ -407,7 +407,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                           <a href={`/orders/${o.id}`} className="font-mono hover:underline" dir="ltr">#{o.number}</a>
                           <span className="text-xs text-muted-foreground">{day(o.created_at)}</span>
                           <Badge variant="secondary">{o.channel === "pos" ? "محل" : "أونلاين"}</Badge>
-                          <span className="text-xs text-muted-foreground">{STATUS_LABELS[o.status] ?? o.status}</span>
+                          <OrderStatus status={o.status} />
                           <span className="font-mono text-xs" dir="ltr">{usd(o.total_usd_cents)}</span>
                         </li>
                       ))}

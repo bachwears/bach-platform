@@ -1,15 +1,17 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
+import { OrderStatus } from "@bach/ui/components/order-status";
 import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { thumbUrl } from "@bach/ui/lib/photos";
 
 import { Nav } from "../../../components/nav";
 import { OrderStatusControl } from "../../../components/order-status-control";
-import { PICKUP_BADGE, statusLabelFor } from "../../../components/fulfilment";
+import { PICKUP_BADGE } from "../../../components/fulfilment";
 import { paymentLabel } from "../../../lib/order-status";
 import { fmt } from "../../../lib/time";
+import { Icon } from "@bach/ui/components/icon";
 
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -51,6 +53,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="orders"
           back={{ href: "/orders", label: "الطلبات" }}
           title={
             <span className="flex flex-wrap items-center gap-3">
@@ -60,10 +63,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   #{order.number}
                 </span>
               </span>
-              <Badge variant={order.status === "completed" ? "default" : "secondary"}>
-                {statusLabelFor(order.status, (order as { fulfilment?: string }).fulfilment)}
-              </Badge>
-              {isPickup ? <Badge variant="outline">{PICKUP_BADGE}</Badge> : null}
+              <OrderStatus status={order.status} fulfilment={(order as { fulfilment?: string }).fulfilment} />
+              {isPickup ? <Badge variant="outline" className="gap-1"><Icon name="branch" size={12} />{PICKUP_BADGE}</Badge> : null}
             </span>
           }
           description={
@@ -111,15 +112,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <p>{order.ship_name ?? "—"}</p>
               {order.ship_phone ? (
                 <p className="flex flex-wrap items-center gap-3" dir="ltr">
-                  <a href={`tel:${order.ship_phone.replace(/[^\d+]/g, "")}`} className="font-mono underline-offset-2 hover:underline">
+                  <a href={`tel:${order.ship_phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1 font-mono underline-offset-2 hover:underline">
+                    <Icon name="phone" size={14} />
                     {order.ship_phone}
                   </a>
                   <a
                     href={`https://wa.me/${order.ship_phone.replace(/\D/g, "").replace(/^0+/, "").replace(/^(?!961)/, "961")}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
                   >
+                    <Icon name="whatsapp" size={14} />
                     WhatsApp
                   </a>
                 </p>

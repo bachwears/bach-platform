@@ -3,6 +3,7 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { StaffManager } from "../../components/staff-manager";
+import { Icon } from "@bach/ui/components/icon";
 
 // Super admin only (lib/access.ts); the staff-admin function checks again server-side.
 export default function StaffPage() {
@@ -11,6 +12,7 @@ export default function StaffPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="staff"
           title="الموظفين"
           description="اعمل حساب لكل موظف بإيميلو وكلمة سر مؤقتة — أوّل مرّة بيفوت بيطلب منو البرنامج يغيّرها. الـPIN تبع الكاشير بيحطّو الموظف بنفسو من الكاشير."
           hint={{
@@ -21,7 +23,10 @@ export default function StaffPage() {
           }}
           actions={
             <Button asChild>
-              <a href="#new-staff">+ حساب موظف جديد</a>
+              <a href="#new-staff">
+                <Icon name="add" size={16} />
+                حساب موظف جديد
+              </a>
             </Button>
           }
         />

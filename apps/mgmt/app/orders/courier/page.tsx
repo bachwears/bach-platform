@@ -58,6 +58,7 @@ export default async function CourierCashPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-8 p-4 py-8">
         <PageHeader
+          icon="courier"
           back={{ href: "/orders", label: "الطلبات" }}
           title="مصاري الشحن"
           description={

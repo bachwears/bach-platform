@@ -9,6 +9,7 @@ import { Textarea } from "@bach/ui/components/textarea";
 
 import { NOT_SAVED } from "../lib/access";
 import { fmt } from "../lib/time";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 const STATUS_AR: Record<string, string> = {
   open: "جديدة",
@@ -130,20 +131,23 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
       {error && <p role="alert" className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {items.length === 0 ? (
-        <div className="space-y-3 border p-10 text-center text-sm text-muted-foreground">
-          <p>
-            {filter === "active"
+        <EmptyState
+          icon="complaints"
+          title={
+            filter === "active"
               ? "ما في شكاوى مفتوحة — كل تذكرة جديدة من الموقع بتطلع هون."
               : filter === "all"
                 ? "ما في شكاوى بعد — أول تذكرة بيفتحها زبون من الموقع بتطلع هون."
-                : "ما في شكاوى بهالحالة."}
-          </p>
-          {filter !== "all" ? (
-            <button type="button" className="underline underline-offset-4 hover:text-foreground" onClick={() => setFilter("all")}>
-              اعرض كل الشكاوى
-            </button>
-          ) : null}
-        </div>
+                : "ما في شكاوى بهالحالة."
+          }
+          action={
+            filter !== "all" ? (
+              <button type="button" className="text-sm underline underline-offset-4 hover:text-foreground" onClick={() => setFilter("all")}>
+                اعرض كل الشكاوى
+              </button>
+            ) : null
+          }
+        />
       ) : (
         items.map((c) => (
           <div key={c.id} className="border p-4">

@@ -18,6 +18,7 @@ export default async function SiteContentPage() {
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="siteContent"
           title="محتوى الموقع"
           description="عناوين وصور واجهة bachwears.com وإعدادات الإشعارات — غيّرها من هون بلا ما تلمس الكود."
         />

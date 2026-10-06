@@ -10,6 +10,7 @@ import { NOT_SAVED } from "../lib/access";
 import { Label } from "@bach/ui/components/label";
 
 import { ColourPicker, SizePicker, Swatch, useColours, type Colour } from "./colour-picker";
+import { Icon } from "@bach/ui/components/icon";
 
 export interface Variant {
   id: string;
@@ -180,7 +181,8 @@ export function VariantManager({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={busy === "add"}>
-            {busy === "add" ? "عم نضيف…" : "+ ضيف"}
+            <Icon name="add" size={16} />
+            {busy === "add" ? "عم نضيف…" : "زيد"}
           </Button>
           <p className="text-xs text-muted-foreground">اختار اللون من اللائحة ونقّي المقاسات. الـ SKU والباركود بينعملو لحالهن.</p>
         </div>

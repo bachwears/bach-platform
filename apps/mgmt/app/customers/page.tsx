@@ -21,6 +21,7 @@ export default async function CustomersPage() {
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="customers"
           title="الزبائن والمحفظة"
           description="فتّش عن أي زبون لتشوف طلباتو، محفظتو ونقاطو — وأكّد تعبئات Whish المعلّقة (وعدنا: 6 ساعات كحد أقصى)."
           hint={{

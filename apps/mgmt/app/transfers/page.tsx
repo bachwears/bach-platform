@@ -105,6 +105,7 @@ export default async function TransfersPage() {
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="transfers"
           title="التحويل بين الفروع"
           description="انقل قطع من فرع لفرع — الفرع المرسِل بينقص والمستلِم بيزيد بنفس اللحظة."
           hint={{

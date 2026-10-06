@@ -1,7 +1,7 @@
 "use client";
 
-import { Printer } from "lucide-react";
 import { Badge } from "@bach/ui/components/badge";
+import { Icon } from "@bach/ui/components/icon";
 import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
@@ -95,7 +95,7 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
             aria-label="اطبع ليبل"
             className="inline-flex h-9 items-center gap-1.5 border px-3 text-sm hover:bg-muted"
           >
-            <Printer className="h-4 w-4" aria-hidden />
+            <Icon name="print" size={16} />
             <span className="hidden sm:inline">اطبع ليبل</span>
           </a>
           <a

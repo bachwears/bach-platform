@@ -10,6 +10,7 @@ import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
 import { NOT_SAVED } from "../lib/access";
 import { fmt } from "../lib/time";
+import { EmptyState } from "@bach/ui/components/empty-state";
 
 const STATUS_AR: Record<string, string> = {
   requested: "قيد المراجعة",
@@ -101,9 +102,7 @@ export function ReturnsRequestsQueue() {
     <div className="space-y-8">
       {error && <p role="alert" className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
       {rows.length === 0 && !error && (
-        <p className="border p-8 text-center text-sm text-muted-foreground">
-          ما في طلبات إرجاع أو تبديل بعد — لما زبون يطلب من حسابو عالموقع، الطلب بيطلع هون.
-        </p>
+        <EmptyState icon="returns" title="ما في طلبات إرجاع أو تبديل بعد — لما زبون يطلب من حسابو عالموقع، الطلب بيطلع هون." />
       )}
 
       {[

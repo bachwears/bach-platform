@@ -25,6 +25,7 @@ export default async function LabelsPage({ searchParams }: { searchParams: Promi
       </div>
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8 print:max-w-none print:p-0">
         <PageHeader
+          icon="labels"
           title="طباعة الليبلات"
           description="ليبلات باركود للقطع عالطابعة الحرارية — دوّر وزيد القطع، الصق أكتر من كود، أو زيد فئة كاملة؛ وبعدين اطبع."
           hint={{

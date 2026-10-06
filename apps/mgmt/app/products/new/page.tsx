@@ -18,6 +18,7 @@ export default async function NewProductPage() {
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="newProduct"
           title="منتج جديد"
           description="عبّي الأساسيات، اختار الألوان والمقاسات، واحفظ — الصور بتنزاد من صفحة القطعة بعد الحفظ."
           back={{ href: "/products", label: "المنتجات" }}

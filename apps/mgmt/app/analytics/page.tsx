@@ -108,6 +108,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <p className="mt-1 text-sm">آخر {days} يوم (بتوقيت UTC)</p>
         </div>
         <PageHeader
+          icon="analytics"
           title="تحليلات الموقع"
           description={`آخر ${days} يوم (بتوقيت UTC) — هل الاقتراحات وشريط التوصيل المجاني عم يبيعوا؟`}
           hint={{

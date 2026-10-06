@@ -20,6 +20,7 @@ export default async function ComplaintsPage() {
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
         <PageHeader
+          icon="complaints"
           title="الشكاوى"
           description="كل تذكرة بيفتحها زبون من الموقع بتوصل لهون — عيّنها إلك، علّق، ردّ عالزبون، وسكّرها."
           hint={{
