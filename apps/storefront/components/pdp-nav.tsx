@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { usePdpColour } from "./pdp-colour";
+
 export interface PdpNavItem {
   slug: string;
   href: string;
@@ -55,7 +57,17 @@ export function PdpSwipe({ prev, next, children }: { prev: string | null; next: 
  * the bottom of the first screen, just above the pinned buy bar, the current
  * one marked — tap to jump. It steps aside once the shopper scrolls down.
  */
-export function PdpStrip({ items, current }: { items: PdpNavItem[]; current: string }) {
+export function PdpStrip({
+  items,
+  current,
+  currentPhotos = {},
+}: {
+  items: PdpNavItem[];
+  current: string;
+  /** this piece's thumbnail per colour (colour name → photo), so it follows the picked colour */
+  currentPhotos?: Record<string, string>;
+}) {
+  const { color } = usePdpColour();
   const [shown, setShown] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -89,7 +101,7 @@ export function PdpStrip({ items, current }: { items: PdpNavItem[]; current: str
         >
           {it.img ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={it.img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+            <img src={(it.slug === current && color && currentPhotos[color]) || it.img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : null}
         </Link>
       ))}

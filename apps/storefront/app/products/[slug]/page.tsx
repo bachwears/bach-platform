@@ -192,6 +192,12 @@ export default async function ProductPage({
           img: front!.replace(/-1600\.webp$/, "-400.webp"),
         }))
     : [];
+  // this piece's thumbnail follows the picked colour: its product shot in that colour
+  const stripPhotos: Record<string, string> = {};
+  for (const [c, imgs] of Object.entries(colorGalleries)) {
+    const shot = imgs.find((i) => /\/front-/.test(i.url)) ?? imgs[0];
+    if (shot) stripPhotos[c] = shot.url.replace(/-1600\.webp$/, "-400.webp");
+  }
   const navAt = navItems.findIndex((i) => i.slug === product.slug);
   const prevHref = navAt > 0 ? navItems[navAt - 1]!.href : null;
   const nextHref = navAt >= 0 && navAt < navItems.length - 1 ? navItems[navAt + 1]!.href : null;
@@ -369,7 +375,7 @@ export default async function ProductPage({
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <PdpTopBar productId={product.id} name={displayName} />
-      <PdpStrip items={navItems} current={product.slug} />
+      <PdpStrip items={navItems} current={product.slug} currentPhotos={stripPhotos} />
       <ProductViewTracker productId={product.id} slug={product.slug} />
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">
