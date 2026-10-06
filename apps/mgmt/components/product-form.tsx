@@ -11,6 +11,7 @@ import { Select } from "@bach/ui/components/select";
 import { Textarea } from "@bach/ui/components/textarea";
 
 import { NOT_SAVED } from "../lib/access";
+import { ColourPicker, SizePicker, Swatch, type Colour } from "./colour-picker";
 
 export interface Category {
   id: string;
@@ -117,10 +118,13 @@ export function useProductEditor(): Editor {
 export function ProductEditorProvider({
   categories,
   initial,
+  onCreated,
   children,
 }: {
   categories: Category[];
   initial?: ProductValues;
+  /** new products: runs after the insert (variants, next product); true = stay on this screen */
+  onCreated?: (id: string, values: ProductValues) => Promise<boolean>;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -210,6 +214,10 @@ export function ProductEditorProvider({
       }
       const seasonErr = await saveSeasons(data.id);
       if (seasonErr) setError("المنتج انعمل بس المواسم ما انحفظت: " + seasonErr);
+      if (onCreated && (await onCreated(data.id, values))) {
+        setBusy(false);
+        return true;
+      }
       router.replace(`/products/${data.id}`);
       router.refresh();
       return true;
@@ -241,7 +249,7 @@ export function ProductEditorProvider({
     setSaved(true);
     router.refresh();
     return true;
-  }, [initial, isNew, router]);
+  }, [initial, isNew, router, onCreated]);
 
   // unsaved edits: warn before leaving, and Ctrl/Cmd+S saves
   useEffect(() => {
@@ -483,19 +491,82 @@ export function SaveProductButton({ className }: { className?: string }) {
 
 /** The plain form for a new product: everything on one screen, one save. */
 export function ProductForm({ categories, initial }: { categories: Category[]; initial?: ProductValues }) {
+  // "save and add the next one" remounts a fresh form that keeps the category,
+  // prices and details of the product just saved — the usual run of similar pieces
+  const [run, setRun] = useState<{ key: number; start?: ProductValues; last?: string }>({ key: 0, start: initial });
+  const [colours, setColours] = useState<Colour[]>([]);
+  const [sizes, setSizes] = useState<string[]>([]);
+  const next = useRef(false);
+  const router = useRouter();
+
+  const onCreated = useCallback(
+    async (id: string, v: ProductValues) => {
+      // every colour × every size picked becomes a variant (SKU + barcode made by the database)
+      if (colours.length && sizes.length) {
+        const rows = colours.flatMap((c) =>
+          sizes.map((size) => ({ product_id: id, size, color_code: c.code, color_en: c.name_en, color_ar: c.name_ar })),
+        );
+        const { error } = await supabaseBrowser().from("product_variants").insert(rows);
+        if (error) {
+          window.alert(`المنتج انعمل، بس الألوان والمقاسات ما انحفظت: ${error.message}\nكمّلها من صفحة المنتج.`);
+          return false;
+        }
+      }
+      if (!next.current) return false;
+      setRun((r) => ({
+        key: r.key + 1,
+        last: v.name_en,
+        start: { ...EMPTY, category_id: v.category_id, price_usd: v.price_usd, sale_price_usd: v.sale_price_usd, cost_usd: v.cost_usd, status: v.status, fit: v.fit, material_en: v.material_en, care_en: v.care_en, seasons: v.seasons },
+      }));
+      router.refresh();
+      window.scrollTo({ top: 0 });
+      return true;
+    },
+    [colours, sizes, router],
+  );
+
   return (
-    <ProductEditorProvider categories={categories} initial={initial}>
-      <NewProductForm />
-    </ProductEditorProvider>
+    <div className="space-y-4">
+      {run.last && (
+        <p className="border p-3 text-sm">
+          انعمل «<span dir="ltr">{run.last}</span>». الفورم جاهز للتالي — الفئة والأسعار والتفاصيل بقيوا متل ما هنّي.
+        </p>
+      )}
+      <ProductEditorProvider key={run.key} categories={categories} initial={run.start} onCreated={onCreated}>
+        <NewProductForm
+          colours={colours}
+          setColours={setColours}
+          sizes={sizes}
+          setSizes={setSizes}
+          onNext={(v) => {
+            next.current = v;
+          }}
+        />
+      </ProductEditorProvider>
+    </div>
   );
 }
 
-function NewProductForm() {
-  const { save } = useProductEditor();
+function NewProductForm({
+  colours,
+  setColours,
+  sizes,
+  setSizes,
+  onNext,
+}: {
+  colours: Colour[];
+  setColours: (c: Colour[]) => void;
+  sizes: string[];
+  setSizes: (s: string[]) => void;
+  onNext: (next: boolean) => void;
+}) {
+  const { save, busy, error } = useProductEditor();
+  const [adding, setAdding] = useState<Colour | null>(null);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        onNext(false);
         void save();
       }}
       className="space-y-8"
@@ -505,6 +576,41 @@ function NewProductForm() {
         <BasicsFields />
       </section>
       <section className="space-y-4 rounded-lg border p-5">
+        <h2 className="font-medium">الألوان والمقاسات</h2>
+        <div className="space-y-2">
+          <Label>الألوان</Label>
+          <div className="flex flex-wrap gap-2">
+            {colours.map((c) => (
+              <span key={c.code} className="inline-flex items-center gap-2 border px-2 py-1 text-sm">
+                <Swatch c={c} className="h-4 w-4" />
+                <span dir="ltr">{c.name_en}</span>
+                <button type="button" aria-label={`شيل ${c.name_en}`} onClick={() => setColours(colours.filter((x) => x.code !== c.code))}>
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="max-w-sm">
+            <ColourPicker
+              value={adding}
+              onChange={(c) => {
+                if (c && !colours.some((x) => x.code === c.code)) setColours([...colours, c]);
+                setAdding(null);
+              }}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>المقاسات</Label>
+          <SizePicker value={sizes} onChange={setSizes} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {colours.length && sizes.length
+            ? `رح ينعمل ${colours.length * sizes.length} فاريانت (كل لون بكل مقاس)، والـSKU والباركود لحالهن.`
+            : "اختياري هون — فيك تزيدهن بعدين من صفحة المنتج."}
+        </p>
+      </section>
+      <section className="space-y-4 rounded-lg border p-5">
         <h2 className="font-medium">التفاصيل</h2>
         <DetailsFields />
       </section>
@@ -512,8 +618,24 @@ function NewProductForm() {
         <h2 className="font-medium">Google (SEO)</h2>
         <SeoFields />
       </section>
-      <p className="text-sm text-muted-foreground">بعد الإنشاء بتنفتح صفحة المنتج لتزيد الألوان والمقاسات والصور.</p>
-      <SaveProductButton />
+      <p className="text-sm text-muted-foreground">الصور بتنزاد من صفحة المنتج بعد الإنشاء (أو بالجملة من «الصور»).</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={busy}>
+          {busy ? "عم نحفظ…" : "احفظ وافتح المنتج"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            onNext(true);
+            void save();
+          }}
+        >
+          احفظ وزيد التالي
+        </Button>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      </div>
     </form>
   );
 }

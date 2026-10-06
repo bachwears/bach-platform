@@ -9,6 +9,8 @@ import { Input } from "@bach/ui/components/input";
 import { NOT_SAVED } from "../lib/access";
 import { Label } from "@bach/ui/components/label";
 
+import { ColourPicker, SizePicker, Swatch, useColours, type Colour } from "./colour-picker";
+
 export interface Variant {
   id: string;
   size: string;
@@ -38,10 +40,9 @@ export function VariantManager({
   variants: Variant[];
 }) {
   const router = useRouter();
-  const [size, setSize] = useState("");
-  const [colorCode, setColorCode] = useState("");
-  const [colorEn, setColorEn] = useState("");
-  const [colorAr, setColorAr] = useState("");
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [colour, setColour] = useState<Colour | null>(null);
+  const { colours } = useColours();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -50,29 +51,24 @@ export function VariantManager({
   for (const v of variants) groups.set(v.color_code, [...(groups.get(v.color_code) ?? []), v]);
   const colourList = [...groups.values()].map((list) => [...list].sort((a, b) => sizeRank(a.size) - sizeRank(b.size) || a.size.localeCompare(b.size)));
 
-  // picking an existing colour fills the three colour fields at once
+  // picking one of this product's colours: add more sizes to it
   function pickColour(v: Variant) {
-    setColorCode(v.color_code);
-    setColorEn(v.color_en);
-    setColorAr(v.color_ar);
+    const known = colours.find((c) => c.name_en.toLowerCase() === v.color_en.toLowerCase());
+    setColour({ code: v.color_code, name_en: v.color_en, name_ar: v.color_ar, hex: known?.hex ?? null, hex2: known?.hex2 ?? null, family: known?.family ?? null });
   }
 
   async function addVariant(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!/^[A-Z]{2,3}$/.test(colorCode)) {
-      setError("كود اللون لازم يكون 2-3 أحرف كبيرة (مثلاً NVY)");
-      return;
-    }
-    const sizes = size
-      .split(/[,\s]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
-    if (!sizes.length) return setError("اكتب مقاس واحد أقل شي");
+    if (!colour) return setError("اختار اللون");
+    if (!sizes.length) return setError("اختار مقاس واحد أقل شي");
+    // a colour this product already has keeps its code (it's inside the SKUs on the labels)
+    const same = variants.find((v) => v.color_en.toLowerCase() === colour.name_en.toLowerCase());
+    const colorCode = same?.color_code ?? colour.code;
     setBusy("add");
     const { data, error: insertError } = await supabaseBrowser()
       .from("product_variants")
-      .insert(sizes.map((s) => ({ product_id: productId, size: s, color_code: colorCode, color_en: colorEn.trim(), color_ar: colorAr.trim() })))
+      .insert(sizes.map((s) => ({ product_id: productId, size: s, color_code: colorCode, color_en: colour.name_en, color_ar: colour.name_ar })))
       .select("id");
     setBusy(null);
     if (insertError) {
@@ -80,7 +76,7 @@ export function VariantManager({
       return;
     }
     if (!data?.length) return setError(NOT_SAVED);
-    setSize("");
+    setSizes([]);
     router.refresh();
   }
 
@@ -108,6 +104,7 @@ export function VariantManager({
             return (
               <div key={head.color_code} className="overflow-hidden rounded-lg border">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/40 px-3 py-2 text-sm">
+                  <Swatch c={colours.find((c) => c.name_en.toLowerCase() === head.color_en.toLowerCase()) ?? null} className="h-4 w-4" />
                   <span className="font-medium" dir="ltr">
                     {head.color_en}
                   </span>
@@ -171,29 +168,21 @@ export function VariantManager({
 
       <form onSubmit={addVariant} className="space-y-3 rounded-lg border p-4">
         <p className="text-sm font-medium">زيد لون أو مقاسات</p>
-        <div className="grid items-end gap-3 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="v-code">كود اللون</Label>
-            <Input id="v-code" dir="ltr" required placeholder="NVY" maxLength={3} value={colorCode} onChange={(e) => setColorCode(e.target.value.toUpperCase())} />
+            <Label>اللون</Label>
+            <ColourPicker value={colour} onChange={setColour} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="v-en">اللون EN</Label>
-            <Input id="v-en" dir="ltr" required placeholder="Navy" value={colorEn} onChange={(e) => setColorEn(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="v-ar">اللون AR</Label>
-            <Input id="v-ar" required placeholder="كحلي" value={colorAr} onChange={(e) => setColorAr(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="v-size">المقاسات</Label>
-            <Input id="v-size" dir="ltr" required placeholder="S, M, L" value={size} onChange={(e) => setSize(e.target.value)} />
+            <Label>المقاسات</Label>
+            <SizePicker value={sizes} onChange={setSizes} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={busy === "add"}>
             {busy === "add" ? "عم نضيف…" : "+ ضيف"}
           </Button>
-          <p className="text-xs text-muted-foreground">فيك تكتب كذا مقاس مرّة وحدة مفصولين بفاصلة. الـ SKU والباركود بينعملو لحالهن.</p>
+          <p className="text-xs text-muted-foreground">اختار اللون من اللائحة ونقّي المقاسات. الـ SKU والباركود بينعملو لحالهن.</p>
         </div>
       </form>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
