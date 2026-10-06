@@ -55,6 +55,7 @@ const ITEMS: PortalNavItem[] = [
       { href: "/help-articles", label: "تعديل المساعدة" },
     ],
   },
+  { href: "/staff", label: "الموظفين" },
 ];
 
 /** The menu shows each role only the screens it can use (lib/access.ts). */

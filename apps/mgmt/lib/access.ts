@@ -40,6 +40,8 @@ const ROUTES: Array<[string, StaffRole[]]> = [
   ["/site-content", CATALOG],
   ["/analytics", ["store_manager", "marketing_manager"]],
   ["/help-articles", ["marketing_manager"]],
+  // staff accounts and roles: super admin only
+  ["/staff", []],
 ];
 
 export function canOpen(path: string, role: string | null | undefined): boolean {
