@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { EmptyState } from "@bach/ui/components/empty-state";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { barcodeForms, latinDigits, variantPhotos } from "../lib/offline";
@@ -313,9 +314,9 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
       {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {takeId && counts.length === 0 && (
-        <p className="border p-8 text-center text-sm text-muted-foreground">
-          لسّا ما انعدّت ولا قطعة — امسح باركود أول قطعة عالرف، وكل مسحة بتزيد عدّها واحد.
-        </p>
+        <EmptyState icon="stocktake" title="لسّا ما انعدّت ولا قطعة">
+          امسح باركود أول قطعة عالرف، وكل مسحة بتزيد عدّها واحد.
+        </EmptyState>
       )}
 
       {counts.length > 0 && (

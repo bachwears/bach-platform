@@ -1,12 +1,11 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
-
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { HintDot, type HintContent } from "@bach/ui/components/hint-dot";
+import { Icon } from "@bach/ui/components/icon";
 
 interface Totals {
   ordersCount: number;
@@ -217,7 +216,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
     <div className="space-y-5">
       {pendingOffline > 0 && (
         <p className="border border-foreground px-4 py-2 text-sm print:hidden">
-          <TriangleAlert className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+          <Icon name="lowStock" size={16} className="me-2 inline align-[-2px]" />
           في {pendingOffline} مبيعات أوفلاين لسا ما تزامنت — ارجع عشاشة الكاشير وزامنها قبل ما تسكّر اليوم،
           وإلا أرقام اليوم بتطلع ناقصة.
         </p>

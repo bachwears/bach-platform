@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ScanLine, X } from "lucide-react";
 import { Button } from "@bach/ui/components/button";
+import { Icon } from "@bach/ui/components/icon";
 
 const FORMATS = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code"];
 
@@ -102,7 +102,7 @@ export function CameraScanner({ onDetect }: { onDetect: (code: string) => void }
           setOpen(true);
         }}
       >
-        <ScanLine className="h-5 w-5" aria-hidden />
+        <Icon name="scan" />
       </Button>
 
       {open && (
@@ -115,7 +115,7 @@ export function CameraScanner({ onDetect }: { onDetect: (code: string) => void }
               className="grid h-10 w-10 place-items-center bg-white/10"
               onClick={() => setOpen(false)}
             >
-              <X className="h-5 w-5" aria-hidden />
+              <Icon name="close" />
             </button>
           </div>
           <div className="relative mx-auto w-full max-w-lg flex-1 overflow-hidden px-4 pb-6">

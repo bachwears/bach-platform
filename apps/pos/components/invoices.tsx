@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { EmptyState } from "@bach/ui/components/empty-state";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 import { Input } from "@bach/ui/components/input";
+import { OrderStatus } from "@bach/ui/components/order-status";
 import { Thumb } from "@bach/ui/components/thumb";
 import { variantPhotos } from "../lib/offline";
 
@@ -49,19 +52,8 @@ const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const SELECT =
   "id, number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(variant_id, name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
 
-/** Status names staff read (the raw enum value meant nothing at the counter). */
-const STATUS_AR: Record<string, string> = {
-  pending: "جديد",
-  confirmed: "مؤكّد",
-  picking: "قيد التجهيز",
-  packed: "جاهز",
-  shipped: "بالشحن",
-  delivered: "وصل",
-  completed: "مسكّر",
-  cancelled: "ملغى",
-  returned: "مرتجع",
-  exchanged: "مبدّل",
-};
+/** The payment method's icon (cash on delivery is cash; store credit is the wallet). */
+const METHOD_ICON: Record<string, IconName> = { cash: "cash", cod: "cash", whish: "whish", stripe: "card", credit: "wallet" };
 const METHOD_EN: Record<string, string> = { credit: "Store credit", whish: "Whish", cod: "Cash on delivery", stripe: "Card" };
 
 /** Rebuild the till receipt from what the sale recorded (a reprint). */
@@ -157,6 +149,7 @@ export function Invoices() {
         )}
         <div className="flex gap-3 print:hidden">
           <Button className="h-11 flex-1" onClick={() => window.print()}>
+            <Icon name="print" size={16} />
             اطبع
           </Button>
           <Button className="h-11 flex-1" variant="outline" onClick={() => setPrinting(null)}>
@@ -182,9 +175,7 @@ export function Invoices() {
         </p>
       )}
       {!searched && (
-        <p className="p-8 text-center text-sm text-muted-foreground">
-          اكتب رقم الفاتورة (مثلاً 1024) أو اسم/تلفون الزبون لتطلع فواتيرو هون.
-        </p>
+        <EmptyState icon="invoices" title="اكتب رقم الفاتورة (مثلاً 1024) أو اسم/تلفون الزبون لتطلع فواتيرو هون." />
       )}
       {rows.map((o) => (
         <div key={o.id} className="border">
@@ -197,7 +188,7 @@ export function Invoices() {
               <span className="font-mono text-lg font-medium" dir="ltr">#{o.number}</span>
               <Badge variant="secondary">{o.channel === "pos" ? "محل" : "أونلاين"}</Badge>
               {o.fulfilment === "pickup" ? <Badge variant="outline">استلام من المحل</Badge> : null}
-              <span className="text-xs text-muted-foreground">{STATUS_AR[o.status] ?? o.status}</span>
+              <OrderStatus status={o.status} fulfilment={o.fulfilment} />
             </span>
             <span className="flex items-center gap-3 text-sm">
               <span className="text-muted-foreground" dir="ltr">
@@ -246,9 +237,10 @@ export function Invoices() {
               </ul>
               <div className="flex flex-wrap gap-4 border-t pt-2 text-xs text-muted-foreground">
                 {o.discount_usd_cents > 0 && <span>خصم: <span className="font-mono" dir="ltr">{usd(o.discount_usd_cents)}</span></span>}
-                <span>الدفع: {o.payment_method === "whish" ? "Whish / محفظة" : o.payment_method === "cod" ? "عند الاستلام" : o.payment_method ?? "كاش"}</span>
+                <span className="flex items-center gap-1.5"><Icon name={METHOD_ICON[o.payment_method ?? "cash"] ?? "cash"} size={14} />الدفع: {o.payment_method === "whish" ? "Whish / محفظة" : o.payment_method === "cod" ? "عند الاستلام" : o.payment_method ?? "كاش"}</span>
               </div>
               <Button variant="outline" className="h-10" onClick={() => setPrinting(o)}>
+                <Icon name="print" size={16} />
                 {o.channel === "pos" ? "اطبع الإيصال مرة تانية" : "اطبع ورقة التجهيز"}
               </Button>
             </div>

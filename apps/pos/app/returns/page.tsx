@@ -34,6 +34,7 @@ export default async function ReturnsPage() {
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
         <PageHeader
           title="مرتجع وتبديل"
+          icon="returns"
           description="افتح فاتورة الزبون، اختار القطع يلي عم يرجّعها، وسجّل إرجاع بمصاري أو تبديل بقطع تانية."
           hint={{
             title: "المرتجع والتبديل",

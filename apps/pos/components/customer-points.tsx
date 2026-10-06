@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Icon } from "@bach/ui/components/icon";
 
 const usd = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 
@@ -92,6 +93,7 @@ export function CustomerPoints({
     <div className={`space-y-1 ${className}`}>
       <div className="flex items-center justify-between gap-2 text-xs">
         <span className="flex items-center gap-1.5 text-muted-foreground">
+          <Icon name="points" size={14} />
           النقاط: <span className="font-mono text-foreground" dir="ltr">{balance}</span>
           <span dir="ltr">(= {usd(worth)})</span>
           <HintDot

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { HintDot, type HintContent } from "./hint-dot";
+import { Icon, type IconName } from "./icon";
 
 /**
  * The top of every staff screen, the same everywhere: what the screen is
@@ -9,12 +10,15 @@ import { HintDot, type HintContent } from "./hint-dot";
  */
 export function PageHeader({
   title,
+  icon,
   description,
   hint,
   actions,
   back,
 }: {
   title: ReactNode;
+  /** the screen's icon from the BACH set (same as in the menu) */
+  icon?: IconName;
   description?: ReactNode;
   hint?: HintContent;
   actions?: ReactNode;
@@ -31,6 +35,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <h1 className="flex items-center gap-2 text-2xl font-normal tracking-tight">
+            {icon ? <Icon name={icon} size={24} className="shrink-0" /> : null}
             {title}
             {hint ? <HintDot hint={hint} /> : null}
           </h1>

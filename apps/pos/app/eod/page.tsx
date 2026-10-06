@@ -28,6 +28,7 @@ export default async function EodPage() {
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
         <PageHeader
           title="تسكير آخر النهار"
+          icon="endOfDay"
           description="شوف مبيعات اليوم وشو لازم يكون بالدرج، عدّ المصاري، وسكّر اليوم — بعدين اطبع التقرير ووقّعو."
           actions={allowed && branch ? <PrintButton label="اطبع التقرير" /> : undefined}
         />

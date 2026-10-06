@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Cake, Clock, Pause, User, WifiOff } from "lucide-react";
+import { Clock } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
@@ -8,6 +8,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Icon } from "@bach/ui/components/icon";
 
 import { CameraScanner } from "./camera-scanner";
 import { CustomerPoints } from "./customer-points";
@@ -549,6 +550,7 @@ export function Cashier({
         <ReceiptView receipt={receipt} branchName={branchName} />
         <div className="flex gap-3 print:hidden">
           <Button className="h-12 flex-1" onClick={() => window.print()}>
+            <Icon name="print" size={16} />
             اطبع الإيصال
           </Button>
           <Button className="h-12 flex-1" variant="outline" onClick={() => setReceipt(null)}>
@@ -563,7 +565,7 @@ export function Cashier({
     <div className="space-y-4">
       {!online && (
         <p className="border border-foreground px-4 py-2 text-sm">
-          <WifiOff className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+          <Icon name="offline" size={16} className="me-2 inline align-[-2px]" />
           النت مقطوع — البيع شغّال، والمبيعات بتتسجّل محليًا وبتتزامن لحالها لما يرجع الاتصال.
         </p>
       )}
@@ -571,6 +573,7 @@ export function Cashier({
         <p className="flex flex-wrap items-center justify-between gap-2 border px-4 py-2 text-sm">
           <span><Clock className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />{queueCount} مبيعات بانتظار المزامنة</span>
           <Button size="sm" variant="outline" onClick={() => void doSync()}>
+            <Icon name="refresh" size={16} />
             زامن الآن
           </Button>
         </p>
@@ -578,7 +581,7 @@ export function Cashier({
       {failedSales.length > 0 && (
         <div className="space-y-2 border border-destructive/50 px-4 py-3 text-sm">
           <p className="font-medium text-destructive">
-            <AlertTriangle className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
+            <Icon name="lowStock" size={16} className="me-2 inline align-[-2px]" />
             {failedSales.length} مبيعات أوفلاين رفضها السيرفر — راجعها مع المدير.
           </p>
           <ul className="divide-y">
@@ -596,6 +599,7 @@ export function Cashier({
                 </span>
                 <span className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => retryFailed(s.clientRef)}>
+                    <Icon name="refresh" size={16} />
                     جرّب مرة تانية
                   </Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => discardFailed(s)}>
@@ -672,7 +676,7 @@ export function Cashier({
 
         {parked.length > 0 && cart.length === 0 && (
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-muted-foreground">مبيعات مركونة:</span>
+            <span className="flex items-center gap-1.5 text-muted-foreground"><Icon name="park" size={16} />مبيعات مركونة:</span>
             {parked.map((p) => (
               <button
                 key={p.id}
@@ -783,7 +787,8 @@ export function Cashier({
         </div>
         {cart.length > 0 && (
           <Button variant="outline" className="h-10" onClick={() => void parkSale()}>
-            <Pause className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden /> اركن البيع لبعدين
+            <Icon name="park" size={16} />
+            اركن البيع لبعدين
           </Button>
         )}
       </section>
@@ -854,7 +859,7 @@ export function Cashier({
           {customer ? (
             <div className="flex items-center justify-between gap-2">
               <span>
-                <User className="me-1 inline h-4 w-4 align-[-2px]" aria-hidden />{customer.name}
+                <Icon name="user" size={16} className="me-1 inline align-[-2px]" />{customer.name}
                 {customer.phone && (
                   <span className="block text-xs text-muted-foreground" dir="ltr">{customer.phone}</span>
                 )}
@@ -897,6 +902,7 @@ export function Cashier({
                     className="h-10"
                   />
                   <Button className="h-10" disabled={!newCustName.trim()} onClick={() => void quickCreateCustomer()}>
+                    <Icon name="add" size={16} />
                     ضيف الزبون
                   </Button>
                 </div>
@@ -911,12 +917,13 @@ export function Cashier({
               className="w-full"
               onClick={() => setBdayApplied(true)}
             >
-              <Cake className="me-1 inline h-4 w-4 align-[-2px]" aria-hidden /> عيد ميلادو — طبّق خصم {bday.percent}%
+              <Icon name="birthday" size={16} />
+              عيد ميلادو — طبّق خصم {bday.percent}%
             </Button>
           )}
           {bdayApplied && bday && (
             <p className="flex items-center justify-between text-xs">
-              <span><Cake className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />خصم عيد الميلاد {bday.percent}% مُطبّق</span>
+              <span><Icon name="birthday" size={14} className="me-1 inline align-[-2px]" />خصم عيد الميلاد {bday.percent}% مُطبّق</span>
               <Button size="sm" variant="ghost" onClick={() => setBdayApplied(false)}>تراجع</Button>
             </p>
           )}
@@ -957,7 +964,8 @@ export function Cashier({
 
         <div className="space-y-3 border-t pt-4">
           <div className="space-y-1">
-            <label className="text-sm" htmlFor="paid-usd">
+            <label className="flex items-center gap-1.5 text-sm" htmlFor="paid-usd">
+              <Icon name="cash" size={16} />
               المدفوع دولار ($)
             </label>
             <Input
@@ -971,6 +979,7 @@ export function Cashier({
           </div>
           <div className="space-y-1">
             <label className="flex items-center gap-1.5 text-sm" htmlFor="paid-lbp">
+              <Icon name="cash" size={16} />
               المدفوع ليرة (ل.ل)
               <HintDot
                 hint={{

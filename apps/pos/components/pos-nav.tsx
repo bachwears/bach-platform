@@ -1,5 +1,5 @@
-import { CalendarCheck, CircleHelp, ClipboardList, Package, Receipt, RotateCcw, ShoppingBag } from "lucide-react";
 import { supabaseServer } from "@bach/supabase/server";
+import { Icon } from "@bach/ui/components/icon";
 import { PortalNav } from "@bach/ui/components/portal-nav";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -24,13 +24,13 @@ export async function PosNav({ branchName }: { branchName?: string | null }) {
       title="POS"
       subtitle={branchName ?? undefined}
       items={[
-        { href: "/", label: "بيع", icon: <ShoppingBag strokeWidth={1.5} /> },
-        { href: "/queue", label: "أونلاين", icon: <Package strokeWidth={1.5} /> },
-        { href: "/returns", label: "مرتجع", icon: <RotateCcw strokeWidth={1.5} /> },
-        { href: "/invoices", label: "فواتير", icon: <Receipt strokeWidth={1.5} /> },
-        { href: "/stocktake", label: "جرد", icon: <ClipboardList strokeWidth={1.5} /> },
-        { href: "/eod", label: "آخر النهار", icon: <CalendarCheck strokeWidth={1.5} /> },
-        { href: "/help", label: "مساعدة", icon: <CircleHelp strokeWidth={1.5} /> },
+        { href: "/", label: "بيع", icon: <Icon name="sell" /> },
+        { href: "/queue", label: "أونلاين", icon: <Icon name="online" /> },
+        { href: "/returns", label: "مرتجع", icon: <Icon name="returns" /> },
+        { href: "/invoices", label: "فواتير", icon: <Icon name="invoices" /> },
+        { href: "/stocktake", label: "جرد", icon: <Icon name="stocktake" /> },
+        { href: "/eod", label: "آخر النهار", icon: <Icon name="endOfDay" /> },
+        { href: "/help", label: "مساعدة", icon: <Icon name="help" /> },
       ]}
       meta={`${profile?.full_name ?? user?.email ?? ""} · ${ROLE_LABELS[profile?.role ?? ""] ?? profile?.role ?? ""}`}
     />

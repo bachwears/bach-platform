@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "./button";
+import { Icon } from "./icon";
 import { ThemeToggle } from "./theme-toggle";
 
 export interface PortalNavLink {
@@ -21,22 +22,7 @@ export type PortalNavItem = PortalNavLink | PortalNavGroup;
 
 const isGroup = (i: PortalNavItem): i is PortalNavGroup => "links" in i;
 
-const MenuIcon = ({ open }: { open: boolean }) => (
-  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-    {open ? (
-      <>
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-      </>
-    ) : (
-      <>
-        <path d="M4 7h16" />
-        <path d="M4 12h16" />
-        <path d="M4 17h16" />
-      </>
-    )}
-  </svg>
-);
+const MenuIcon = ({ open }: { open: boolean }) => <Icon name={open ? "close" : "menu"} size={20} />;
 
 function isActive(path: string, href: string) {
   if (href === "/") return path === "/";
@@ -126,8 +112,9 @@ export function PortalNav({
                 key={l.href}
                 href={l.href}
                 aria-current={isActive(path, l.href) && current?.href === l.href ? "page" : undefined}
-                className="inline-flex items-center border-b-2 border-transparent px-3 text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:text-foreground"
+                className="inline-flex items-center gap-2 border-b-2 border-transparent px-3 text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:text-foreground"
               >
+                {l.icon ? <span className="shrink-0 [&>svg]:h-[18px] [&>svg]:w-[18px]" aria-hidden>{l.icon}</span> : null}
                 {l.label}
               </a>
             ))}
@@ -200,8 +187,9 @@ export function PortalNav({
                   <a
                     href={l.href}
                     aria-current={current?.href === l.href ? "page" : undefined}
-                    className="block border-s-2 border-transparent py-1.5 ps-3 text-sm text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
+                    className="flex items-center gap-2.5 border-s-2 border-transparent py-1.5 ps-3 text-sm text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
                   >
+                    {l.icon ? <span className="shrink-0 [&>svg]:h-[18px] [&>svg]:w-[18px]" aria-hidden>{l.icon}</span> : null}
                     {l.label}
                   </a>
                 </li>
@@ -214,6 +202,7 @@ export function PortalNav({
         {meta ? <p className="truncate text-xs text-muted-foreground">{meta}</p> : null}
         <form action="/logout" method="post">
           <Button type="submit" variant="outline" size="sm">
+            <Icon name="logout" size={16} className="me-1.5" />
             {logoutLabel}
           </Button>
         </form>

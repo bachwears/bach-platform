@@ -24,6 +24,7 @@ export default async function StocktakePage() {
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-6">
         <PageHeader
           title="الجرد"
+          icon="stocktake"
           description="عدّ القطع يلي عالرفوف بالمسح، قارن مع المخزون بالنظام، وبعدين المدير بيطبّق الفرق."
           hint={{
             title: "كيف بيمشي الجرد",

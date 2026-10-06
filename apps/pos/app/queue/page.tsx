@@ -20,6 +20,7 @@ export default async function QueuePage() {
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-6">
         <PageHeader
           title="طلبات الأونلاين"
+          icon="online"
           description="طلبات bachwears.com يلي لسّا مفتوحة، الأقدم فوق — كبس الزر عند كل طلب لتنقلو عالمرحلة الجاية."
           hint={{
             title: "مراحل الطلب",

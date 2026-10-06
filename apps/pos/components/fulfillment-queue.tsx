@@ -4,18 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { EmptyState } from "@bach/ui/components/empty-state";
+import { Icon } from "@bach/ui/components/icon";
 import { Input } from "@bach/ui/components/input";
+import { OrderStatus } from "@bach/ui/components/order-status";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
-
-const STATUS_AR: Record<string, string> = {
-  pending: "جديد",
-  confirmed: "مؤكّد",
-  picking: "قيد التجهيز",
-  packed: "جاهز",
-  shipped: "بالشحن",
-  delivered: "وصل",
-};
 
 const NEXT: Record<string, { to: string; label: string }> = {
   pending: { to: "confirmed", label: "أكّد الطلب" },
@@ -27,7 +21,6 @@ const NEXT: Record<string, { to: string; label: string }> = {
 };
 
 // Pickup orders walk the same statuses: 'shipped' = ready for pickup, 'delivered' = collected.
-const PICKUP_STATUS_AR: Record<string, string> = { shipped: "جاهز للاستلام", delivered: "انستلم" };
 const PICKUP_NEXT: Record<string, { to: string; label: string }> = {
   packed: { to: "shipped", label: "جاهز للاستلام — بلّغ الزبون" },
   shipped: { to: "delivered", label: "انستلم" },
@@ -123,11 +116,11 @@ function CollectPanel({
       <p className="text-sm font-medium">قبض طلب الاستلام — المطلوب {usd(total)}</p>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="grid gap-1 text-xs text-muted-foreground">
-          كاش دولار ($)
+          <span className="flex items-center gap-1.5"><Icon name="cash" size={14} />كاش دولار ($)</span>
           <Input inputMode="decimal" dir="ltr" value={usdIn} onChange={(e) => setUsdIn(e.target.value)} placeholder="0" />
         </label>
         <label className="grid gap-1 text-xs text-muted-foreground">
-          كاش ليرة (ل.ل)
+          <span className="flex items-center gap-1.5"><Icon name="cash" size={14} />كاش ليرة (ل.ل)</span>
           <Input
             inputMode="numeric"
             dir="ltr"
@@ -138,7 +131,7 @@ function CollectPanel({
           />
         </label>
         <label className="grid gap-1 text-xs text-muted-foreground">
-          Whish ($)
+          <span className="flex items-center gap-1.5"><Icon name="whish" size={14} />Whish ($)</span>
           <Input inputMode="decimal" dir="ltr" value={whishIn} onChange={(e) => setWhishIn(e.target.value)} placeholder="0" />
         </label>
       </div>
@@ -245,13 +238,16 @@ export function FulfillmentQueue() {
         <div className="flex flex-wrap items-center justify-between gap-2 border border-destructive/40 px-4 py-2 text-sm text-destructive">
           <span>{loadError}</span>
           <Button size="sm" variant="outline" onClick={() => void load()}>
+            <Icon name="refresh" size={16} />
             جرّب مرة تانية
           </Button>
         </div>
       )}
       {orders.length === 0 ? (
         loaded && !loadError ? (
-          <p className="border p-10 text-center text-sm text-muted-foreground">ما في طلبات أونلاين مفتوحة حالياً — كل شي مسكّر. أول طلب جديد من bachwears.com بيطلع هون لحالو (الصفحة بتتحدّث كل 30 ثانية).</p>
+          <EmptyState icon="online" title="ما في طلبات أونلاين مفتوحة حالياً — كل شي مسكّر.">
+            أول طلب جديد من bachwears.com بيطلع هون لحالو (الصفحة بتتحدّث كل 30 ثانية).
+          </EmptyState>
         ) : null
       ) : (
         orders.map((o) => {
@@ -264,9 +260,7 @@ export function FulfillmentQueue() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="font-mono text-lg font-medium">#{o.number}</span>
-                <Badge variant={o.status === "pending" ? "default" : "secondary"}>
-                  {(pickup ? PICKUP_STATUS_AR[o.status] : undefined) ?? STATUS_AR[o.status] ?? o.status}
-                </Badge>
+                <OrderStatus status={o.status} fulfilment={o.fulfilment} />
                 {pickup ? <Badge variant="outline">استلام من المحل</Badge> : null}
                 <span className="text-sm text-muted-foreground" dir="ltr">
                   {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
@@ -315,6 +309,7 @@ export function FulfillmentQueue() {
               {collectAtShop ? (
                 <>
                   <Button className="h-10" disabled={busy === o.id} onClick={() => void advance(o.id, "delivered")}>
+                    <Icon name="cash" size={16} />
                     {busy === o.id ? "لحظة…" : `انستلم — قبضنا ${usd(o.total_usd_cents)} كاش`}
                   </Button>
                   <Button
@@ -323,6 +318,7 @@ export function FulfillmentQueue() {
                     disabled={busy === o.id}
                     onClick={() => void advance(o.id, "delivered", { usd: 0, lbp: 0, whish: o.total_usd_cents })}
                   >
+                    <Icon name="whish" size={16} />
                     انستلم — دفع Whish
                   </Button>
                   {collecting === o.id ? (
@@ -334,6 +330,7 @@ export function FulfillmentQueue() {
                     />
                   ) : (
                     <Button variant="outline" className="h-10" disabled={busy === o.id} onClick={() => setCollecting(o.id)}>
+                      <Icon name="cash" size={16} />
                       ليرة أو دفع مختلط…
                     </Button>
                   )}

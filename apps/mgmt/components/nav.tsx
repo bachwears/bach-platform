@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { Icon } from "@bach/ui/components/icon";
 import { PortalNav, type PortalNavItem } from "@bach/ui/components/portal-nav";
 
 import { canOpen } from "../lib/access";
@@ -9,66 +10,66 @@ export const ITEMS: PortalNavItem[] = [
   {
     label: "اليوم",
     links: [
-      { href: "/", label: "الرئيسية" },
-      { href: "/orders", label: "الطلبات" },
-      { href: "/orders/courier", label: "مصاري الشحن" },
-      { href: "/returns", label: "طلبات الإرجاع" },
-      { href: "/complaints", label: "الشكاوى" },
+      { href: "/", label: "الرئيسية", icon: <Icon name="home" /> },
+      { href: "/orders", label: "الطلبات", icon: <Icon name="orders" /> },
+      { href: "/orders/courier", label: "مصاري الشحن", icon: <Icon name="courier" /> },
+      { href: "/returns", label: "طلبات الإرجاع", icon: <Icon name="returns" /> },
+      { href: "/complaints", label: "الشكاوى", icon: <Icon name="complaints" /> },
     ],
   },
   {
     label: "الزبائن",
-    links: [{ href: "/customers", label: "الزبائن والمحفظة" }],
+    links: [{ href: "/customers", label: "الزبائن والمحفظة", icon: <Icon name="customers" /> }],
   },
   {
     label: "الكتالوج",
     links: [
-      { href: "/products", label: "المنتجات" },
-      { href: "/products/new", label: "منتج جديد" },
-      { href: "/categories", label: "الفئات" },
-      { href: "/categories/images", label: "صور الفئات" },
-      { href: "/collections", label: "الكولكشنات" },
-      { href: "/sizes", label: "المقاسات" },
-      { href: "/media-import", label: "رفع الصور" },
-      { href: "/media-match", label: "مطابقة الصور" },
-      { href: "/product-health", label: "صحة البيانات" },
+      { href: "/products", label: "المنتجات", icon: <Icon name="products" /> },
+      { href: "/products/new", label: "منتج جديد", icon: <Icon name="newProduct" /> },
+      { href: "/categories", label: "الفئات", icon: <Icon name="categories" /> },
+      { href: "/categories/images", label: "صور الفئات", icon: <Icon name="categoryImages" /> },
+      { href: "/collections", label: "الكولكشنات", icon: <Icon name="collections" /> },
+      { href: "/sizes", label: "المقاسات", icon: <Icon name="sizes" /> },
+      { href: "/media-import", label: "رفع الصور", icon: <Icon name="photosUpload" /> },
+      { href: "/media-match", label: "مطابقة الصور", icon: <Icon name="photosMatch" /> },
+      { href: "/product-health", label: "صحة البيانات", icon: <Icon name="dataHealth" /> },
     ],
   },
   {
     label: "المخزون",
     links: [
-      { href: "/inventory", label: "المخزون" },
-      { href: "/purchasing", label: "المشتريات" },
-      { href: "/transfers", label: "التحويل بين الفروع" },
-      { href: "/labels", label: "الليبلات" },
+      { href: "/inventory", label: "المخزون", icon: <Icon name="inventory" /> },
+      { href: "/purchasing", label: "المشتريات", icon: <Icon name="purchasing" /> },
+      { href: "/transfers", label: "التحويل بين الفروع", icon: <Icon name="transfers" /> },
+      { href: "/labels", label: "الليبلات", icon: <Icon name="labels" /> },
     ],
   },
   {
     label: "التسويق",
     links: [
-      { href: "/marketing", label: "الحملات والعروض" },
-      { href: "/site-content", label: "محتوى الموقع" },
-      { href: "/analytics", label: "تحليلات الموقع" },
+      { href: "/marketing", label: "الحملات والعروض", icon: <Icon name="campaigns" /> },
+      { href: "/site-content", label: "محتوى الموقع", icon: <Icon name="siteContent" /> },
+      { href: "/analytics", label: "تحليلات الموقع", icon: <Icon name="analytics" /> },
     ],
   },
   {
     label: "المالية",
     links: [
-      { href: "/reports", label: "التقارير" },
-      { href: "/exchange-rate", label: "سعر الصرف" },
-      { href: "/payments", label: "الدفع" },
+      { href: "/reports", label: "التقارير", icon: <Icon name="reports" /> },
+      { href: "/exchange-rate", label: "سعر الصرف", icon: <Icon name="rate" /> },
+      { href: "/payments", label: "الدفع", icon: <Icon name="payments" /> },
     ],
   },
   {
     label: "الإدارة",
     links: [
-      { href: "/staff", label: "الموظفين" },
-      { href: "/help-articles", label: "تعديل المساعدة" },
+      { href: "/staff", label: "الموظفين", icon: <Icon name="staff" /> },
+      { href: "/help-articles", label: "تعديل المساعدة", icon: <Icon name="helpEditor" /> },
     ],
   },
   {
     label: "مساعدة",
-    links: [{ href: "/help", label: "مركز المساعدة" }],
+    links: [{ href: "/help", label: "مركز المساعدة", icon: <Icon name="help" /> }],
   },
 ];
 

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+import { EmptyState } from "@bach/ui/components/empty-state";
+import { Icon } from "@bach/ui/components/icon";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { variantPhotos } from "../lib/offline";
@@ -365,6 +367,7 @@ export function Returns({
         </div>
         <div className="flex gap-3 print:hidden">
           <Button className="h-11 flex-1" onClick={() => window.print()}>
+            <Icon name="print" size={16} />
             اطبع الوصل
           </Button>
           <Button className="h-11 flex-1" variant="outline" onClick={() => setSlip(null)}>
@@ -398,13 +401,13 @@ export function Returns({
       </div>
 
       {!order && !error && (
-        <p className="border p-8 text-center text-sm text-muted-foreground">
-          اكتب رقم الفاتورة من إيصال الزبون واكبس «افتح الفاتورة». ما معو الإيصال؟ لاقيها باسمو أو تلفونو من{" "}
+        <EmptyState icon="returns" title="اكتب رقم الفاتورة من إيصال الزبون واكبس «افتح الفاتورة».">
+          ما معو الإيصال؟ لاقيها باسمو أو تلفونو من{" "}
           <a href="/invoices" className="text-foreground underline underline-offset-4">
             الفواتير
           </a>
           .
-        </p>
+        </EmptyState>
       )}
 
       {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
@@ -518,6 +521,7 @@ export function Returns({
           {order.customer_id ? (
             <label className="flex items-center gap-2 border p-3 text-sm">
               <input type="checkbox" className="h-5 w-5 shrink-0 cursor-pointer accent-foreground" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
+              <Icon name="wallet" size={16} className="shrink-0" />
               <span>
                 رجّع المبلغ <span className="font-medium">رصيد على محفظة الزبون</span>
                 {order.customerName ? <span className="text-muted-foreground"> ({order.customerName})</span> : null} بدل الكاش
@@ -616,13 +620,15 @@ export function Returns({
             {(net > 5 || net < -5) && (
               <div className="grid gap-3 pt-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground" htmlFor="ret-usd">
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground" htmlFor="ret-usd">
+                    <Icon name="cash" size={14} />
                     {net > 5 ? "المدفوع" : "المرجّع"} دولار ($)
                   </label>
                   <Input id="ret-usd" value={payUsd} onChange={(e) => setPayUsd(e.target.value)} className="h-11 text-left font-mono" inputMode="decimal" placeholder="0.00" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground" htmlFor="ret-lbp">
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground" htmlFor="ret-lbp">
+                    <Icon name="cash" size={14} />
                     {net > 5 ? "المدفوع" : "المرجّع"} ليرة (ل.ل)
                   </label>
                   <Input id="ret-lbp" value={payLbp} onChange={(e) => setPayLbp(e.target.value)} className="h-11 text-left font-mono" inputMode="numeric" placeholder="0" />

@@ -20,6 +20,7 @@ export default async function InvoicesPage() {
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
         <PageHeader
           title="الفواتير وسجل الزبائن"
+          icon="invoices"
           description="لاقي أي فاتورة محل أو أونلاين، شوف شو اشترى الزبون ورصيد محفظتو، واطبع الإيصال مرة تانية."
           hint={{
             title: "أرشيف الفواتير",
