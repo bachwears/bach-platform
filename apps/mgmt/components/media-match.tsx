@@ -9,6 +9,8 @@ import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 import { fetchAllPages } from "../lib/fetch-all";
 
 const BUCKET = "product-media";
+/** colour choice meaning "these photos show a colour this piece doesn't come in: leave them" */
+const SKIP = "__skip";
 // extra photos only show on the website inside this sort window (same rule as the storefront)
 const EXTRA_MIN = 100;
 const EXTRA_MAX = 499;
@@ -301,12 +303,18 @@ export function MediaMatch() {
   /** The piece's colour for a photo; unknown → the colour its photos already show, so it still appears. */
   function colourOf(p: Product, f: Pending) {
     if (colourPick[f.colour] != null) return colourPick[f.colour]!;
+    const named = colourMatch(p, f.colour);
+    if (named) return named;
+    // the file names a colour the piece doesn't come in: left out unless chosen
+    if (f.colour && p.colours.length > 1) return SKIP;
     const hero = (mediaOf.get(p.id) ?? []).find((m) => m.kind === "front")?.color_en ?? "";
     return colourFor(p, f.colour) || hero || p.colours[0] || "";
   }
+  // what «اربط» links: the kept photos, minus a colour the piece doesn't have
+  const toLink = target ? linkFiles.filter((f) => colourOf(target, f) !== SKIP) : [];
 
   async function link() {
-    if (!target || !group || !linkFiles.length) return;
+    if (!target || !group || !toLink.length) return;
     setBusy(true);
     setErr("");
     const done: string[] = [];
@@ -314,10 +322,10 @@ export function MediaMatch() {
       const current = mediaOf.get(target.id) ?? [];
       const empty = current.length === 0;
       const taken = new Set<string>();
-      const firstColour = colourOf(target, linkFiles[0]!);
+      const firstColour = colourOf(target, toLink[0]!);
       let extraSort = Math.max(EXTRA_MIN - 1, ...current.filter((m) => m.kind === "other").map((m) => m.sort)) + 1;
       let slotSort = 0;
-      for (const f of linkFiles) {
+      for (const f of toLink) {
         const colour = colourOf(target, f);
         // a piece without photos gets its first front / back shot in those slots; the rest are extras
         const slot = f.view === "front" ? "front" : f.view === "back" ? "back" : null;
@@ -472,7 +480,7 @@ export function MediaMatch() {
                       onClick={() => setOff((o) => (on ? [...o, f.name] : o.filter((n) => n !== f.name)))}
                       className="block w-14 text-center text-[10px] text-muted-foreground underline"
                     >
-                      {on ? "شيلها" : "رجّعها"}
+                      {on ? "مش معهم" : "رجّعها"}
                     </button>
                   </div>
                 );
@@ -563,13 +571,18 @@ export function MediaMatch() {
                             {c}
                           </option>
                         ))}
-                        {value && !target.colours.includes(value) ? <option value={value}>{value}</option> : null}
+                        <option value={SKIP}>— ما تربطهم —</option>
+                        {value && value !== SKIP && !target.colours.includes(value) ? <option value={value}>{value}</option> : null}
                       </select>
+                      {value === SKIP ? (
+                        <span className="text-xs text-amber-700 dark:text-amber-400">هاللون مش من ألوان القطعة — رح يضلّوا ناطرين</span>
+                      ) : null}
                     </label>
                   );
                 })}
                 <p className="text-xs text-muted-foreground">
                   الموقع بيوري هالصور لمّا الزبون يختار هاللون. تعبّى تلقائيًا من اسم الملف — غيّرو إذا مش مزبوط.
+                  الصور يلّي ما بتنربط (بـ«شيلها» أو «ما تربطهم») بتضل بالصور الناطرة وبترجع تطلع لحالها.
                 </p>
               </div>
             ) : null}
@@ -579,8 +592,8 @@ export function MediaMatch() {
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              <Button size="lg" onClick={() => void link()} disabled={busy || !target || !linkFiles.length}>
-                {busy ? "عم نربط…" : `اربط ${linkFiles.length} صورة${target ? " بهالقطعة" : ""}`}
+              <Button size="lg" onClick={() => void link()} disabled={busy || !target || !toLink.length}>
+                {busy ? "عم نربط…" : `اربط ${toLink.length} صورة${target ? " بهالقطعة" : ""}`}
               </Button>
               <Button size="lg" variant="outline" onClick={() => void hide()} disabled={busy}>
                 مكرّرة / مش لازمة — خبّيها
