@@ -44,3 +44,11 @@ body:has(#site-menu) .assistant-fab {
   display: none;
 }
 
+
+/* SPECIAL PRICES: the one coloured word in the menu (Zara-style pink accent). */
+.text-special {
+  color: #d1477a;
+}
+.dark .text-special {
+  color: #f08aae;
+}

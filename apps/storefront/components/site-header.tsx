@@ -6,7 +6,7 @@ import { getNavData } from "../lib/cached";
 
 export async function SiteHeader() {
   const locale = await getLocale();
-  const { cats, cols, saleCount, newest, fronts } = await getNavData();
+  const { cats, cols, saleCount, newest, fronts, specialCount } = await getNavData();
 
   // Parent categories are menu groups; children with published products are
   // the links. A parent with nothing published disappears.
@@ -76,6 +76,7 @@ export async function SiteHeader() {
         groups={groups}
         collections={(cols ?? []).map((c) => ({ slug: c.slug, label: pick(locale, c.name_en, c.name_ar) }))}
         hasSale={Boolean(saleCount)}
+        hasSpecial={Boolean(specialCount)}
         tiles={tiles}
       />
     </header>

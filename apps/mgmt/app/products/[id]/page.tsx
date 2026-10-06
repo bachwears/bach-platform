@@ -136,6 +136,7 @@ export default async function EditProductPage({
             seasons: seasons.join(","),
             tags: (product.tags as string[] | null) ?? [],
             hero: ((product.tags as string[] | null) ?? []).includes("hero"),
+            special: ((product.tags as string[] | null) ?? []).includes("special"),
           }}
         >
           <a

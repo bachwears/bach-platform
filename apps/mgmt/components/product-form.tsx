@@ -44,6 +44,8 @@ export interface ProductValues {
   tags?: string[];
   /** pinned as a price anchor at the top of the shop ("hero" tag) */
   hero: boolean;
+  /** listed under SPECIAL PRICES on the website ("special" tag) */
+  special: boolean;
 }
 
 // The fits the catalogue actually uses (shown as-is on the product page).
@@ -74,6 +76,7 @@ const EMPTY: ProductValues = {
   meta_description_en: "",
   seasons: "",
   hero: false,
+  special: false,
 };
 
 function slugify(s: string) {
@@ -184,7 +187,11 @@ export function ProductEditorProvider({
       meta_title_en: values.meta_title_en.trim() || null,
       meta_description_en: values.meta_description_en.trim() || null,
       // the hero pin lives in tags (storefront never shows tags)
-      tags: [...(values.tags ?? []).filter((t) => t !== "hero"), ...(values.hero ? ["hero"] : [])],
+      tags: [
+        ...(values.tags ?? []).filter((t) => t !== "hero" && t !== "special"),
+        ...(values.hero ? ["hero"] : []),
+        ...(values.special ? ["special"] : []),
+      ],
     };
     const wantSeasons = values.seasons.split(",").filter(Boolean);
     // product_seasons is a plain list per product: replace it with what's ticked
@@ -386,6 +393,24 @@ export function BasicsFields() {
               />
             </span>
             <span className="block text-xs text-muted-foreground">بتطلع أوّل شي بالشوب وبفئتها. أحسن شي ٣ لـ ٦ قطع بالمرّة.</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 border p-3">
+          <input type="checkbox" className="mt-0.5 h-4 w-4" checked={values.special} onChange={(e) => set("special", e.target.checked)} />
+          <span className="space-y-1">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Icon name="discount" size={16} />
+              بيّنها بـ «Special Prices»
+              <HintDot
+                hint={{
+                  title: "Special Prices",
+                  what: "قائمة خاصة بالموقع (بالقائمة الرئيسية، باللون الوردي) لقطع بأسعار مميّزة. القطعة بتضل بفئتها كمان — هيدي قائمة زيادة.",
+                  source: "تاغ special على المنتج. الموقع بيعرض كل القطع المنشورة يلي عليها هالعلامة.",
+                  edit: "من هون: علّم أو شيل واحفظ. بيبيّن عالموقع خلال دقيقتين. إذا بدّك سعر أقل، حطّ «سعر التخفيض» فوق.",
+                }}
+              />
+            </span>
+            <span className="block text-xs text-muted-foreground">بتطلع بقائمة SPECIAL PRICES بالموقع، وبتضل بفئتها.</span>
           </span>
         </label>
       </div>

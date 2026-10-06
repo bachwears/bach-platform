@@ -13,7 +13,7 @@ const MINUTE = 60;
 export const getNavData = unstable_cache(
   async () => {
     const supabase = supabasePublic();
-    const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }, { data: fronts }] = await Promise.all([
+    const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }, { data: fronts }, { count: specialCount }] = await Promise.all([
       supabase
         .from("categories")
         // "*" brings the banner columns (banner_mobile_url may be missing on older schemas)
@@ -44,10 +44,16 @@ export const getNavData = unstable_cache(
         .select("products!inner(category_id, status)")
         .eq("kind", "front")
         .eq("products.status", "published"),
+      // SPECIAL PRICES menu link shows once at least one piece is ticked in MGMT
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "published")
+        .contains("tags", ["special"]),
     ]);
-    return { cats, cols, saleCount, newest, fronts };
+    return { cats, cols, saleCount, newest, fronts, specialCount };
   },
-  ["nav-data-v1"],
+  ["nav-data-v2"],
   { revalidate: 2 * MINUTE, tags: ["catalog"] },
 );
 

@@ -22,6 +22,14 @@ export async function generateMetadata({
   const [locale, params] = await Promise.all([getLocale(), searchParams]);
   // A category or collection is its own indexable page (its own title and
   // canonical); size/colour/price filters fold back into it.
+  if (params.special === "1") {
+    return {
+      title: locale === "ar" ? "أسعار مميّزة — باخ ويرز" : "Special Prices — BACH Wears",
+      description: locale === "ar" ? "قطع مختارة بأسعار مميّزة من باخ ويرز." : "Selected BACH Wears pieces at special prices.",
+      alternates: { canonical: lhref(locale, "/shop?special=1") },
+      openGraph: { title: "Special Prices — BACH Wears", url: "https://bachwears.com/shop?special=1" },
+    };
+  }
   if (params.cat || params.col) {
     const supabase = await supabaseServer();
     const { data: page } = params.cat
@@ -127,6 +135,8 @@ export default async function ShopPage({
   const band = params.price ?? "";
   const sort = params.sort ?? "featured";
   const sale = params.sale === "1";
+  // SPECIAL PRICES: pieces ticked in MGMT ("special" tag), on top of their own category
+  const special = params.special === "1";
 
   const locale = await getLocale();
   const { data, merch, catTree } = await getShopCatalog();
@@ -184,8 +194,9 @@ export default async function ShopPage({
     color: string;
     band: string;
     sale: boolean;
+    special: boolean;
   }
-  const current: Filters = { cat, col, size, color, band, sale };
+  const current: Filters = { cat, col, size, color, band, sale, special };
   const matches = (p: ShopProduct, f: Filters) => {
     if (q && !p.name_en.toLowerCase().includes(q) && !(p.name_ar ?? "").includes((params.q ?? "").trim())) return false;
     if (f.cat && !(f.cat === cat ? catMatch : catCodes(f.cat)).has(p.categories?.code ?? "")) return false;
@@ -193,6 +204,7 @@ export default async function ShopPage({
     if (f.size && !p.product_variants.some((v) => v.is_active && v.size === f.size)) return false;
     if (f.color && !p.product_variants.some((v) => v.is_active && v.color_en === f.color)) return false;
     if (f.sale && p.sale_price_usd_cents == null) return false;
+    if (f.special && !(p.tags ?? []).includes("special")) return false;
     if (f.band) {
       const b = PRICE_BANDS.find(([k]) => k === f.band);
       if (b && (price(p) < b[2] || price(p) > b[3])) return false;
@@ -232,6 +244,7 @@ export default async function ShopPage({
       price: band,
       sort: sort === "featured" ? undefined : sort,
       sale: sale ? "1" : undefined,
+      special: special ? "1" : undefined,
       // the large-photo view chosen on the way in (home → shop) survives "Load more"
       view: params.view,
       ...patch,
@@ -287,7 +300,7 @@ export default async function ShopPage({
     : colName ??
       (catNode
         ? pick(locale, catNode.name_en, catNode.name_ar)
-        : t(locale, sale ? "sf.shop.saleTitle" : "sf.shop.allProducts"));
+        : t(locale, special ? "sf.shop.specialTitle" : sale ? "sf.shop.saleTitle" : "sf.shop.allProducts"));
 
   // Editorial header imagery: the collection's cover when browsing a
   // collection, else the category's own banner, else its parent's. Banners

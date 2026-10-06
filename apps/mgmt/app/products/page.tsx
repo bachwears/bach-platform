@@ -19,6 +19,7 @@ const FILTERS: Array<{ key: string; label: string }> = [
   { key: "all", label: "الكل" },
   { key: "no-photos", label: "بلا صور" },
   { key: "branded", label: "شعار ماركة" },
+  { key: "special", label: "Special Prices" },
   { key: "draft", label: "مسودات" },
   { key: "published", label: "منشور" },
 ];
@@ -61,6 +62,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     // Internal flag: the supplier piece carries a third-party brand logo.
     // MGMT-only — the storefront never renders product tags.
     branded: (p.tags ?? []).includes("branded-logo"),
+    // listed under SPECIAL PRICES on the website
+    special: (p.tags ?? []).includes("special"),
   }));
 
   // Search matches the English/Arabic name or any variant SKU.
@@ -76,11 +79,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       ? searched.filter((p) => !p.front)
       : filter === "branded"
         ? searched.filter((p) => p.branded)
+        : filter === "special"
+          ? searched.filter((p) => p.special)
         : filter === "all"
           ? searched
           : searched.filter((p) => p.status === filter);
   const noPhotoCount = rows.filter((p) => !p.front).length;
   const brandedCount = rows.filter((p) => p.branded).length;
+  const specialCount = rows.filter((p) => p.special).length;
   const href = (key: string) => {
     const params = new URLSearchParams();
     if (key !== "all") params.set("f", key);
@@ -148,7 +154,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               }
             >
               {x.label}
-              {x.key === "no-photos" ? ` (${noPhotoCount})` : x.key === "branded" ? ` (${brandedCount})` : ""}
+              {x.key === "no-photos" ? ` (${noPhotoCount})` : x.key === "branded" ? ` (${brandedCount})` : x.key === "special" ? ` (${specialCount})` : ""}
             </Link>
           ))}
         </div>
@@ -224,6 +230,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           {!p.front && p.status === "published" && (
                             <Badge variant="outline" className="border-red-500/50 text-red-600 dark:text-red-400">
                               مخفي عن الموقع — بلا صور
+                            </Badge>
+                          )}
+                          {p.special && (
+                            <Badge variant="outline" className="border-[#d1477a]/50 text-[#d1477a]">
+                              Special Prices
                             </Badge>
                           )}
                           {p.branded && (

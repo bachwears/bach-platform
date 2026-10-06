@@ -48,11 +48,13 @@ export function HeaderActions({
   groups,
   collections,
   hasSale,
+  hasSpecial = false,
   tiles,
 }: {
   groups: NavGroup[];
   collections: NavCollection[];
   hasSale: boolean;
+  hasSpecial?: boolean;
   tiles: NavTile[];
 }) {
   const locale = useLocale();
@@ -273,6 +275,13 @@ export function HeaderActions({
                       <li>
                         <Link href={lhref(locale, "/shop?sale=1")} className={`${textLink} block`} onClick={close}>
                           {t(locale, "sf.nav.onSale")}
+                        </Link>
+                      </li>
+                    )}
+                    {hasSpecial && (
+                      <li>
+                        <Link href={lhref(locale, "/shop?special=1")} className={`${textLink} text-special block`} onClick={close}>
+                          {t(locale, "sf.nav.special")}
                         </Link>
                       </li>
                     )}
