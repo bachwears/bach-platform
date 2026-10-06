@@ -9,6 +9,8 @@ import { Textarea } from "@bach/ui/components/textarea";
 import { HintDot } from "@bach/ui/components/hint-dot";
 import { Icon } from "@bach/ui/components/icon";
 
+import { CropUpload } from "./crop-upload";
+
 interface Hero {
   eyebrow: string;
   headline: string;
@@ -16,6 +18,8 @@ interface Hero {
   cta_label: string;
   cta_href: string;
   image_url: string;
+  /** vertical photo for phones; without it phones crop the desktop one */
+  image_mobile_url: string;
   image_alt: string;
   video_url: string;
 }
@@ -27,6 +31,7 @@ const EMPTY: Hero = {
   cta_label: "",
   cta_href: "/shop",
   image_url: "",
+  image_mobile_url: "",
   image_alt: "",
   video_url: "",
 };
@@ -73,7 +78,9 @@ export function SiteContentEditor() {
   // legal rows are only written back once they have been read, so a failed load can't blank them
   const [legalLoaded, setLegalLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  // collections on/off and the share image save on their own (one click, no Save button)
+  const [colsVisible, setColsVisible] = useState(true);
+  const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
@@ -81,7 +88,7 @@ export function SiteContentEditor() {
     void supabase
       .from("site_content")
       .select("key, value")
-      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms"])
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms", "collections", "seo"])
       .then(({ data, error }) => {
         if (!error) setLegalLoaded(true);
         for (const row of data ?? []) {
@@ -93,6 +100,8 @@ export function SiteContentEditor() {
           if (row.key === "wheel") setWheel({ ...EMPTY_WHEEL, ...(v as Partial<Wheel>) });
           if (row.key === "page_privacy") setPrivacy({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
           if (row.key === "page_terms") setTerms({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
+          if (row.key === "collections") setColsVisible((v as { visible?: boolean }).visible !== false);
+          if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,20 +111,18 @@ export function SiteContentEditor() {
     setHero((h) => ({ ...h, [k]: v }));
   }
 
-  async function uploadImage(file: File) {
-    setUploading(true);
-    setErr("");
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `site/hero-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-      .from("product-media")
-      .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
-    setUploading(false);
-    if (error) {
-      setErr(`ما قدرنا نرفع الصورة: ${error.message}`);
-      return;
-    }
-    set("image_url", supabase.storage.from("product-media").getPublicUrl(path).data.publicUrl);
+  // An uploaded hero photo is stored at once with the rest of the hero as it is now.
+  async function saveHeroImage(field: "image_url" | "image_mobile_url", url: string) {
+    const next = { ...hero, [field]: url };
+    const { error } = await supabase.from("site_content").upsert({ key: "home_hero", value: next, updated_at: new Date().toISOString() });
+    if (error) return `ما انحفظت: ${error.message}`;
+    setHero(next);
+    return null;
+  }
+
+  async function saveKey(key: "collections" | "seo", value: Record<string, unknown>) {
+    const { error } = await supabase.from("site_content").upsert({ key, value, updated_at: new Date().toISOString() });
+    return error ? `ما انحفظ: ${error.message}` : null;
   }
 
   async function save() {
@@ -205,33 +212,35 @@ export function SiteContentEditor() {
               title: "صورة الواجهة",
               what: "صورة الحملة اللي بتغطي أعلى الصفحة الرئيسية.",
               source: "بتنرفع على تخزين Supabase (product-media/site).",
-              edit: "ارفع صورة عرضية كبيرة (1600px+ عرض). إذا ما في صورة مرفوعة بيستعمل الموقع صورة الحملة الأصلية.",
+              edit: "صورتين: عرضية للكمبيوتر وطويلة للموبايل. اختار، حرّك القصّة واحفظ — بتنحفظ فوراً. بلا صورة موبايل، الموبايل بيقصّ صورة الكمبيوتر.",
             }}
           />
         </h2>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={hero.image_url || "https://bachwears.com/hero-campaign.jpg"}
-          alt="معاينة"
-          className="h-44 w-full object-cover"
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <Input
-            type="file"
-            accept="image/*"
-            className="max-w-xs"
-            disabled={uploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadImage(f);
-            }}
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+          <CropUpload
+            label="الكمبيوتر — عرضية"
+            ratio="16:9"
+            width={2560}
+            height={1440}
+            current={hero.image_url}
+            fallback="https://bachwears.com/hero-campaign.jpg"
+            fallbackNote="فاضية — عم تبيّن صورة الحملة الأصلية"
+            prefix="hero-d"
+            onSaved={(url) => saveHeroImage("image_url", url)}
+            onRemove={() => saveHeroImage("image_url", "")}
           />
-          {uploading && <span className="text-sm text-muted-foreground">عم نرفع…</span>}
-          {hero.image_url && (
-            <Button variant="ghost" size="sm" onClick={() => set("image_url", "")}>
-              رجّع الصورة الأصلية
-            </Button>
-          )}
+          <CropUpload
+            label="الموبايل — طويلة"
+            ratio="9:16"
+            width={1080}
+            height={1920}
+            current={hero.image_mobile_url}
+            fallback={hero.image_url || "https://bachwears.com/hero-campaign-mobile.jpg"}
+            fallbackNote="فاضية — الموبايل عم يقصّ صورة الكمبيوتر"
+            prefix="hero-m"
+            onSaved={(url) => saveHeroImage("image_mobile_url", url)}
+            onRemove={() => saveHeroImage("image_mobile_url", "")}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="sc-video" className="flex items-center gap-2">
@@ -250,6 +259,75 @@ export function SiteContentEditor() {
         <div className="grid gap-1.5">
           <Label htmlFor="sc-alt">وصف الصورة (لمحركات البحث وقارئات الشاشة، بالإنكليزي)</Label>
           <Input id="sc-alt" dir="ltr" value={hero.image_alt} onChange={(e) => set("image_alt", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-3 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="collections" size={18} className="text-muted-foreground" />
+          الكولكشنز عالموقع
+          <HintDot
+            hint={{
+              title: "إخفاء كل الكولكشنز",
+              what: "بسكّرة وحدة بتخفي الكولكشنز كلها عن الموقع: تبويب «COLLECTIONS» بالقائمة، صورها بالصفحة الرئيسية، وصفحاتها (بتحوّل عالشوب). القطع بتضل بفئاتها.",
+              source: "جدول site_content (مفتاح collections).",
+              edit: "من هون. الكولكشن الواحد بينطفى من «الكولكشنات».",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-foreground"
+            checked={colsVisible}
+            onChange={async (e) => {
+              const v = e.target.checked;
+              setColsVisible(v);
+              const problem = await saveKey("collections", { visible: v });
+              if (problem) {
+                setColsVisible(!v);
+                setErr(problem);
+              } else setMsg(v ? "الكولكشنز رجعوا يبيّنوا عالموقع." : "الكولكشنز انخفوا عن الموقع.");
+            }}
+          />
+          {colsVisible ? "ظاهرين عالموقع" : "مخفيين عن الموقع"}
+        </label>
+      </div>
+
+      <div className="space-y-3 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="web" size={18} className="text-muted-foreground" />
+          صورة المشاركة
+          <HintDot
+            hint={{
+              title: "صورة المشاركة",
+              what: "الصورة يلي بتطلع لمّا حدا يبعت رابط bachwears.com عالواتساب أو إنستغرام أو فيسبوك.",
+              source: "جدول site_content (مفتاح seo). بلاها بتطلع الصورة الأصلية.",
+              edit: "اختار صورة، حرّك القصّة واحفظ (1200×630).",
+            }}
+          />
+        </h2>
+        <div className="max-w-md">
+          <CropUpload
+            label="صورة الرابط"
+            ratio="1.91:1"
+            width={1200}
+            height={630}
+            current={ogImage}
+            fallback="https://bachwears.com/og-image.jpg"
+            fallbackNote="فاضية — عم تطلع الصورة الأصلية"
+            prefix="og"
+            onSaved={async (url) => {
+              const problem = await saveKey("seo", { og_image_url: url });
+              if (!problem) setOgImage(url);
+              return problem;
+            }}
+            onRemove={async () => {
+              const problem = await saveKey("seo", { og_image_url: "" });
+              if (!problem) setOgImage("");
+              return problem;
+            }}
+          />
         </div>
       </div>
 

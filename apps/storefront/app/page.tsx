@@ -12,6 +12,8 @@ interface HeroContent {
   cta_label?: string;
   cta_href?: string;
   image_url?: string;
+  /** vertical photo for phones (MGMT); without it phones crop the desktop one */
+  image_mobile_url?: string;
   image_alt?: string;
   video_url?: string;
 }
@@ -66,7 +68,9 @@ export default async function Home() {
   // MGMT campaign, then the first two collections (MGMT collection order).
   // Collection covers come portrait for phones and as a "-wide" crop for desktop.
   const picture = "relative block h-[calc(100dvh-4rem)] min-h-[520px] w-full overflow-hidden bg-[#d6d1c9] max-md:h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom,0px))]";
-  const tiles = collections.slice(0, 2);
+  // MGMT can hide every collection from the site in one switch
+  const collectionsOn = (content.collections as { visible?: boolean } | undefined)?.visible !== false;
+  const tiles = collectionsOn ? collections.slice(0, 2) : [];
   return (
     <div className="min-h-dvh bg-background">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />
@@ -94,15 +98,19 @@ export default async function Home() {
               <img src={heroImg} alt={heroAlt} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[70%_center] motion-safe:hidden" />
             </>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroImg}
-              srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
-              sizes="100vw"
-              alt={heroAlt}
-              fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
-            />
+            <picture>
+              {/* phones get the vertical photo when MGMT has one */}
+              {hero.image_mobile_url ? <source media="(max-width: 767px)" srcSet={hero.image_mobile_url} /> : null}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImg}
+                srcSet={hero.image_url ? undefined : "/hero-campaign-mobile.jpg 900w, /hero-campaign.jpg 1672w"}
+                sizes="100vw"
+                alt={heroAlt}
+                fetchPriority="high"
+                className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
+              />
+            </picture>
           )}
         </Link>
 
@@ -112,7 +120,7 @@ export default async function Home() {
               <source media="(min-width: 1024px)" srcSet={c.cover_url!} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={c.cover_url!.replace(/-wide(\.\w+)$/, "$1")}
+                src={c.cover_mobile_url || c.cover_url!.replace(/-wide(\.\w+)$/, "$1")}
                 alt={c.name_en}
                 loading="lazy"
                 decoding="async"

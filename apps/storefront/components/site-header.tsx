@@ -2,11 +2,13 @@ import { t } from "@bach/i18n";
 
 import { HeaderActions, type NavGroup, type NavTile } from "./header-actions";
 import { getLocale, lhref, pick } from "../lib/locale";
-import { getNavData } from "../lib/cached";
+import { getNavData, getSiteContent } from "../lib/cached";
 
 export async function SiteHeader() {
   const locale = await getLocale();
-  const { cats, cols, saleCount, newest, fronts, specialCount } = await getNavData();
+  const [{ cats, cols, saleCount, newest, fronts, specialCount }, content] = await Promise.all([getNavData(), getSiteContent()]);
+  // MGMT can hide every collection from the site in one switch
+  const collectionsOn = (content.collections as { visible?: boolean } | undefined)?.visible !== false;
 
   // Parent categories are menu groups; children with published products are
   // the links. A parent with nothing published disappears.
@@ -74,7 +76,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 bg-background">
       <HeaderActions
         groups={groups}
-        collections={(cols ?? []).map((c) => ({ slug: c.slug, label: pick(locale, c.name_en, c.name_ar) }))}
+        collections={collectionsOn ? (cols ?? []).map((c) => ({ slug: c.slug, label: pick(locale, c.name_en, c.name_ar) })) : []}
         hasSale={Boolean(saleCount)}
         hasSpecial={Boolean(specialCount)}
         tiles={tiles}

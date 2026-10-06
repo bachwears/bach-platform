@@ -9,12 +9,15 @@ import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
+import { CropUpload } from "./crop-upload";
 
 interface Collection {
   id: string;
   slug: string;
   name_en: string;
   is_active: boolean;
+  cover_url: string | null;
+  cover_mobile_url: string | null;
   product_collections: Array<{ count: number }>;
 }
 
@@ -49,7 +52,7 @@ export function CollectionsManager() {
   async function load() {
     const { data } = await supabase
       .from("collections")
-      .select("id, slug, name_en, is_active, product_collections(count)")
+      .select("id, slug, name_en, is_active, cover_url, cover_mobile_url, product_collections(count)")
       .order("sort")
       .order("created_at");
     setCollections((data ?? []) as never);
@@ -114,6 +117,14 @@ export function CollectionsManager() {
     void load();
   }
 
+  async function saveCover(id: string, column: "cover_url" | "cover_mobile_url", url: string | null) {
+    const { data: changed, error } = await supabase.from("collections").update({ [column]: url }).eq("id", id).select("id");
+    if (error) return `ما انحفظت: ${error.message}`;
+    if (!changed?.length) return NOT_SAVED;
+    await load();
+    return null;
+  }
+
   async function toggle(c: Collection) {
     const { data: changed } = await supabase.from("collections").update({ is_active: !c.is_active }).eq("id", c.id).select("id");
     if (!changed?.length) window.alert(NOT_SAVED);
@@ -171,6 +182,32 @@ export function CollectionsManager() {
                 </button>
                 {isOpen && (
                   <div className="space-y-3 border-t p-4">
+                    {/* the cover: full-screen picture on the home page and the collection page header */}
+                    <div className="grid gap-4 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+                      <CropUpload
+                        label="الغلاف — الكمبيوتر"
+                        ratio="16:9"
+                        width={2560}
+                        height={1440}
+                        current={c.cover_url}
+                        fallbackNote="فاضية — الكولكشن ما بيبيّن بالصفحة الرئيسية"
+                        prefix={`col-${c.slug}-d`}
+                        onSaved={(url) => saveCover(c.id, "cover_url", url)}
+                        onRemove={() => saveCover(c.id, "cover_url", null)}
+                      />
+                      <CropUpload
+                        label="الغلاف — الموبايل"
+                        ratio="9:16"
+                        width={1080}
+                        height={1920}
+                        current={c.cover_mobile_url}
+                        fallback={c.cover_url}
+                        fallbackNote="فاضية — الموبايل عم يقصّ صورة الكمبيوتر"
+                        prefix={`col-${c.slug}-m`}
+                        onSaved={(url) => saveCover(c.id, "cover_mobile_url", url)}
+                        onRemove={() => saveCover(c.id, "cover_mobile_url", null)}
+                      />
+                    </div>
                     <div className="relative">
                       <Input
                         dir="ltr"

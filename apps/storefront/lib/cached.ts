@@ -85,10 +85,10 @@ export const getSiteContent = unstable_cache(
     const { data } = await supabasePublic()
       .from("site_content")
       .select("key, value")
-      .in("key", ["wheel", "home_hero", "home_banner"]);
+      .in("key", ["wheel", "home_hero", "home_banner", "collections", "seo"]);
     return Object.fromEntries((data ?? []).map((r) => [r.key as string, r.value as unknown]));
   },
-  ["site-content-v1"],
+  ["site-content-v2"],
   { revalidate: MINUTE, tags: ["site-content"] },
 );
 
@@ -97,12 +97,12 @@ export const getHomeCollections = unstable_cache(
   async () => {
     const { data } = await supabasePublic()
       .from("collections")
-      .select("slug, name_en, description_en, cover_url")
+      .select("slug, name_en, description_en, cover_url, cover_mobile_url")
       .eq("is_active", true)
       .not("cover_url", "is", null)
       .order("sort");
     return data ?? [];
   },
-  ["home-collections-v1"],
+  ["home-collections-v2"],
   { revalidate: 2 * MINUTE, tags: ["catalog"] },
 );

@@ -228,7 +228,7 @@ export function HeaderActions({
               role="tablist"
               className="flex shrink-0 gap-6 overflow-x-auto whitespace-nowrap px-4 pt-4 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden"
             >
-              {(["categories", "collections"] as const).map((k) => (
+              {(collections.length ? (["categories", "collections"] as const) : (["categories"] as const)).map((k) => (
                 <button
                   key={k}
                   role="tab"

@@ -49,7 +49,7 @@ const plexArabic = localFont({
   preload: false,
 });
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   metadataBase: new URL("https://bachwears.com"),
   title: "BACH Wears",
   description: "Menswear, considered. BACH Wears — Lebanon.",
@@ -63,6 +63,17 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", images: ["/og-image.jpg"] },
 };
+
+// The share picture (WhatsApp, Instagram, Facebook) is editable in MGMT → Site content.
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = ((await getSiteContent()).seo ?? {}) as { og_image_url?: string };
+  if (!seo.og_image_url) return BASE_METADATA;
+  return {
+    ...BASE_METADATA,
+    openGraph: { ...BASE_METADATA.openGraph, images: [{ url: seo.og_image_url, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", images: [seo.og_image_url] },
+  };
+}
 
 // Storefront is English-only (founder decision 2026-09-07); /ar redirects here.
 // Latin renders in Inter Tight; Arabic glyphs fall through to IBM Plex Sans Arabic —

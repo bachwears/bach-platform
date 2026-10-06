@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 import { supabasePublic } from "@bach/supabase/public";
 import { t } from "@bach/i18n";
@@ -9,7 +9,7 @@ import { t } from "@bach/i18n";
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { toCardProduct } from "../../lib/card";
-import { getShopCatalog } from "../../lib/cached";
+import { getShopCatalog, getSiteContent } from "../../lib/cached";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
@@ -137,6 +137,10 @@ export default async function ShopPage({
   const sale = params.sale === "1";
   // SPECIAL PRICES: pieces ticked in MGMT ("special" tag), on top of their own category
   const special = params.special === "1";
+  // collections switched off in MGMT: their pages fold back into the shop
+  if (col && ((await getSiteContent()).collections as { visible?: boolean } | undefined)?.visible === false) {
+    redirect(lhref(await getLocale(), "/shop"));
+  }
 
   const locale = await getLocale();
   const { data, merch, catTree } = await getShopCatalog();
@@ -309,8 +313,12 @@ export default async function ShopPage({
   type Banner = { banner_url?: string | null; banner_mobile_url?: string | null; name_en: string };
   let headerImage: { url: string; mobile: string | null; alt: string } | null = null;
   if (col) {
-    const { data: colRow } = await supabasePublic().from("collections").select("cover_url, name_en, description_en").eq("slug", col).maybeSingle();
-    if (colRow?.cover_url) headerImage = { url: colRow.cover_url, mobile: null, alt: colRow.name_en };
+    const { data: colRow } = await supabasePublic()
+      .from("collections")
+      .select("cover_url, cover_mobile_url, name_en, description_en")
+      .eq("slug", col)
+      .maybeSingle();
+    if (colRow?.cover_url) headerImage = { url: colRow.cover_url, mobile: colRow.cover_mobile_url ?? null, alt: colRow.name_en };
   } else {
     const src = [catNode, ...[...ancestors].reverse()].find((n) => (n as Banner | null)?.banner_url) as Banner | undefined;
     if (src) headerImage = { url: src.banner_url!, mobile: src.banner_mobile_url ?? null, alt: src.name_en };
