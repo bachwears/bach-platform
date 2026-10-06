@@ -544,15 +544,13 @@ export function AddToCart({
         </>
       )}
 
-      {/* Phones: the buy bar is always pinned to the bottom — the only ADD on the page. */}
+      {/* Phones: the buy bar is always pinned to the bottom — the only ADD on the page.
+          The name is already on the page above; the bar keeps price and colour. */}
       {!sheet && (
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden">
           <div className="min-w-0 flex-1">
-            <p className="type-meta truncate">{name}</p>
-            <p className="type-meta tabular-nums text-muted-foreground">
-              {priceLabel}
-              {colors.length > 1 ? ` · ${colors.find(([c]) => c === color)?.[1] ?? ""}` : ""}
-            </p>
+            <p className="type-meta tabular-nums">{priceLabel}</p>
+            <p className="type-meta truncate text-muted-foreground">{colors.find(([c]) => c === color)?.[1] ?? ""}</p>
           </div>
           <button
             type="button"

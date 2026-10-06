@@ -9,22 +9,18 @@ const KEY = "shop-density";
 
 /**
  * Switches the product grid between the standard view (2 columns on phones,
- * 4 on desktop) and larger photos (1 / 2). Remembered per visitor.
+ * 4 on desktop) and larger photos (1 / 2). Every visit opens on the grid.
  */
 export function DensityToggle({ target }: { target: string }) {
   const locale = useLocale();
   const [large, setLarge] = useState(false);
 
   useEffect(() => {
-    // ?view=1 (from the home page's "The New") opens on large photos for this visit
-    if (new URLSearchParams(window.location.search).get("view") === "1") {
-      setLarge(true);
-      return;
-    }
+    // the old remembered choice no longer applies: the grid is the default
     try {
-      setLarge(localStorage.getItem(KEY) === "large");
+      localStorage.removeItem(KEY);
     } catch {
-      /* storage blocked — standard view */
+      /* storage blocked */
     }
   }, []);
 
@@ -34,12 +30,6 @@ export function DensityToggle({ target }: { target: string }) {
 
   function choose(next: boolean) {
     setLarge(next);
-    try {
-      if (next) localStorage.setItem(KEY, "large");
-      else localStorage.removeItem(KEY);
-    } catch {
-      /* storage blocked — applies to this visit */
-    }
   }
 
   const btn = (on: boolean) =>

@@ -146,7 +146,7 @@ export default async function Home() {
           </aside>
         ) : null}
 
-        <ScrollToShop href={lhref(locale, "/shop?view=1")} title={t(locale, "sf.home.theNew")} cue={t(locale, "sf.home.scrollDown")} />
+        <ScrollToShop href={lhref(locale, "/shop")} title={t(locale, "sf.home.theNew")} cue={t(locale, "sf.home.scrollDown")} />
       </main>
     </div>
   );

@@ -243,17 +243,6 @@ export function HeaderActions({
               ))}
             </div>
 
-            {/* SPECIAL PRICES: the one coloured line, up top where the eye lands (Zara-style) */}
-            {hasSpecial && (
-              <Link
-                href={lhref(locale, "/shop?special=1")}
-                onClick={close}
-                className="text-special mx-4 mt-5 block shrink-0 text-lg font-light uppercase tracking-[0.04em] transition-opacity hover:opacity-70 sm:mx-8"
-              >
-                {t(locale, "sf.nav.special")}
-              </Link>
-            )}
-
             {tab === "categories" && tiles.length > 0 && (
               <ul className="mt-6 flex shrink-0 snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:scroll-px-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {tiles.map((tile) => (
@@ -279,9 +268,17 @@ export function HeaderActions({
                   <ul>
                     <li>
                       <Link href={lhref(locale, "/shop")} className={`${textLink} block`} onClick={close}>
-                        {t(locale, "sf.nav.viewAll")}
+                        {t(locale, "sf.home.theNew")}
                       </Link>
                     </li>
+                    {/* SPECIAL PRICES: the one coloured line, right under The New */}
+                    {hasSpecial && (
+                      <li>
+                        <Link href={lhref(locale, "/shop?special=1")} className="type-label text-special block py-2 transition-opacity hover:opacity-60" onClick={close}>
+                          {t(locale, "sf.nav.special")}
+                        </Link>
+                      </li>
+                    )}
                     {hasSale && (
                       <li>
                         <Link href={lhref(locale, "/shop?sale=1")} className={`${textLink} block`} onClick={close}>
