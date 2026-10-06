@@ -52,8 +52,8 @@ export function PdpSwipe({ prev, next, children }: { prev: string | null; next: 
 
 /**
  * Phones: the pieces of the same category as a strip of small photos pinned to
- * the bottom of the first screen, the current one marked — tap to jump. It
- * steps aside once the shopper scrolls down (the buy bar takes that place).
+ * the bottom of the first screen, just above the pinned buy bar, the current
+ * one marked — tap to jump. It steps aside once the shopper scrolls down.
  */
 export function PdpStrip({ items, current }: { items: PdpNavItem[]; current: string }) {
   const [shown, setShown] = useState(true);
@@ -75,8 +75,8 @@ export function PdpStrip({ items, current }: { items: PdpNavItem[]; current: str
     <div
       ref={ref}
       aria-label="More in this category"
-      className={`fixed inset-x-0 bottom-0 z-20 flex gap-1 overflow-x-auto border-t bg-background px-2 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] pt-1 transition-transform duration-200 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden ${
-        shown ? "translate-y-0" : "translate-y-full"
+      className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-20 flex gap-1 overflow-x-auto border-t bg-background px-2 py-1 transition-transform duration-200 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden ${
+        shown ? "translate-y-0" : "pointer-events-none translate-y-[calc(100%+4.25rem+env(safe-area-inset-bottom,0px))]"
       }`}
     >
       {items.map((it) => (

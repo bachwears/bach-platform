@@ -70,6 +70,7 @@ export function AddToCart({
   sizeGuide,
   fit,
   heading,
+  colourFills = {},
   shownColor = null,
   photoColors = [],
   initialColorCode = null,
@@ -94,6 +95,8 @@ export function AddToCart({
   fit?: string | null;
   /** name + price, laid out with the colour squares beside them on phones */
   heading?: React.ReactNode;
+  /** swatch per colour name (lower case) from the MGMT colour list: hex, or a two-tone split */
+  colourFills?: Record<string, string>;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -169,8 +172,6 @@ export function AddToCart({
     window.addEventListener("bach-fit-pick", onPick);
     return () => window.removeEventListener("bach-fit-pick", onPick);
   }, []);
-  const [mainVisible, setMainVisible] = useState(true);
-  const mainRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -212,15 +213,6 @@ export function AddToCart({
     window.addEventListener(WISHLIST_EVENT, onChange);
     return () => window.removeEventListener(WISHLIST_EVENT, onChange);
   }, [productId]);
-
-  // Pinned phone bar shows only while the main ADD is off screen.
-  useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setMainVisible(e!.isIntersecting), { threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!sheet) return;
@@ -325,7 +317,8 @@ export function AddToCart({
     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t(locale, "sf.pdp.color")}>
       {colors.map(([code, label]) => {
         const en = variants.find((v) => v.color_code === code)?.color_en ?? "";
-        const fill = colorFill(en);
+        // the MGMT colour list first, the built-in palette as a fallback; never a word
+        const fill = colourFills[en.toLowerCase()] ?? colorFill(en) ?? "var(--muted)";
         return (
           <button
             key={code}
@@ -337,9 +330,9 @@ export function AddToCart({
             onClick={() => chooseColor(code)}
             className={`grid place-items-center border p-[3px] transition-colors ${
               color === code ? "border-foreground" : "border-transparent hover:border-border"
-            } ${fill ? "h-8 w-8" : "type-meta h-8 px-2"}`}
+            } h-8 w-8`}
           >
-            {fill ? <span className="block h-full w-full border border-black/10" style={{ background: fill }} /> : label}
+            <span className="block h-full w-full border border-black/10" style={{ background: fill }} />
           </button>
         );
       })}
@@ -385,9 +378,9 @@ export function AddToCart({
         </p>
       )}
 
-      <div className="flex gap-2">
+      {/* large screens: ADD in the column; phones: the one ADD is the bar pinned to the bottom */}
+      <div className="hidden gap-2 lg:flex">
         <button
-          ref={mainRef}
           type="button"
           disabled={!sizes.length}
           onClick={openSheet}
@@ -549,8 +542,8 @@ export function AddToCart({
         </>
       )}
 
-      {/* Phones: pinned buy bar while the main ADD is scrolled away. */}
-      {!mainVisible && !sheet && (
+      {/* Phones: the buy bar is always pinned to the bottom — the only ADD on the page. */}
+      {!sheet && (
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden">
           <div className="min-w-0 flex-1">
             <p className="type-meta truncate">{name}</p>

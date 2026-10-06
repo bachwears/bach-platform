@@ -169,7 +169,16 @@ export default async function ProductPage({
 
   // The category's pieces in shop order (cached catalogue): the phone strip at the
   // bottom and the sideways swipe to the next / previous piece.
-  const { data: catalog } = await getShopCatalog();
+  const [{ data: catalog }, { data: colourRows }] = await Promise.all([
+    getShopCatalog(),
+    // the MGMT colour list: each colour choice is shown as its swatch, never a word
+    supabase.from("colours").select("name_en, hex, hex2"),
+  ]);
+  const colourFills: Record<string, string> = {};
+  for (const c of (colourRows ?? []) as Array<{ name_en: string; hex: string | null; hex2: string | null }>) {
+    if (!c.hex) continue;
+    colourFills[c.name_en.toLowerCase()] = c.hex2 ? `linear-gradient(135deg, ${c.hex} 50%, ${c.hex2} 50%)` : c.hex;
+  }
   type NavRow = { slug: string; name_en: string; categories: { code: string } | null; media_assets: Array<{ kind: string; storage_path: string }> | null };
   const navItems: PdpNavItem[] = category
     ? ((catalog ?? []) as unknown as NavRow[])
@@ -421,6 +430,7 @@ export default async function ProductPage({
             priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             fit={product.fit}
+            colourFills={colourFills}
             heading={
               <>
               <h1 className="type-label text-[15px] leading-snug lg:mt-4">{displayName}</h1>
@@ -539,6 +549,8 @@ export default async function ProductPage({
         )}
         <RecentlyViewed currentSlug={product.slug} />
       </section>
+      {/* phones: room for the pinned buy bar so it never covers the footer */}
+      <div aria-hidden className="h-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:hidden" />
     </div>
   );
 }
