@@ -54,21 +54,31 @@ const words = (s: string) =>
     .split(" ")
     .filter((w) => w.length > 2 && !["the", "and", "with", "bw"].includes(w));
 
-/** The product's colour that a file's colour (white-blue, dark-burgundy…) names. */
-function colourFor(p: Product, fileColour: string): string {
+/** The product's colour that a file's colour (white-blue, dark-burgundy…) names, or "" when none does. */
+function colourMatch(p: Product, fileColour: string): string {
   const f = fileColour.toLowerCase().replace(/-/g, " ").trim();
-  if (!f) return p.colours.length === 1 ? p.colours[0]! : "";
+  if (!f) return "";
   const exact = p.colours.find((c) => c.toLowerCase() === f || c.toLowerCase().replace(/\//g, " ") === f);
   if (exact) return exact;
-  const loose = p.colours.find((c) => {
-    const cw = words(c);
-    return cw.length > 0 && cw.every((w) => f.includes(w));
-  });
-  return loose ?? (p.colours.length === 1 ? p.colours[0]! : "");
+  return (
+    p.colours.find((c) => {
+      const cw = words(c);
+      return cw.length > 0 && cw.every((w) => f.includes(w));
+    }) ?? ""
+  );
+}
+
+/** As colourMatch, but a one-colour piece takes its colour when the file doesn't name one it has. */
+function colourFor(p: Product, fileColour: string): string {
+  return colourMatch(p, fileColour) || (p.colours.length === 1 ? p.colours[0]! : "");
 }
 
 /** Products a group of photos probably belongs to: by model code first, then by name words. */
-function suggest(code: string, products: Product[]): Array<{ p: Product; sure: boolean }> {
+/**
+ * Products a group of photos probably belongs to: by model code first, then by name
+ * words — a piece that also comes in the photos' colour ranks above one that doesn't.
+ */
+function suggest(code: string, fileColours: string[], products: Product[]): Array<{ p: Product; sure: boolean }> {
   if (/^BW-[A-Z]+-\d+$/i.test(code)) {
     const hit = products.find((p) => p.codes.includes(code.toUpperCase()));
     if (hit) return [{ p: hit, sure: true }];
@@ -78,12 +88,14 @@ function suggest(code: string, products: Product[]): Array<{ p: Product; sure: b
   return products
     .map((p) => {
       const have = new Set([...words(p.name_en), ...words(p.slug)]);
-      return { p, score: want.filter((w) => have.has(w)).length / want.length };
+      const name = want.filter((w) => have.has(w)).length / want.length;
+      const colour = fileColours.some((c) => colourMatch(p, c)) ? 1 : 0;
+      return { p, name, colour };
     })
-    .filter((x) => x.score >= 0.5)
-    .sort((a, b) => b.score - a.score)
+    .filter((x) => x.name >= 0.5)
+    .sort((a, b) => b.name + b.colour * 0.3 - (a.name + a.colour * 0.3))
     .slice(0, 3)
-    .map(({ p, score }) => ({ p, sure: score === 1 }));
+    .map(({ p, name, colour }) => ({ p, sure: name === 1 && colour === 1 }));
 }
 
 interface Group {
@@ -186,13 +198,13 @@ export function MediaMatch() {
     for (const f of files) (byCode.get(f.code) ?? byCode.set(f.code, []).get(f.code)!).push(f);
     const rank = (g: Group) => (!g.hits[0] ? 1 : countOf(g.hits[0].p.id) ? 2 : 0);
     return [...byCode.entries()]
-      .map(([code, list]): Group => ({ code, files: list, hits: suggest(code, products) }))
+      .map(([code, list]): Group => ({ code, files: list, hits: suggest(code, [...new Set(list.map((f) => f.colour))], products) }))
       .filter((g) => !skipped.includes(g.code))
       .sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code))
       .concat(
         [...byCode.entries()]
           .filter(([code]) => skipped.includes(code))
-          .map(([code, list]) => ({ code, files: list, hits: suggest(code, products) })),
+          .map(([code, list]) => ({ code, files: list, hits: suggest(code, [...new Set(list.map((f) => f.colour))], products) })),
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, products, mediaOf, skipped]);
@@ -201,6 +213,9 @@ export function MediaMatch() {
   const target = chosen ?? group?.hits[0]?.p ?? null;
   const linkFiles = group ? group.files.filter((f) => !off.includes(f.name)) : [];
   const hasPhotos = target ? countOf(target.id) > 0 : false;
+  const fileColours = group ? [...new Set(group.files.map((f) => f.colour).filter(Boolean))] : [];
+  // the photos name a colour this piece doesn't come in: probably another piece
+  const colourOff = Boolean(target && fileColours.length && !fileColours.some((c) => colourMatch(target, c)));
 
   function reset() {
     setOff([]);
@@ -317,13 +332,13 @@ export function MediaMatch() {
       {/* progress */}
       <div className="flex items-center justify-between gap-3 text-sm">
         <Button variant="ghost" size="sm" onClick={() => go(at - 1)} disabled={at === 0 || busy}>
-          <Icon name="next" size={16} /> السابقة
+          <Icon name="back" size={16} /> السابقة
         </Button>
         <span className="tabular-nums text-muted-foreground">
           قطعة {Math.min(at, queue.length - 1) + 1} من {queue.length} · {files.length} صورة ناطرة
         </span>
         <Button variant="ghost" size="sm" onClick={() => go(at + 1)} disabled={at >= queue.length - 1 || busy}>
-          التالية <Icon name="back" size={16} />
+          التالية <Icon name="next" size={16} />
         </Button>
       </div>
 
@@ -354,6 +369,14 @@ export function MediaMatch() {
             );
           })}
         </div>
+        <p className="text-sm text-muted-foreground">
+          اسم الملف: <span dir="ltr" className="text-foreground">{group.code.replace(/-/g, " ")}</span>
+          {fileColours.length ? (
+            <>
+              {" · "}اللون: <span dir="ltr" className="text-foreground">{fileColours.map((c) => c.replace(/-/g, " ")).join(", ")}</span>
+            </>
+          ) : null}
+        </p>
         {group.files.length > 1 ? (
           <p className="text-xs text-muted-foreground">صورة مش من نفس القطعة؟ كبسة عليها بتطلّعها من الربط.</p>
         ) : null}
@@ -374,8 +397,22 @@ export function MediaMatch() {
             <div className="min-w-0 flex-1 space-y-2">
               <p dir="ltr" className="text-end text-lg">{target.name_en}</p>
               <p className="text-sm text-muted-foreground">
-                {chosen ? "انت اخترتها" : group.hits[0]?.sure ? "نفس كود الموديل — تطابق أكيد" : "اقتراح من الاسم"}
+                {chosen
+                  ? "انت اخترتها"
+                  : /^BW-/i.test(group.code)
+                    ? "نفس كود الموديل — تطابق أكيد"
+                    : group.hits[0]?.sure
+                      ? "نفس الاسم واللون"
+                      : "اقتراح من الاسم — تأكّد"}
               </p>
+              <p className="text-sm">
+                ألوانها: <span dir="ltr">{target.colours.join(", ") || "—"}</span>
+              </p>
+              {colourOff ? (
+                <p className="border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+                  لون الصور مش من ألوان هالقطعة — غالبًا مش هي. دوّر على قطعة تانية.
+                </p>
+              ) : null}
               {hasPhotos ? (
                 <div className="space-y-1">
                   <p className="text-sm">عندها {countOf(target.id)} صورة عالموقع — قارن:</p>
@@ -408,11 +445,11 @@ export function MediaMatch() {
                 </Button>
               </>
             ) : (
-              <Button size="lg" onClick={() => void link()} disabled={busy || !linkFiles.length}>
+              <Button size="lg" variant={colourOff ? "outline" : "default"} onClick={() => void link()} disabled={busy || !linkFiles.length}>
                 {busy ? "عم نربط…" : `إيه، هيدي هي — اربط ${linkFiles.length} صورة`}
               </Button>
             )}
-            <Button size="lg" variant="outline" onClick={() => setSearching(true)} disabled={busy}>
+            <Button size="lg" variant={colourOff && !hasPhotos ? "default" : "outline"} onClick={() => setSearching(true)} disabled={busy}>
               لا، قطعة تانية
             </Button>
             <Button size="lg" variant="ghost" onClick={skip} disabled={busy}>
