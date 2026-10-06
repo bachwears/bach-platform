@@ -345,13 +345,15 @@ export function AddToCart({
 
   return (
     <div className="mt-6 space-y-5 lg:mt-8 lg:space-y-6">
-      {/* phones: name and price on the left, colour squares on the right (Zara-style) */}
+      {/* phones: name and price on the left, a few colour squares on the right (Zara-style);
+          many colours would squeeze the name, so they go in a row underneath instead */}
       {heading ? (
         <div className="-mt-6 flex items-start justify-between gap-4 lg:mt-0 lg:block">
           <div className="min-w-0">{heading}</div>
-          {colors.length > 1 ? <div className="shrink-0 pt-0.5 lg:hidden">{swatches}</div> : null}
+          {colors.length > 1 && colors.length <= 4 ? <div className="shrink-0 pt-0.5 lg:hidden">{swatches}</div> : null}
         </div>
       ) : null}
+      {colors.length > 4 ? <div className="-mt-2 lg:hidden">{swatches}</div> : null}
       {colors.length > 1 ? <div className="lg:hidden">{shownNote}</div> : null}
       {colors.length > 1 && (
         <div className="hidden lg:block">
