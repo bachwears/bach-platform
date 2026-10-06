@@ -133,6 +133,8 @@ export function MediaMatch() {
   const [view, setView] = useState(0); // the photo shown large
   const [zoom, setZoom] = useState(false);
   const [picked, setPicked] = useState<Product | null>(null);
+  // the piece's colour for each colour named in the file names (white-melange → White), editable
+  const [colourPick, setColourPick] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("");
   const [noPhotos, setNoPhotos] = useState(true);
@@ -271,6 +273,7 @@ export function MediaMatch() {
   }, [products, query, cat, noPhotos, group, mediaOf, parentOf]);
 
   function reset() {
+    setColourPick({});
     setOff([]);
     setPicked(null);
     setView(0);
@@ -297,6 +300,7 @@ export function MediaMatch() {
 
   /** The piece's colour for a photo; unknown → the colour its photos already show, so it still appears. */
   function colourOf(p: Product, f: Pending) {
+    if (colourPick[f.colour] != null) return colourPick[f.colour]!;
     const hero = (mediaOf.get(p.id) ?? []).find((m) => m.kind === "front")?.color_en ?? "";
     return colourFor(p, f.colour) || hero || p.colours[0] || "";
   }
@@ -388,7 +392,10 @@ export function MediaMatch() {
       <button
         key={p.id}
         type="button"
-        onClick={() => setPicked(p)}
+        onClick={() => {
+          setPicked(p);
+          setColourPick({});
+        }}
         aria-pressed={on}
         className={`flex w-full items-center gap-3 border p-2 text-start transition-colors ${
           on ? "border-foreground bg-muted/60 ring-1 ring-foreground" : "hover:border-foreground"
@@ -531,6 +538,41 @@ export function MediaMatch() {
             ) : (
               <p className="text-sm text-muted-foreground">اختار القطعة من اللايحة.</p>
             )}
+            {target ? (
+              <div className="space-y-1.5 border p-2">
+                <p className="text-sm">لون الصور عالموقع:</p>
+                {(fileColours.length ? fileColours : [""]).map((fc) => {
+                  const files = group.files.filter((f) => f.colour === fc && !off.includes(f.name));
+                  if (!files.length) return null;
+                  const value = colourOf(target, files[0]!);
+                  return (
+                    <label key={fc || "none"} className="flex flex-wrap items-center gap-2 text-sm">
+                      {fileColours.length > 1 || fc ? (
+                        <span className="text-muted-foreground">
+                          {files.length} صورة <span dir="ltr">({fc.replace(/-/g, " ") || "بلا لون"})</span> ←
+                        </span>
+                      ) : null}
+                      <select
+                        value={value}
+                        onChange={(e) => setColourPick((cp) => ({ ...cp, [fc]: e.target.value }))}
+                        className="h-9 min-w-36 border bg-background px-2 text-sm"
+                        dir="ltr"
+                      >
+                        {target.colours.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                        {value && !target.colours.includes(value) ? <option value={value}>{value}</option> : null}
+                      </select>
+                    </label>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
+                  الموقع بيوري هالصور لمّا الزبون يختار هاللون. تعبّى تلقائيًا من اسم الملف — غيّرو إذا مش مزبوط.
+                </p>
+              </div>
+            ) : null}
             {colourOff ? (
               <p className="border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
                 لون الصور مش من ألوان هالقطعة — تأكّد إنها هي قبل ما تربط.
