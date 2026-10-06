@@ -493,6 +493,7 @@ export function Returns({
 
           <div className={`space-y-1 border p-3 text-sm ${windowPassed ? "border-destructive/60" : ""}`}>
             <p>
+              <Icon name="date" size={14} className="me-1 inline align-[-2px]" />
               {order.channel === "online" ? "وصل للزبون" : "اشترى بالمحل"}: <span dir="ltr">{dateAr(receivedAt ? new Date(receivedAt) : null)}</span>
               {" · "}الإرجاع لغاية <span dir="ltr">{dateAr(returnUntil)}</span>
               {" · "}التبديل لغاية <span dir="ltr">{dateAr(exchangeUntil)}</span>
@@ -506,6 +507,7 @@ export function Returns({
             {feeApplies && (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-muted-foreground">
+                  <Icon name="courier" size={14} className="me-1 inline align-[-2px]" />
                   رسوم توصيل المرتجع/التبديل: {waiveFee ? "معفى" : usd(policy.fee_usd_cents)} — بتنطرح من المبلغ يلي بيرجع للزبون.
                 </span>
                 {isManager && (
@@ -532,7 +534,7 @@ export function Returns({
 
           {mode === "exchange" && (
             <div className="space-y-3 border p-4">
-              <p className="text-sm font-medium">القطع الجديدة</p>
+              <p className="flex items-center gap-2 text-sm font-medium"><Icon name="statusExchanged" size={16} />القطع الجديدة</p>
               <div className="relative">
                 <Input
                   value={query}

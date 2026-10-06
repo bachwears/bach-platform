@@ -6,6 +6,7 @@ import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { EmptyState } from "@bach/ui/components/empty-state";
 import { Input } from "@bach/ui/components/input";
+import { Icon } from "@bach/ui/components/icon";
 import { Thumb } from "@bach/ui/components/thumb";
 import { barcodeForms, latinDigits, variantPhotos } from "../lib/offline";
 
@@ -325,9 +326,9 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
             <thead>
               <tr className="border-b text-right text-muted-foreground">
                 <th className="p-3 font-normal">الصنف</th>
-                <th className="p-3 font-normal">بالنظام</th>
-                <th className="p-3 font-normal">المعدود</th>
-                <th className="p-3 font-normal">الفرق</th>
+                <th className="p-3 font-normal"><span className="flex items-center gap-1.5"><Icon name="inventory" size={14} />بالنظام</span></th>
+                <th className="p-3 font-normal"><span className="flex items-center gap-1.5"><Icon name="stocktake" size={14} />المعدود</span></th>
+                <th className="p-3 font-normal"><span className="flex items-center gap-1.5"><Icon name="sort" size={14} />الفرق</span></th>
               </tr>
             </thead>
             <tbody>

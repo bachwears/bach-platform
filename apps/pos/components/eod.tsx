@@ -252,7 +252,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
 
           <div className="mt-5 grid gap-6 sm:grid-cols-2">
             <section>
-              <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Sales</h3>
+              <h3 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground"><Icon name="sell" size={16} className="print:hidden" />Sales</h3>
               <dl className="mt-2 space-y-1.5 text-sm">
                 <Row label="POS orders" value={String(totals.ordersCount)} />
                 <Row label="Gross sales" value={usd(totals.gross)} />
@@ -265,6 +265,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
 
             <section>
               <h3 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                <Icon name="cash" size={16} className="print:hidden" />
                 Cash drawer
                 {hint && <HintDot hint={hint} />}
               </h3>
@@ -290,7 +291,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
           </div>
 
           <div className="mt-6 border-t pt-4">
-            <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Count</h3>
+            <h3 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground"><Icon name="stocktake" size={16} className="print:hidden" />Count</h3>
             <div className="mt-2 grid gap-4 sm:grid-cols-2">
               <dl className="space-y-1.5 text-sm">
                 <Row label="Counted (USD)" value={usd(showCountedUsd)} />
@@ -323,7 +324,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
 
       {totals && !closed && (
         <div className="space-y-3 border p-4 print:hidden">
-          <p className="text-sm font-medium">عدّ الدرج وسكّر اليوم</p>
+          <p className="flex items-center gap-2 text-sm font-medium"><Icon name="endOfDay" size={16} />عدّ الدرج وسكّر اليوم</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground" htmlFor="c-usd">

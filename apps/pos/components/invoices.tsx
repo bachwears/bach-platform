@@ -192,6 +192,7 @@ export function Invoices() {
             </span>
             <span className="flex items-center gap-3 text-sm">
               <span className="text-muted-foreground" dir="ltr">
+                <Icon name="time" size={14} className="me-1 inline align-[-2px]" />
                 {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
               </span>
               <span className="font-mono font-medium" dir="ltr">{usd(o.total_usd_cents)}</span>
@@ -201,9 +202,9 @@ export function Invoices() {
             <div className="space-y-3 border-t p-4 text-sm">
               {o.customers && (
                 <p className="text-muted-foreground">
-                  الزبون: <span className="text-foreground">{o.customers.full_name ?? "—"}</span>
+                  <Icon name="user" size={14} className="me-1 inline align-[-2px]" />الزبون: <span className="text-foreground">{o.customers.full_name ?? "—"}</span>
                   <span dir="ltr"> {o.customers.phone}</span>
-                  <span className="ms-3">محفظته: <span className="font-mono" dir="ltr">{usd(o.customers.balance_usd_cents)}</span></span>
+                  <span className="ms-3"><Icon name="wallet" size={14} className="me-1 inline align-[-2px]" />محفظته: <span className="font-mono" dir="ltr">{usd(o.customers.balance_usd_cents)}</span></span>
                 </p>
               )}
               {o.customers && (
@@ -236,7 +237,7 @@ export function Invoices() {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-4 border-t pt-2 text-xs text-muted-foreground">
-                {o.discount_usd_cents > 0 && <span>خصم: <span className="font-mono" dir="ltr">{usd(o.discount_usd_cents)}</span></span>}
+                {o.discount_usd_cents > 0 && <span><Icon name="discount" size={14} className="me-1 inline align-[-2px]" />خصم: <span className="font-mono" dir="ltr">{usd(o.discount_usd_cents)}</span></span>}
                 <span className="flex items-center gap-1.5"><Icon name={METHOD_ICON[o.payment_method ?? "cash"] ?? "cash"} size={14} />الدفع: {o.payment_method === "whish" ? "Whish / محفظة" : o.payment_method === "cod" ? "عند الاستلام" : o.payment_method ?? "كاش"}</span>
               </div>
               <Button variant="outline" className="h-10" onClick={() => setPrinting(o)}>

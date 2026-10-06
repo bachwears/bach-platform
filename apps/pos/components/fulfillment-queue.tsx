@@ -271,23 +271,23 @@ export function FulfillmentQueue() {
 
             <div className="grid gap-2 text-sm sm:grid-cols-2">
               <p>
-                <span className="text-muted-foreground">الزبون: </span>
+                <span className="text-muted-foreground"><Icon name="user" size={14} className="me-1 inline align-[-2px]" />الزبون: </span>
                 {o.ship_name} · <span dir="ltr">{o.ship_phone}</span>
               </p>
               {pickup ? (
                 <p>
-                  <span className="text-muted-foreground">التسليم: </span>
+                  <span className="text-muted-foreground"><Icon name="branch" size={14} className="me-1 inline align-[-2px]" />التسليم: </span>
                   الزبون بيستلم من المحل
                   {o.payment_method === "cod" ? " — بيدفع هون (كاش أو Whish)" : " — مدفوع سلف"}
                 </p>
               ) : (
                 <p>
-                  <span className="text-muted-foreground">العنوان: </span>
+                  <span className="text-muted-foreground"><Icon name="address" size={14} className="me-1 inline align-[-2px]" />العنوان: </span>
                   {o.ship_city} — {o.ship_address}
                 </p>
               )}
             </div>
-            {o.note && <p className="text-sm text-muted-foreground">ملاحظة: {o.note}</p>}
+            {o.note && <p className="text-sm text-muted-foreground"><Icon name="note" size={14} className="me-1 inline align-[-2px]" />ملاحظة: {o.note}</p>}
 
             <ul className="space-y-1 bg-muted/50 p-3 text-sm">
               {o.order_items.map((i, idx) => (

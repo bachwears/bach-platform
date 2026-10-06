@@ -8,7 +8,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { HintDot } from "@bach/ui/components/hint-dot";
-import { Icon } from "@bach/ui/components/icon";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 
 import { CameraScanner } from "./camera-scanner";
 import { CustomerPoints } from "./customer-points";
@@ -699,7 +699,9 @@ export function Cashier({
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b text-right text-muted-foreground">
-                  <th className="p-3 font-normal">القطعة</th>
+                  <th className="p-3 font-normal">
+                    <span className="flex items-center gap-1.5"><Icon name="sell" size={14} />القطعة</span>
+                  </th>
                   <th className="p-3 font-normal">الكمية</th>
                   <th className="p-3 font-normal">السعر</th>
                   {isManager && <th className="p-3 font-normal">خصم %</th>}
@@ -796,7 +798,7 @@ export function Cashier({
       {/* Totals + payment */}
       <aside className="space-y-4 border p-4 lg:sticky lg:top-4 lg:self-start">
         <div className="flex items-center justify-between border-b pb-2 text-sm">
-          <span className="flex items-center gap-1.5 text-muted-foreground">الكاشير: <span className="text-foreground">{acting.name}</span>
+          <span className="flex items-center gap-1.5 text-muted-foreground"><Icon name="user" size={14} />الكاشير: <span className="text-foreground">{acting.name}</span>
             <HintDot
               hint={{
                 title: "تبديل الكاشير",
@@ -868,6 +870,7 @@ export function Cashier({
             </div>
           ) : (
             <div className="relative">
+              <Icon name="customers" size={16} className="pointer-events-none absolute start-3 top-3 text-muted-foreground" />
               <Input
                 value={custQuery}
                 onChange={(e) => {
@@ -876,7 +879,7 @@ export function Cashier({
                 }}
                 placeholder="زبون؟ رقم التلفون أو الاسم…"
                 aria-label="فتّش عن زبون"
-                className="h-10"
+                className="h-10 ps-9"
               />
               {custResults.length > 0 && (
                 <div className="absolute inset-x-0 top-full z-10 mt-1 border bg-background">
@@ -932,6 +935,7 @@ export function Cashier({
           <Row label="المجموع" value={usd(subtotal)} />
           <div className="flex items-center justify-between gap-2">
             <label className="flex items-center gap-1.5 text-muted-foreground" htmlFor="disc">
+              <Icon name="discount" size={14} />
               خصم %
               <HintDot
                 hint={{
@@ -1013,6 +1017,7 @@ export function Cashier({
             </p>
           )}
           <Button className="h-12 w-full text-lg" disabled={!canCheckout} onClick={() => void checkout()}>
+            <Icon name="save" size={18} />
             {busy ? "عم نسجّل…" : "تسجيل البيع"}
           </Button>
         </div>
@@ -1022,10 +1027,15 @@ export function Cashier({
   );
 }
 
+const ROW_ICON: Record<string, IconName> = { المجموع: "price", "قيمة الخصم": "discount", "منها TVA": "info", TVA: "info" };
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        {ROW_ICON[label] ? <Icon name={ROW_ICON[label]!} size={14} /> : null}
+        {label}
+      </span>
       <span className="font-mono">{value}</span>
     </div>
   );
