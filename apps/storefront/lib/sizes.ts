@@ -1,7 +1,8 @@
 /**
  * The sizes BACH usually carries. A sized piece always lists its full run so a
  * missing size reads as "not available" (crossed out) instead of silently absent.
- * Oversized and one-size pieces (hats, scarves…) only list what they really come in.
+ * The run follows the item type: clothing (oversized cuts included) S–XXL, shoes
+ * 40–44; one-size pieces (hats, scarves…) only list what they really come in.
  */
 const LETTER_RUN = ["S", "M", "L", "XL", "XXL"];
 const SHOE_RUN = ["40", "41", "42", "43", "44"];
@@ -17,7 +18,7 @@ export const sizeRank = (s: string) => {
 /** The full size list for a piece: its own sizes plus the usual run, in size order. */
 export function sizeRun(own: string[], fit?: string | null): string[] {
   const sizes = [...new Set(own)];
-  const noRun = /one size|oversiz/i.test(fit ?? "");
+  const noRun = /one size/i.test(fit ?? "");
   let run: string[] = [];
   if (!noRun && sizes.length) {
     if (sizes.every((s) => LETTERS.includes(s.toUpperCase()))) run = LETTER_RUN;
