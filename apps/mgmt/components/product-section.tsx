@@ -2,6 +2,18 @@
 
 import { useEffect, useRef } from "react";
 import { HintDot, type HintContent } from "@bach/ui/components/hint-dot";
+import { Icon, type IconName } from "@bach/ui/components/icon";
+
+/** Each product-page section's icon (same meanings as the rest of the portal). */
+const SECTION_ICON: Record<string, IconName> = {
+  overview: "info",
+  basics: "price",
+  photos: "categoryImages",
+  variants: "colour",
+  details: "details",
+  "wear-with": "collections",
+  seo: "web",
+};
 
 /**
  * One collapsible block of the product page. Opens itself when the page jumps
@@ -47,6 +59,7 @@ export function ProductSection({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2 font-medium">
+            {SECTION_ICON[id] ? <Icon name={SECTION_ICON[id]!} size={18} className="text-muted-foreground" /> : null}
             {title}
             {hint ? (
               // the hint button must not toggle the section

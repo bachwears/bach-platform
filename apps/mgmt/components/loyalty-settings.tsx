@@ -8,6 +8,7 @@ import { Label } from "@bach/ui/components/label";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { NOT_SAVED } from "../lib/access";
+import { Icon } from "@bach/ui/components/icon";
 
 // Same bounds the loyalty_settings() RPC clamps to.
 const LIMITS = { perUsd: 100, rewardPoints: 100000, rewardCents: 100000, months: 60 };
@@ -95,6 +96,7 @@ export function LoyaltySettings() {
   return (
     <section className="border p-4">
       <h2 className="flex items-center gap-2 font-medium">
+        <Icon name="points" size={18} className="text-muted-foreground" />
         برنامج النقاط
         <HintDot
           hint={{

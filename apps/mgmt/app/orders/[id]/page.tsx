@@ -11,7 +11,7 @@ import { OrderStatusControl } from "../../../components/order-status-control";
 import { PICKUP_BADGE } from "../../../components/fulfilment";
 import { paymentLabel } from "../../../lib/order-status";
 import { fmt } from "../../../lib/time";
-import { Icon } from "@bach/ui/components/icon";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -82,7 +82,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {canManage && (
           <section className="space-y-3 border p-4 text-sm">
-            <h2 className="font-medium">حالة الطلب</h2>
+            <h2 className="flex items-center gap-2 font-medium"><Icon name="statusConfirmed" size={18} className="text-muted-foreground" />حالة الطلب</h2>
             <OrderStatusControl
               orderId={order.id}
               currentStatus={order.status}
@@ -108,7 +108,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         {order.channel === "online" || order.ship_address ? (
           <div className="grid gap-4 border p-4 text-sm sm:grid-cols-2">
             <div className="space-y-1">
-              <h2 className="font-medium">{isPickup ? PICKUP_BADGE : "التوصيل"}</h2>
+              <h2 className="flex items-center gap-2 font-medium"><Icon name="address" size={18} className="text-muted-foreground" />{isPickup ? PICKUP_BADGE : "التوصيل"}</h2>
               <p>{order.ship_name ?? "—"}</p>
               {order.ship_phone ? (
                 <p className="flex flex-wrap items-center gap-3" dir="ltr">
@@ -127,12 +127,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </a>
                 </p>
               ) : null}
-              <p className="text-muted-foreground">
+              <p className="flex items-start gap-1.5 text-muted-foreground">
+                <Icon name="address" size={14} className="mt-1 shrink-0" />
                 {[order.ship_city, order.ship_address].filter(Boolean).join(" — ") || "—"}
               </p>
             </div>
             <div className="space-y-1">
-              <h2 className="font-medium">طريقة الدفع</h2>
+              <h2 className="flex items-center gap-2 font-medium"><Icon name="card" size={18} className="text-muted-foreground" />طريقة الدفع</h2>
               <p>{paymentLabel(order.payment_method)}</p>
               {order.payment_method === "cod" ? (
                 <p className="text-xs text-muted-foreground">
@@ -194,7 +195,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 border p-4 text-sm">
-            <h2 className="font-medium">الحساب</h2>
+            <h2 className="flex items-center gap-2 font-medium"><Icon name="price" size={18} className="text-muted-foreground" />الحساب</h2>
             <Row label="المجموع" value={usd(order.subtotal_usd_cents)} />
             {order.discount_usd_cents > 0 && <Row label="الخصم" value={`- ${usd(order.discount_usd_cents)}`} />}
             {order.tva_usd_cents > 0 && <Row label="TVA" value={usd(order.tva_usd_cents)} />}
@@ -211,7 +212,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
 
           <div className="space-y-2 border p-4 text-sm">
-            <h2 className="font-medium">الدفعات</h2>
+            <h2 className="flex items-center gap-2 font-medium"><Icon name="cash" size={18} className="text-muted-foreground" />الدفعات</h2>
             {(order.order_payments ?? []).length === 0 ? (
               <p className="text-muted-foreground">
                 {order.payment_method === "cod"
@@ -235,16 +236,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {order.note && <p className="border p-4 text-sm text-muted-foreground">ملاحظة: {order.note}</p>}
+        {order.note && (
+          <p className="flex items-start gap-2 border p-4 text-sm text-muted-foreground">
+            <Icon name="note" size={16} className="mt-0.5 shrink-0" />
+            ملاحظة: {order.note}
+          </p>
+        )}
       </main>
     </div>
   );
 }
 
+const INFO_ICON: Record<string, IconName> = { الوقت: "time", الفرع: "branch", الكاشير: "user" };
+
 function Info({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
   return (
     <div className="border p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {INFO_ICON[label] ? <Icon name={INFO_ICON[label]!} size={14} /> : null}
+        {label}
+      </p>
       <p className="mt-0.5" dir={ltr ? "ltr" : undefined}>
         {value}
       </p>

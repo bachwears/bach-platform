@@ -6,6 +6,7 @@ import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
 import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
+import { Icon } from "@bach/ui/components/icon";
 
 interface Pickup {
   enabled: boolean;
@@ -74,6 +75,7 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
     <details className="border p-4" open={loaded && v.enabled && !v.address.trim()}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <span className="flex items-center gap-2 font-medium">
+        <Icon name="branch" size={18} className="text-muted-foreground" />
           الاستلام من المحل
           <HintDot
             hint={{

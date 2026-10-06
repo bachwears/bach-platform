@@ -7,6 +7,7 @@ import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
 import { Textarea } from "@bach/ui/components/textarea";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Icon } from "@bach/ui/components/icon";
 
 interface Hero {
   eyebrow: string;
@@ -147,6 +148,7 @@ export function SiteContentEditor() {
     <div className="max-w-2xl space-y-6">
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="home" size={18} className="text-muted-foreground" />
           واجهة الصفحة الرئيسية (Hero)
           <HintDot
             hint={{
@@ -196,6 +198,7 @@ export function SiteContentEditor() {
 
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="categoryImages" size={18} className="text-muted-foreground" />
           صورة الواجهة
           <HintDot
             hint={{
@@ -252,6 +255,7 @@ export function SiteContentEditor() {
 
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="campaigns" size={18} className="text-muted-foreground" />
           بانر العروض تحت الواجهة
           <HintDot
             hint={{
@@ -291,6 +295,7 @@ export function SiteContentEditor() {
 
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="courier" size={18} className="text-muted-foreground" />
           صفحة التوصيل والشحن
           <HintDot
             hint={{
@@ -313,6 +318,7 @@ export function SiteContentEditor() {
 
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="returns" size={18} className="text-muted-foreground" />
           صفحة الإرجاع والتبديل
           <HintDot
             hint={{
@@ -335,6 +341,7 @@ export function SiteContentEditor() {
 
       <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="discount" size={18} className="text-muted-foreground" />
           عجلة الحظ (Spin the wheel)
           <HintDot
             hint={{
@@ -374,6 +381,7 @@ export function SiteContentEditor() {
       ).map(([key, label, path, doc, setDoc, id]) => (
         <div key={key} className="space-y-4 border p-5">
           <h2 className="flex items-center gap-2 font-medium">
+            <Icon name="details" size={18} className="text-muted-foreground" />
             {label}
             <HintDot
               hint={{

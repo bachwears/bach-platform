@@ -6,6 +6,7 @@ import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
 import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
+import { Icon } from "@bach/ui/components/icon";
 
 /**
  * Returns policy (site_content 'returns'): days to return, days to exchange —
@@ -61,6 +62,7 @@ export function ReturnsPolicySettings({ canEdit }: { canEdit: boolean }) {
   return (
     <section className="space-y-4 border p-4">
       <h2 className="flex items-center gap-2 font-medium">
+        <Icon name="returns" size={18} className="text-muted-foreground" />
         سياسة الإرجاع
         <HintDot
           hint={{

@@ -8,6 +8,7 @@ import { Label } from "@bach/ui/components/label";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { NOT_SAVED } from "../lib/access";
+import { Icon } from "@bach/ui/components/icon";
 
 // Same shape the database accepts in _admin_notify_email(); anything else is ignored there.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -70,6 +71,7 @@ export function NotificationSettings() {
   return (
     <section className="border p-4">
       <h2 className="flex items-center gap-2 font-medium">
+        <Icon name="email" size={18} className="text-muted-foreground" />
         تنبيهات الإدارة بالإيميل
         <HintDot
           hint={{

@@ -8,6 +8,7 @@ import { Input } from "@bach/ui/components/input";
 import { Label } from "@bach/ui/components/label";
 import { NOT_SAVED } from "../lib/access";
 import { Select } from "@bach/ui/components/select";
+import { Icon } from "@bach/ui/components/icon";
 
 const SEASONS: Array<[string, string]> = [
   ["winter", "شتوي"],
@@ -217,7 +218,7 @@ export function Marketing() {
 
       {/* Season flip */}
       <section className="border p-4">
-        <h2 className="font-medium">موسم المتجر</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="season" size={18} className="text-muted-foreground" />موسم المتجر</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           كبسة وحدة وبيتقدّم الموسم المختار بواجهة المتجر.
         </p>
@@ -232,7 +233,7 @@ export function Marketing() {
 
       {/* Campaigns */}
       <section className="border p-4">
-        <h2 className="font-medium">الحملات</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="campaigns" size={18} className="text-muted-foreground" />الحملات</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           "20% على كل الشتوي" = اختار الهدف والنسبة، انشر — الأسعار بتتنزّل فوراً وبترجع لما تنهيها.
         </p>
@@ -347,7 +348,7 @@ export function Marketing() {
 
       {/* Promocodes */}
       <section className="border p-4">
-        <h2 className="font-medium">أكواد الخصم</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="discount" size={18} className="text-muted-foreground" />أكواد الخصم</h2>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <Label htmlFor="mk-p-code">الكود</Label>
@@ -380,7 +381,7 @@ export function Marketing() {
 
       {/* Popups */}
       <section className="border p-4">
-        <h2 className="font-medium">بوب-أب المتجر</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="newItem" size={18} className="text-muted-foreground" />بوب-أب المتجر</h2>
         <p className="mt-1 text-sm text-muted-foreground">رسالة قصيرة بتطلع للزبون لمّا يفوت عالموقع — بالإنكليزي لأنو الموقع إنكليزي.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <div className="space-y-1">

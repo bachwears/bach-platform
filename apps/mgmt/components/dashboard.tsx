@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { Icon } from "@bach/ui/components/icon";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
@@ -284,7 +284,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
       {/* Daily revenue bars */}
       <section className="border p-4">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">المبيعات اليومية</h2>
+        <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground"><Icon name="date" size={16} />المبيعات اليومية</h2>
         <div className="mt-4 flex h-32 items-end gap-1.5" dir="ltr">
           {series.map((s, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
@@ -302,7 +302,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
         {/* Top products */}
         <section className="border p-4">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">الأكثر مبيعاً</h2>
+          <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground"><Icon name="hero" size={16} />الأكثر مبيعاً</h2>
           {topProducts.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بهالفترة — جرّب فترة أطول من فوق.</p>
           ) : (
@@ -327,7 +327,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
         {/* By category */}
         <section className="border p-4">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">حسب الفئة</h2>
+          <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground"><Icon name="categories" size={16} />حسب الفئة</h2>
           {topCategories.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بهالفترة — جرّب فترة أطول من فوق.</p>
           ) : (
@@ -400,10 +400,25 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   );
 }
 
+// each card's icon, by its label (same meanings as the menu)
+const KPI_ICON: Record<string, IconName> = {
+  "المبيعات (صافي)": "sell",
+  "عدد الطلبات": "orders",
+  "هامش الربح": "cost",
+  "المرتجعات": "returns",
+  "مبيعات المحل": "branch",
+  "مبيعات الأونلاين": "online",
+  "كاش مقبوض": "cash",
+  "الزبائن": "customers",
+};
+
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
   return (
     <div className="border p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        {KPI_ICON[label] ? <Icon name={KPI_ICON[label]!} size={16} /> : null}
+        {label}
+      </p>
       <p
         className={`mt-1 font-mono text-2xl font-semibold ${
           tone === "bad" ? "text-destructive" : tone === "good" ? "text-green-600 dark:text-green-400" : ""

@@ -7,6 +7,7 @@ import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
+import { Icon } from "@bach/ui/components/icon";
 
 const STATUS_AR: Record<string, string> = {
   draft: "مسودة",
@@ -226,7 +227,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
 
       {/* Suppliers */}
       <section className="border p-4">
-        <h2 className="font-medium">الموردين</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="courier" size={18} className="text-muted-foreground" />الموردين</h2>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <label htmlFor="po-sup-name" className="block text-sm">اسم المورّد</label>
@@ -257,7 +258,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
 
       {/* New PO */}
       <section className="border p-4">
-        <h2 className="font-medium">طلب شراء جديد</h2>
+        <h2 className="flex items-center gap-2 font-medium"><Icon name="add" size={18} className="text-muted-foreground" />طلب شراء جديد</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
           <label htmlFor="po-supplier" className="block text-sm">المورّد</label>

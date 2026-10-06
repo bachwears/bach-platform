@@ -47,7 +47,7 @@ export function NewsletterCard() {
     <section className="border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-medium">النشرة البريدية</h2>
+          <h2 className="flex items-center gap-2 font-medium"><Icon name="email" size={18} className="text-muted-foreground" />النشرة البريدية</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {loaded ? (
               <>

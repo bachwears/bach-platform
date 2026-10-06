@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { Icon, type IconName } from "@bach/ui/components/icon";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -276,10 +277,13 @@ export function ProductEditorProvider({
   return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
 }
 
-function Field({ id, label, hint, children, className }: { id?: string; label: string; hint?: string; children: React.ReactNode; className?: string }) {
+function Field({ id, label, hint, icon, children, className }: { id?: string; label: string; hint?: string; icon?: IconName; children: React.ReactNode; className?: string }) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="flex items-center gap-1.5">
+        {icon ? <Icon name={icon} size={16} className="text-muted-foreground" /> : null}
+        {label}
+      </Label>
       {children}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
@@ -299,13 +303,14 @@ export function BasicsFields() {
       : null;
   return (
     <div className="space-y-5">
-      <Field id="name_en" label="اسم المنتج (بالإنكليزي)" hint="قرار العلامة: أسماء المنتجات إنكليزي بس.">
+      <Field id="name_en" icon="products" label="اسم المنتج (بالإنكليزي)" hint="قرار العلامة: أسماء المنتجات إنكليزي بس.">
         <Input id="name_en" dir="ltr" required value={values.name_en} onChange={(e) => set("name_en", e.target.value)} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="slug" className="flex items-center gap-2">
+            <Icon name="web" size={16} className="text-muted-foreground" />
             الرابط (slug)
             <HintDot
               hint={{
@@ -320,7 +325,7 @@ export function BasicsFields() {
           </Label>
           <Input id="slug" dir="ltr" required pattern="[a-z0-9-]+" value={values.slug} onChange={(e) => set("slug", e.target.value)} />
         </div>
-        <Field id="category" label="الفئة">
+        <Field id="category" icon="categories" label="الفئة">
           <Select id="category" required value={values.category_id} onChange={(e) => set("category_id", e.target.value)}>
             <option value="">اختار فئة…</option>
             {categories.map((c) => (
@@ -333,14 +338,15 @@ export function BasicsFields() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field id="price" label="السعر (USD)">
+        <Field id="price" icon="price" label="السعر (USD)">
           <Input id="price" dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" required value={values.price_usd} onChange={(e) => set("price_usd", e.target.value)} />
         </Field>
-        <Field id="sale" label="سعر التخفيض" hint="فاضي = بلا تخفيض.">
+        <Field id="sale" icon="discount" label="سعر التخفيض" hint="فاضي = بلا تخفيض.">
           <Input id="sale" dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" value={values.sale_price_usd} onChange={(e) => set("sale_price_usd", e.target.value)} />
         </Field>
         <div className="space-y-1.5">
           <Label htmlFor="cost" className="flex items-center gap-2">
+            <Icon name="cost" size={16} className="text-muted-foreground" />
             سعر الكلفة
             <HintDot
               hint={{
@@ -357,7 +363,7 @@ export function BasicsFields() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="status" label="الحالة" hint="«منشور» بس بيبيّن عالموقع — وكمان لازم يكون إلو صورة أساسية.">
+        <Field id="status" icon="visible" label="الحالة" hint="«منشور» بس بيبيّن عالموقع — وكمان لازم يكون إلو صورة أساسية.">
           <Select id="status" value={values.status} onChange={(e) => set("status", e.target.value)}>
             <option value="draft">مسودة</option>
             <option value="published">منشور</option>
@@ -368,6 +374,7 @@ export function BasicsFields() {
           <input type="checkbox" className="mt-0.5 h-4 w-4" checked={values.hero} onChange={(e) => set("hero", e.target.checked)} />
           <span className="space-y-1">
             <span className="flex items-center gap-2 text-sm font-medium">
+              <Icon name="hero" size={16} />
               ثبّتها كقطعة «هيرو»
               <HintDot
                 hint={{
@@ -391,12 +398,12 @@ export function DetailsFields() {
   const { values, set } = useProductEditor();
   return (
     <div className="space-y-5">
-      <Field id="desc_en" label="الوصف (بالإنكليزي)" hint="جملتين أو تلاتة: شو القطعة، شو بيميّزها، مع شو بتنلبس.">
+      <Field id="desc_en" icon="details" label="الوصف (بالإنكليزي)" hint="جملتين أو تلاتة: شو القطعة، شو بيميّزها، مع شو بتنلبس.">
         <Textarea id="desc_en" dir="ltr" rows={4} value={values.description_en} onChange={(e) => set("description_en", e.target.value)} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="fit" label="القَصّة (fit)">
+        <Field id="fit" icon="fit" label="القَصّة (fit)">
           <Select id="fit" value={values.fit} onChange={(e) => set("fit", e.target.value)}>
             <option value="">—</option>
             {[...FITS, ...(values.fit && !FITS.includes(values.fit) ? [values.fit] : [])].map((f) => (
@@ -406,17 +413,20 @@ export function DetailsFields() {
             ))}
           </Select>
         </Field>
-        <Field id="material" label="الخامة (Material، بالإنكليزي)">
+        <Field id="material" icon="material" label="الخامة (Material، بالإنكليزي)">
           <Input id="material" dir="ltr" placeholder="Cotton blend" value={values.material_en} onChange={(e) => set("material_en", e.target.value)} />
         </Field>
       </div>
 
-      <Field id="care" label="العناية (Care، بالإنكليزي)">
+      <Field id="care" icon="care" label="العناية (Care، بالإنكليزي)">
         <Textarea id="care" dir="ltr" rows={2} placeholder="Machine wash cold. Do not bleach." value={values.care_en} onChange={(e) => set("care_en", e.target.value)} />
       </Field>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">المواسم</legend>
+        <legend className="flex items-center gap-1.5 text-sm font-medium">
+          <Icon name="season" size={16} className="text-muted-foreground" />
+          المواسم
+        </legend>
         <div className="flex flex-wrap gap-2">
           {SEASONS.map(([key, label]) => {
             const on = values.seasons.split(",").includes(key);
@@ -578,7 +588,7 @@ function NewProductForm({
       <section className="space-y-4 border p-5">
         <h2 className="font-medium">الألوان والمقاسات</h2>
         <div className="space-y-2">
-          <Label>الألوان</Label>
+          <Label className="flex items-center gap-1.5"><Icon name="colour" size={16} className="text-muted-foreground" />الألوان</Label>
           <div className="flex flex-wrap gap-2">
             {colours.map((c) => (
               <span key={c.code} className="inline-flex items-center gap-2 border px-2 py-1 text-sm">
@@ -601,7 +611,7 @@ function NewProductForm({
           </div>
         </div>
         <div className="space-y-2">
-          <Label>المقاسات</Label>
+          <Label className="flex items-center gap-1.5"><Icon name="sizes" size={16} className="text-muted-foreground" />المقاسات</Label>
           <SizePicker value={sizes} onChange={setSizes} />
         </div>
         <p className="text-xs text-muted-foreground">

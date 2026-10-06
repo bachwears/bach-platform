@@ -29,6 +29,7 @@ import {
   viewTag,
   type MediaRow,
 } from "./photo-tools";
+import { Icon } from "@bach/ui/components/icon";
 
 export interface ProductColour {
   /** colour name as on the variants (English) */
@@ -327,6 +328,7 @@ function ColourCard({
             ))}
           </Select>
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => fileRef.current?.click()}>
+            <Icon name="upload" size={16} />
             {busy ? "عم نشتغل…" : "اختار صور"}
           </Button>
           <span className="text-[11px] text-muted-foreground">أو اسحبها لهون</span>
@@ -538,21 +540,26 @@ function PhotoEditor({
         <div className="flex flex-wrap gap-2">
           {!isFront ? (
             <Button type="button" size="sm" disabled={busy} onClick={() => void makeMain()}>
+              <Icon name="hero" size={16} />
               خليها الأساسية
             </Button>
           ) : null}
           {!isFront ? (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void toggle()}>
+              <Icon name={live ? "hidden" : "visible"} size={16} />
               {live ? "خبّي عن الموقع" : "ورجي عالموقع"}
             </Button>
           ) : null}
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => fileRef.current?.click()}>
+            <Icon name="refresh" size={16} />
             بدّل الملف
           </Button>
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setMoving((v) => !v)}>
+            <Icon name="move" size={16} />
             انقل لمنتج تاني
           </Button>
           <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void remove()} className="text-destructive">
+            <Icon name="remove" size={16} />
             امحي
           </Button>
           <input

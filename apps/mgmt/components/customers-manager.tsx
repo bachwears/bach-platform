@@ -10,6 +10,7 @@ import { HintDot } from "@bach/ui/components/hint-dot";
 import { NOT_SAVED } from "../lib/access";
 import { OrderStatus } from "@bach/ui/components/order-status";
 import { fmt } from "../lib/time";
+import { Icon } from "@bach/ui/components/icon";
 
 interface Cust {
   id: string;
@@ -356,20 +357,20 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
               </span>
               <span className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
                 <span>
-                  <span className="text-muted-foreground">طلبات: </span>
+                  <span className="text-muted-foreground"><Icon name="orders" size={14} className="inline align-[-2px] me-1" />طلبات: </span>
                   <span className="font-mono">{live.length}</span>
                 </span>
                 <span>
-                  <span className="text-muted-foreground">صرف: </span>
+                  <span className="text-muted-foreground"><Icon name="price" size={14} className="inline align-[-2px] me-1" />صرف: </span>
                   <span className="font-mono" dir="ltr">{usd(spent)}</span>
                 </span>
                 <span>
-                  <span className="text-muted-foreground">المحفظة: </span>
+                  <span className="text-muted-foreground"><Icon name="wallet" size={14} className="inline align-[-2px] me-1" />المحفظة: </span>
                   <span className="font-mono" dir="ltr">{usd(c.balance_usd_cents)}</span>
                 </span>
                 {loyalty && typeof c.points_balance === "number" && (
                   <span>
-                    <span className="text-muted-foreground">النقاط: </span>
+                    <span className="text-muted-foreground"><Icon name="points" size={14} className="inline align-[-2px] me-1" />النقاط: </span>
                     <span className="font-mono" dir="ltr">{c.points_balance}</span>
                   </span>
                 )}
@@ -379,25 +380,25 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
               <div className="space-y-4 border-t p-4">
               <dl className="grid gap-3 text-sm sm:grid-cols-4">
                 <div>
-                  <dt className="text-xs text-muted-foreground">زبون من</dt>
+                  <dt className="text-xs text-muted-foreground"><Icon name="date" size={12} className="inline align-[-2px] me-1" />زبون من</dt>
                   <dd>{day(c.created_at)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">عيد الميلاد</dt>
+                  <dt className="text-xs text-muted-foreground"><Icon name="birthday" size={12} className="inline align-[-2px] me-1" />عيد الميلاد</dt>
                   <dd>{c.birthday ? fmt(`${c.birthday}T12:00:00Z`, { day: "numeric", month: "long" }) : "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">عروض وتسويق</dt>
+                  <dt className="text-xs text-muted-foreground"><Icon name="campaigns" size={12} className="inline align-[-2px] me-1" />عروض وتسويق</dt>
                   <dd>{c.marketing_consent ? "موافق" : "مش موافق"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">المقاسات</dt>
+                  <dt className="text-xs text-muted-foreground"><Icon name="sizes" size={12} className="inline align-[-2px] me-1" />المقاسات</dt>
                   <dd dir="ltr" className="text-end sm:text-start">{sizes.length ? sizes.join(" · ") : "—"}</dd>
                 </div>
               </dl>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-sm font-medium">سجل الطلبات ({orders.length})</p>
+                  <p className="mb-2 text-sm font-medium"><Icon name="history" size={16} className="inline align-[-2px] me-1" />سجل الطلبات ({orders.length})</p>
                   {orders.length === 0 ? (
                     <p className="text-sm text-muted-foreground">ما عندو طلبات بعد.</p>
                   ) : (
@@ -415,7 +416,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                   )}
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-medium">حركات المحفظة</p>
+                  <p className="mb-2 text-sm font-medium"><Icon name="wallet" size={16} className="inline align-[-2px] me-1" />حركات المحفظة</p>
                   {tx.length === 0 ? (
                     <p className="text-sm text-muted-foreground">ما في حركات بالمحفظة بعد.</p>
                   ) : (
