@@ -37,10 +37,13 @@ export function FitFinder({
   guide,
   categoryCodes,
   sizes,
+  hideTrigger = false,
 }: {
   guide: SizeGuideData | null;
   categoryCodes: string[];
   sizes: string[];
+  /** no link of its own: opened from the size sheet's "Find your size" */
+  hideTrigger?: boolean;
 }) {
   const locale = useLocale();
   const kind = fitKind(categoryCodes, sizes);
@@ -129,9 +132,11 @@ export function FitFinder({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="type-meta underline underline-offset-4 hover:opacity-60">
-        {t(locale, "sf.fit.open")}
-      </button>
+      {hideTrigger ? null : (
+        <button type="button" onClick={() => setOpen(true)} className="type-meta underline underline-offset-4 hover:opacity-60">
+          {t(locale, "sf.fit.open")}
+        </button>
+      )}
       {open && (
         <ModalShell label={t(locale, "sf.fit.title")} onClose={() => setOpen(false)} className="w-full max-w-md border bg-background p-6">
           <div className="flex items-start justify-between gap-4">

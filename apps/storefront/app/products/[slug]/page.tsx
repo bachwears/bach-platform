@@ -7,7 +7,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { t } from "@bach/i18n";
 
 import { AddToCart } from "../../../components/add-to-cart";
-import { PdpAccordion } from "../../../components/pdp-accordion";
+import { PdpTabs } from "../../../components/pdp-tabs";
 import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-colour";
 import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
@@ -445,36 +445,57 @@ export default async function ProductPage({
               available: (v.inventory_levels ?? []).reduce((s, l) => s + l.quantity - l.reserved, 0),
             }))}
           />
-          {/* size guide + Fit Finder (the finder hides itself on one-size pieces) */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 empty:hidden">
-            {guide && <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} />}
-            <FitFinder guide={guide} categoryCodes={lineage} sizes={sizeRun(variants.map((v) => v.size), product.fit)} />
-          </div>
           {displayDescription ? (
             <p className="mt-8 text-sm leading-relaxed text-muted-foreground">{displayDescription}</p>
           ) : null}
 
-          <dl className="mt-10 border-t">
-            {product.fit ? (
-              <div className="flex justify-between gap-6 border-b py-3">
-                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.fit")}</dt>
-                <dd className="type-meta">{product.fit}</dd>
-              </div>
-            ) : null}
-            {product.material_en ? (
-              <div className="flex justify-between gap-6 border-b py-3">
-                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.material")}</dt>
-                <dd className="type-meta text-end">{pick(locale, product.material_en, product.material_ar)}</dd>
-              </div>
-            ) : null}
-            {product.care_en ? (
-              <div className="gap-6 border-b py-3">
-                <dt className="type-meta text-muted-foreground">{t(locale, "sf.pdp.care")}</dt>
-                <dd className="mt-1 text-sm text-muted-foreground">{pick(locale, product.care_en, product.care_ar)}</dd>
-              </div>
-            ) : null}
-          </dl>
-          <PdpAccordion locale={locale} />
+          {/* the Fit Finder window, opened from "Find your size" in the size sheet */}
+          <FitFinder guide={guide} categoryCodes={lineage} sizes={sizeRun(variants.map((v) => v.size), product.fit)} hideTrigger />
+          {/* details as horizontal tabs: details, care, delivery, returns */}
+          <PdpTabs
+            tabs={[
+              ...(product.fit || product.material_en
+                ? [
+                    {
+                      key: "details",
+                      label: t(locale, "sf.pdp.details"),
+                      content: (
+                        <dl className="space-y-2">
+                          {product.fit ? (
+                            <div className="flex justify-between gap-6">
+                              <dt>{t(locale, "sf.pdp.fit")}</dt>
+                              <dd className="text-foreground">{product.fit}</dd>
+                            </div>
+                          ) : null}
+                          {product.material_en ? (
+                            <div className="flex justify-between gap-6">
+                              <dt>{t(locale, "sf.pdp.material")}</dt>
+                              <dd className="text-end text-foreground">{pick(locale, product.material_en, product.material_ar)}</dd>
+                            </div>
+                          ) : null}
+                        </dl>
+                      ),
+                    },
+                  ]
+                : []),
+              ...(product.care_en
+                ? [{ key: "care", label: t(locale, "sf.pdp.care"), content: <p>{pick(locale, product.care_en, product.care_ar)}</p> }]
+                : []),
+              { key: "delivery", label: t(locale, "sf.pdp.delivery"), content: <p>{t(locale, "sf.pdp.deliveryBody")}</p> },
+              {
+                key: "returns",
+                label: t(locale, "sf.pdp.returnsTitle"),
+                content: (
+                  <p>
+                    {t(locale, "sf.pdp.returnsBody")}{" "}
+                    <Link href={lhref(locale, "/returns")} className="underline underline-offset-4 hover:text-foreground">
+                      {t(locale, "sf.pdp.returnsLink")}
+                    </Link>
+                  </p>
+                ),
+              },
+            ]}
+          />
           {gallery.length > 1 || Object.keys(colorGalleries).length ? (
             <div className="-mx-4 mt-10 lg:hidden">
               <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} layout="stack" start={1} />
