@@ -150,7 +150,7 @@ function block(title: string, body: string): string {
 async function kbBlock(staffRole: string | null): Promise<string> {
   let q = supabase.from("help_articles").select("title_en, title_ar, body_en, body_ar, audiences").eq("is_published", true).order("sort");
   if (!staffRole) q = q.contains("audiences", ["customer"]);
-  else if (staffRole !== "super_admin") q = q.overlaps("audiences", [staffRole, "customer"]);
+  else if (staffRole !== "super_admin") q = q.overlaps("audiences", [staffRole, "all_staff", "customer"]);
   const { data } = await q;
   return (data ?? [])
     .map((a) => `## ${a.title_en} / ${a.title_ar}\nEN: ${a.body_en}\nAR: ${a.body_ar}`)
