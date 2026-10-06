@@ -1,16 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
-import { PortalNav } from "@bach/ui/components/portal-nav";
 
 import { Cashier } from "../components/cashier";
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: "سوبر أدمن",
-  store_manager: "مدير المحل",
-  inventory_manager: "مسؤول المخزون",
-  cashier: "كاشير",
-  support_agent: "خدمة الزبائن",
-  marketing_manager: "مسؤول التسويق",
-};
+import { PosNav } from "../components/pos-nav";
 
 const SELLING_ROLES = new Set(["super_admin", "store_manager", "cashier"]);
 
@@ -36,19 +27,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <PortalNav
-        title="POS"
-        subtitle={branch?.name ?? undefined}
-        items={[
-          { href: "/queue", label: "طلبات الأونلاين" },
-          { href: "/invoices", label: "الفواتير والزبائن" },
-          { href: "/returns", label: "مرتجع / تبديل" },
-          { href: "/eod", label: "تسكير اليوم" },
-          { href: "/stocktake", label: "جرد" },
-          { href: "/help", label: "مساعدة" },
-        ]}
-        meta={`${profile?.full_name ?? user?.email} · ${ROLE_LABELS[profile?.role ?? ""] ?? profile?.role}`}
-      />
+      <PosNav branchName={branch?.name} />
 
       <main className="mx-auto max-w-6xl p-4 py-6">
         {!canSell ? (

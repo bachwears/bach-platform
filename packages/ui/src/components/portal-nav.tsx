@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "./button";
 import { ThemeToggle } from "./theme-toggle";
 
 export interface PortalNavLink {
   href: string;
   label: string;
+  /** small line icon (POS tabs) */
+  icon?: ReactNode;
 }
 
 export interface PortalNavGroup {
@@ -18,11 +21,37 @@ export type PortalNavItem = PortalNavLink | PortalNavGroup;
 
 const isGroup = (i: PortalNavItem): i is PortalNavGroup => "links" in i;
 
+const MenuIcon = ({ open }: { open: boolean }) => (
+  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    {open ? (
+      <>
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </>
+    ) : (
+      <>
+        <path d="M4 7h16" />
+        <path d="M4 12h16" />
+        <path d="M4 17h16" />
+      </>
+    )}
+  </svg>
+);
+
+function isActive(path: string, href: string) {
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+
 /**
- * Arabic-first portal chrome for POS/MGMT: glass bar with the wordmark and
- * title, inline links + hover dropdowns on desktop, and a hamburger glass
- * panel on mobile — the storefront header pattern, tuned for dense back-of-
- * house navigation. Plain anchors keep it framework-light.
+ * Staff portal chrome (POS + MGMT) in the BACH/Zara language: a flat white bar
+ * with a hairline, no glass, no rounded pills.
+ *
+ * - layout "sidebar" (MGMT): numbered sections, always visible at the start
+ *   side on large screens; on phones a full-height panel opened from «القائمة»,
+ *   with a filter box to jump straight to a screen.
+ * - layout "tabs" (POS): the few POS screens as a tab row on large screens and
+ *   a bottom tab bar with icons on phones — one tap from anywhere.
  */
 export function PortalNav({
   title,
@@ -30,141 +59,187 @@ export function PortalNav({
   items,
   meta,
   logoutLabel = "خروج",
+  layout = "sidebar",
 }: {
   title: string;
   subtitle?: string;
   items: PortalNavItem[];
   meta?: string;
   logoutLabel?: string;
+  layout?: "sidebar" | "tabs";
 }) {
+  const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // a new page closes the phone menu
+  useEffect(() => {
+    setOpen(false);
+    setQ("");
+  }, [path]);
 
-  return (
-    <header className="sticky top-0 z-40 px-3 pt-3 print:hidden sm:px-5">
-      <div className="glass-bar relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
-        <a href="/" className="flex shrink-0 items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" />
-          <span className="text-sm font-semibold text-muted-foreground">{title}</span>
-          {subtitle ? <span className="hidden text-sm text-muted-foreground lg:inline">· {subtitle}</span> : null}
-        </a>
+  const groups = useMemo(
+    () =>
+      items.map((i) => (isGroup(i) ? i : { label: "", links: [i] })).map((g) => ({
+        ...g,
+        links: q.trim() ? g.links.filter((l) => l.label.includes(q.trim())) : g.links,
+      })),
+    [items, q],
+  );
+  const flat = items.flatMap((i) => (isGroup(i) ? i.links : [i]));
+  const current = flat.filter((l) => isActive(path, l.href)).sort((a, b) => b.href.length - a.href.length)[0];
 
-        {/* Desktop: inline links, groups as hover dropdowns */}
-        <nav className="hidden items-center gap-5 text-sm md:flex">
-          {items.map((item) =>
-            isGroup(item) ? (
-              <div key={item.label} className="group relative">
-                <button
-                  type="button"
-                  className="inline-flex h-14 items-center gap-1 text-muted-foreground group-hover:text-foreground group-focus-within:text-foreground"
-                  aria-haspopup="true"
-                >
-                  {item.label}
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-                <div className="glass-panel invisible absolute start-0 top-full mt-1 min-w-44 origin-top -translate-y-1 scale-[0.99] rounded-xl p-1.5 opacity-0 shadow-lg ring-1 ring-black/5 transition-[opacity,transform] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 motion-reduce:transition-none motion-reduce:transform-none">
-                  {item.links.map((l) => (
-                    <a
-                      key={l.href}
-                      href={l.href}
-                      className="block rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground"
-                    >
-                      {l.label}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <a key={item.href} href={item.href} className="text-muted-foreground hover:text-foreground">
-                {item.label}
-              </a>
-            ),
-          )}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          {meta ? <span className="hidden max-w-48 truncate text-sm text-muted-foreground xl:inline">{meta}</span> : null}
-          <ThemeToggle />
-          <form action="/logout" method="post" className="hidden md:block">
-            <Button type="submit" variant="ghost" size="sm">
-              {logoutLabel}
-            </Button>
-          </form>
+  const bar = (
+    <header className="sticky top-0 z-40 border-b bg-background print:hidden">
+      <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+        {layout === "sidebar" && (
           <button
             type="button"
             aria-label={open ? "سكّر القائمة" : "القائمة"}
             aria-expanded={open}
-            className="grid h-9 w-9 place-items-center rounded-full text-foreground/80 transition-colors hover:bg-black/5 hover:text-foreground md:hidden"
             onClick={() => setOpen((v) => !v)}
+            className="-ms-1 inline-flex h-10 items-center gap-2 px-1 text-sm lg:hidden"
           >
-            {open ? (
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 6h16" />
-                <path d="M4 12h16" />
-                <path d="M4 18h16" />
-              </svg>
-            )}
+            <MenuIcon open={open} />
+            <span>القائمة</span>
           </button>
-        </div>
+        )}
+        <a href="/" className="flex shrink-0 items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" />
+          <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{title}</span>
+        </a>
+        {subtitle ? <span className="hidden text-sm text-muted-foreground sm:inline">· {subtitle}</span> : null}
+        {current && layout === "sidebar" ? (
+          <span className="hidden truncate text-sm md:inline lg:hidden">· {current.label}</span>
+        ) : null}
 
-        {/* Mobile: everything in one scrollable glass panel */}
-        {open && (
-          <nav
-            aria-label="القائمة"
-            className="glass-panel anim-materialize absolute inset-x-0 top-full mt-2 max-h-[75vh] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg ring-1 ring-black/5 md:hidden"
-          >
-            {subtitle ? (
-              <p className="border-b border-black/5 px-4 py-2.5 text-xs text-muted-foreground">{subtitle}</p>
-            ) : null}
-            {items.map((item) =>
-              isGroup(item) ? (
-                <div key={item.label} className="border-b border-black/5 px-4 py-3">
-                  <p className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                  <ul className="grid grid-cols-2 gap-x-4">
-                    {item.links.map((l) => (
-                      <li key={l.href}>
-                        <a href={l.href} className="block py-1.5 text-sm" onClick={() => setOpen(false)}>
-                          {l.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="block border-b border-black/5 px-4 py-3 text-sm"
-                  onClick={() => setOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ),
-            )}
-            <div className="flex items-center justify-between px-4 py-3">
-              {meta ? <span className="truncate text-xs text-muted-foreground">{meta}</span> : <span />}
-              <form action="/logout" method="post">
-                <Button type="submit" variant="ghost" size="sm">
-                  {logoutLabel}
-                </Button>
-              </form>
-            </div>
+        {layout === "tabs" && (
+          <nav aria-label="أقسام الكاشير" className="ms-4 hidden h-14 items-stretch gap-1 text-sm md:flex">
+            {flat.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                aria-current={isActive(path, l.href) && current?.href === l.href ? "page" : undefined}
+                className="inline-flex items-center border-b-2 border-transparent px-3 text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:text-foreground"
+              >
+                {l.label}
+              </a>
+            ))}
           </nav>
         )}
+
+        <div className="ms-auto flex items-center gap-2">
+          {meta ? <span className="hidden max-w-56 truncate text-sm text-muted-foreground xl:inline">{meta}</span> : null}
+          <ThemeToggle />
+          <form action="/logout" method="post" className={layout === "tabs" ? "" : "hidden lg:block"}>
+            <Button type="submit" variant="ghost" size="sm">
+              {logoutLabel}
+            </Button>
+          </form>
+        </div>
       </div>
     </header>
+  );
+
+  if (layout === "tabs") {
+    return (
+      <>
+        {bar}
+        {/* Phones: bottom tab bar, the POS screens one tap away */}
+        <nav
+          data-tabbar
+          aria-label="أقسام الكاشير"
+          className="fixed inset-x-0 bottom-0 z-40 grid border-t bg-background pb-[env(safe-area-inset-bottom)] print:hidden md:hidden"
+          style={{ gridTemplateColumns: `repeat(${Math.min(flat.length, 6)}, minmax(0, 1fr))` }}
+        >
+          {flat.slice(0, 6).map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              aria-current={current?.href === l.href ? "page" : undefined}
+              className="flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] leading-tight text-muted-foreground aria-[current=page]:text-foreground"
+            >
+              <span className="h-5 w-5 [&>svg]:h-5 [&>svg]:w-5" aria-hidden>
+                {l.icon}
+              </span>
+              <span className="max-w-full truncate px-0.5">{l.label}</span>
+            </a>
+          ))}
+        </nav>
+      </>
+    );
+  }
+
+  const menu = (
+    <nav aria-label="القائمة" className="space-y-6 p-5">
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="روح على شاشة…"
+        aria-label="دوّر بالقائمة"
+        className="h-9 w-full border-0 border-b bg-transparent px-0 text-sm outline-none focus:border-foreground"
+      />
+      {groups.map((g, i) =>
+        g.links.length ? (
+          <div key={g.label || g.links[0]!.href}>
+            {g.label ? (
+              <p className="mb-2 flex items-baseline gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                <span className="tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                {g.label}
+              </p>
+            ) : null}
+            <ul className="space-y-0.5">
+              {g.links.map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    aria-current={current?.href === l.href ? "page" : undefined}
+                    className="block border-s-2 border-transparent py-1.5 ps-3 text-sm text-muted-foreground hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null,
+      )}
+      <div className="space-y-2 border-t pt-4 lg:hidden">
+        {meta ? <p className="truncate text-xs text-muted-foreground">{meta}</p> : null}
+        <form action="/logout" method="post">
+          <Button type="submit" variant="outline" size="sm">
+            {logoutLabel}
+          </Button>
+        </form>
+      </div>
+    </nav>
+  );
+
+  return (
+    <>
+      {bar}
+      {/* Large screens: the menu stays open at the start side */}
+      <aside
+        data-portal-sidebar
+        className="fixed bottom-0 start-0 top-14 z-30 hidden w-60 overflow-y-auto border-e bg-background print:hidden lg:block"
+      >
+        {menu}
+      </aside>
+      {/* Phones / tablets: full-height panel */}
+      {open && (
+        <div className="fixed inset-0 top-14 z-50 lg:hidden">
+          <button type="button" aria-label="سكّر القائمة" className="absolute inset-0 bg-foreground/20" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-0 start-0 top-0 w-[min(20rem,85vw)] overflow-y-auto overscroll-contain border-e bg-background">
+            {menu}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

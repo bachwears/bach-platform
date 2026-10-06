@@ -3,22 +3,34 @@ import { PortalNav, type PortalNavItem } from "@bach/ui/components/portal-nav";
 
 import { canOpen } from "../lib/access";
 
-// 16 screens don't fit one row — BOSS-style condensed top level with
-// role-shaped dropdown groups. Orders stays inline: it's the daily door.
-const ITEMS: PortalNavItem[] = [
-  { href: "/orders", label: "الطلبات" },
-  { href: "/customers", label: "العملاء" },
+// Grouped by the job at hand, numbered like the storefront menu. Each role only
+// sees the screens it can use (lib/access.ts); empty sections disappear.
+export const ITEMS: PortalNavItem[] = [
+  {
+    label: "اليوم",
+    links: [
+      { href: "/", label: "الرئيسية" },
+      { href: "/orders", label: "الطلبات" },
+      { href: "/orders/courier", label: "مصاري الشحن" },
+      { href: "/returns", label: "طلبات الإرجاع" },
+      { href: "/complaints", label: "الشكاوى" },
+    ],
+  },
+  {
+    label: "الزبائن",
+    links: [{ href: "/customers", label: "العملاء والمحفظة" }],
+  },
   {
     label: "الكتالوج",
     links: [
       { href: "/products", label: "المنتجات" },
+      { href: "/products/new", label: "منتج جديد" },
       { href: "/categories", label: "الفئات" },
       { href: "/categories/images", label: "صور الفئات" },
       { href: "/collections", label: "الكولكشنات" },
       { href: "/sizes", label: "المقاسات" },
-      { href: "/media-import", label: "الصور" },
+      { href: "/media-import", label: "رفع الصور" },
       { href: "/media-match", label: "مطابقة الصور" },
-      { href: "/labels", label: "الليبلات" },
       { href: "/product-health", label: "صحة البيانات" },
     ],
   },
@@ -28,15 +40,7 @@ const ITEMS: PortalNavItem[] = [
       { href: "/inventory", label: "المخزون" },
       { href: "/purchasing", label: "المشتريات" },
       { href: "/transfers", label: "التحويل بين الفروع" },
-    ],
-  },
-  {
-    label: "المالية",
-    links: [
-      { href: "/reports", label: "التقارير" },
-      { href: "/exchange-rate", label: "سعر الصرف" },
-      { href: "/payments", label: "الدفع" },
-      { href: "/returns", label: "الإرجاع" },
+      { href: "/labels", label: "الليبلات" },
     ],
   },
   {
@@ -48,14 +52,24 @@ const ITEMS: PortalNavItem[] = [
     ],
   },
   {
-    label: "الدعم",
+    label: "المالية",
     links: [
-      { href: "/complaints", label: "الشكاوى" },
-      { href: "/help", label: "مساعدة" },
+      { href: "/reports", label: "التقارير" },
+      { href: "/exchange-rate", label: "سعر الصرف" },
+      { href: "/payments", label: "الدفع" },
+    ],
+  },
+  {
+    label: "الإدارة",
+    links: [
+      { href: "/staff", label: "الموظفين" },
       { href: "/help-articles", label: "تعديل المساعدة" },
     ],
   },
-  { href: "/staff", label: "الموظفين" },
+  {
+    label: "مساعدة",
+    links: [{ href: "/help", label: "مركز المساعدة" }],
+  },
 ];
 
 /** The menu shows each role only the screens it can use (lib/access.ts). */
@@ -73,5 +87,5 @@ export async function Nav() {
     const links = item.links.filter((l) => canOpen(l.href, role));
     return links.length ? [{ ...item, links }] : [];
   });
-  return <PortalNav title="Management" items={items} logoutLabel="تسجيل الخروج" />;
+  return <PortalNav title="Management" items={items} logoutLabel="تسجيل الخروج" layout="sidebar" />;
 }

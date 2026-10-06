@@ -90,7 +90,7 @@ export function StaffAssistant() {
         type="button"
         aria-label="مساعد BACH"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 end-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-foreground text-background shadow-lg transition-transform hover:scale-105 active:scale-95 print:hidden"
+        className="staff-fab fixed bottom-4 end-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-foreground text-background shadow-lg transition-transform hover:scale-105 active:scale-95 print:hidden"
       >
         {open ? (
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -105,7 +105,7 @@ export function StaffAssistant() {
       </button>
 
       {open && (
-        <div className="glass-panel anim-materialize fixed bottom-20 end-4 z-40 flex h-[26rem] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 print:hidden">
+        <div className="staff-chat glass-panel anim-materialize fixed bottom-20 end-4 z-40 flex h-[26rem] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 print:hidden">
           <div className="border-b border-black/5 px-4 py-3">
             <p className="text-sm font-semibold">مساعد BACH</p>
             <p className="text-xs text-muted-foreground">بيجاوب من داتا النظام الحية ومقالات المساعدة</p>

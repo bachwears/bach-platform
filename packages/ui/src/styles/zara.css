@@ -1,0 +1,179 @@
+/*
+ * BACH design language (founder decisions 2026-10-01 storefront, 2026-10-06
+ * POS + MGMT): Zara-style restraint on BACH's identity — pure white/black,
+ * square corners, hairlines instead of shadows, light type, no glass. Shared
+ * by all three apps; each app imports it after @bach/ui/globals.css.
+ */
+:root {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+  --primary: oklch(0 0 0);
+  --primary-foreground: oklch(1 0 0);
+  /* pale warm grey of photo wells and quiet bands */
+  --secondary: oklch(0.948 0.003 80);
+  --secondary-foreground: oklch(0 0 0);
+  --muted: oklch(0.948 0.003 80);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.948 0.003 80);
+  --accent-foreground: oklch(0 0 0);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.82 0 0);
+  --ring: oklch(0 0 0);
+  --radius: 0rem;
+}
+
+/* Dark mode stays (decision 6): the same language, inverted. */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.13 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.17 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.13 0 0);
+  --secondary: oklch(0.2 0.002 80);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.2 0.002 80);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.2 0.002 80);
+  --accent-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.36 0 0);
+  --ring: oklch(0.98 0 0);
+}
+
+@theme inline {
+  /* Square everywhere; rounded-full stays for the few true circles (icons, dots). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  /* Hairlines and whitespace separate things; nothing floats on a shadow. */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --inset-shadow-2xs: 0 0 #0000;
+  --inset-shadow-xs: 0 0 #0000;
+  --inset-shadow-sm: 0 0 #0000;
+  --font-display: var(--font-bodoni), "Bodoni 72", Didot, Georgia, serif;
+}
+
+@layer base {
+  body {
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Bold reads as a shout in this language; the strongest text weight is medium. */
+  b,
+  strong {
+    font-weight: 500;
+  }
+}
+
+/*
+ * Type roles for the redesign phases. Sizes are BACH's accessible floor for the
+ * Zara scale (Zara runs 10–11px on cards; we hold 12px minimum).
+ */
+@layer components {
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+  }
+  .type-label {
+    font-size: 13px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .type-meta {
+    font-size: 12px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .type-heading {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* iOS Safari zooms the page when a focused field's text is under 16px.
+   Unlayered so it outranks Tailwind's text-sm/text-xs utilities. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Zara-style underlined fields for older forms that still use the shared
+   @bach/ui Input/Textarea. Unlayered so it outranks their utility classes. */
+.form-underline input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+.form-underline textarea,
+.form-underline select {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-inline: 0;
+}
+.form-underline input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+.form-underline textarea:focus-visible,
+.form-underline select:focus-visible {
+  border-color: var(--foreground);
+  box-shadow: none;
+  outline: none;
+}
+
+
+/* No glass: the old translucent chrome becomes a flat bar with a hairline. */
+.glass-bar,
+.glass-panel,
+.dark .glass-bar,
+.dark .glass-panel {
+  background: var(--background);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Staff portals: the MGMT side menu takes the start edge on large screens,
+   and the POS phone tab bar takes the bottom — content and the chat button
+   move clear of them. */
+@media (min-width: 1024px) {
+  body:has([data-portal-sidebar]) {
+    padding-inline-start: 15rem;
+  }
+}
+@media (max-width: 767px) {
+  body:has(nav[data-tabbar]) {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  body:has(nav[data-tabbar]) .staff-fab {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  body:has(nav[data-tabbar]) .staff-chat {
+    bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}

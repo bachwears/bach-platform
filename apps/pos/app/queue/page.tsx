@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { Button } from "@bach/ui/components/button";
 import { HintDot } from "@bach/ui/components/hint-dot";
 
 import { FulfillmentQueue } from "../../components/fulfillment-queue";
+import { PosNav } from "../../components/pos-nav";
 
 const QUEUE_ROLES = new Set(["super_admin", "store_manager", "cashier", "support_agent"]);
 
@@ -17,38 +16,16 @@ export default async function QueuePage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
-        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-4 shadow-sm ring-1 ring-black/5 sm:px-6">
-        <div className="flex items-baseline gap-3">
-          <Link href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-bach.png" alt="BACH" className="h-3.5 w-auto dark:invert" />
-            <span className="text-sm font-semibold text-muted-foreground">POS</span>
-          </Link>
-          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">طلبات الأونلاين
-            <HintDot
+      <PosNav branchName={null} />
+      <main className="mx-auto max-w-3xl p-4 py-6">
+          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">طلبات الأونلاين <HintDot
               hint={{
                 title: "مراحل الطلب",
                 what: "جديد ← مؤكّد ← قيد التجهيز ← جاهز ← بالشحن ← وصل ← مسكّر. عند «جاهز» بينخصم المخزون فعليًا؛ قبلها القطع محجوزة بس.",
                 source: "الطلبات من متجر bachwears.com مباشرة، والزبون بيشوف كل نقلة بحسابه.",
                 edit: "كبس زر المرحلة الجاية عند كل طلب. الإلغاء ممكن قبل «جاهز» — بيرجّع الحجز عالبيع.",
               }}
-            />
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            ← رجوع للكاشير
-          </Link>
-          <form action="/logout" method="post">
-            <Button type="submit" variant="ghost" size="sm">
-              خروج
-            </Button>
-          </form>
-        </div>
-      </div>
-      </header>
-      <main className="mx-auto max-w-3xl p-4 py-6">
+            /></h1>
         {allowed ? (
           <FulfillmentQueue />
         ) : (
