@@ -550,7 +550,7 @@ export default async function ProductPage({
         <RecentlyViewed currentSlug={product.slug} />
       </section>
       {/* phones: room for the pinned buy bar so it never covers the footer */}
-      <div aria-hidden className="h-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:hidden" />
+      <div aria-hidden className="h-[var(--buybar-h,4.5rem)] lg:hidden" />
     </div>
   );
 }

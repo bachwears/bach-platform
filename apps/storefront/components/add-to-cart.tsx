@@ -214,6 +214,18 @@ export function AddToCart({
     return () => window.removeEventListener(WISHLIST_EVENT, onChange);
   }, [productId]);
 
+  // The bar's height (it grows with a row of colours) lets the category strip sit
+  // just above it and the page leave room for it.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const ro = new ResizeObserver(() => root.style.setProperty("--buybar-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sheet]);
+
   useEffect(() => {
     if (!sheet) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
@@ -312,9 +324,13 @@ export function AddToCart({
     window.history.replaceState(window.history.state, "", url);
   }
 
-  // Colours as small squares (Zara-style); a colour without a known swatch shows its name.
-  const swatches = (
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t(locale, "sf.pdp.color")}>
+  // Colours as squares (Zara-style), never words. `small` = the phone buy bar.
+  const swatchesOf = (small: boolean) => (
+    <div
+      className={small ? "flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "flex flex-wrap gap-2"}
+      role="radiogroup"
+      aria-label={t(locale, "sf.pdp.color")}
+    >
       {colors.map(([code, label]) => {
         const en = variants.find((v) => v.color_code === code)?.color_en ?? "";
         // the MGMT colour list first, the built-in palette as a fallback; never a word
@@ -328,9 +344,9 @@ export function AddToCart({
             aria-label={label}
             title={label}
             onClick={() => chooseColor(code)}
-            className={`grid place-items-center border p-[3px] transition-colors ${
+            className={`grid shrink-0 place-items-center border transition-colors ${
               color === code ? "border-foreground" : "border-transparent hover:border-border"
-            } h-8 w-8`}
+            } ${small ? "h-7 w-7 p-[3px]" : "h-8 w-8 p-[3px]"}`}
           >
             <span className="block h-full w-full border border-black/10" style={{ background: fill }} />
           </button>
@@ -345,22 +361,16 @@ export function AddToCart({
 
   return (
     <div className="mt-6 space-y-5 lg:mt-8 lg:space-y-6">
-      {/* phones: name and price on the left, a few colour squares on the right (Zara-style);
-          many colours would squeeze the name, so they go in a row underneath instead */}
-      {heading ? (
-        <div className="-mt-6 flex items-start justify-between gap-4 lg:mt-0 lg:block">
-          <div className="min-w-0">{heading}</div>
-          {colors.length > 1 && colors.length <= 4 ? <div className="shrink-0 pt-0.5 lg:hidden">{swatches}</div> : null}
-        </div>
-      ) : null}
-      {colors.length > 4 ? <div className="-mt-2 lg:hidden">{swatches}</div> : null}
-      {colors.length > 1 ? <div className="lg:hidden">{shownNote}</div> : null}
+      {/* phones: name, price and colours live in the pinned buy bar, so they aren't
+          written twice — the heading stays here for search engines and screen readers */}
+      {heading ? <div className="sr-only lg:not-sr-only">{heading}</div> : null}
+      {colors.length > 1 && shownNote ? <div className="-mt-3 lg:hidden">{shownNote}</div> : null}
       {colors.length > 1 && (
         <div className="hidden lg:block">
           <p className="type-meta text-muted-foreground">
             {t(locale, "sf.pdp.color")} — <span className="text-foreground">{colors.find(([c]) => c === color)?.[1]}</span>
           </p>
-          <div className="mt-3">{swatches}</div>
+          <div className="mt-3">{swatchesOf(false)}</div>
           {shownNote}
         </div>
       )}
@@ -544,13 +554,19 @@ export function AddToCart({
         </>
       )}
 
-      {/* Phones: the buy bar is always pinned to the bottom — the only ADD on the page.
-          The name is already on the page above; the bar keeps price and colour. */}
+      {/* Phones: the buy bar is always pinned to the bottom — name, price, colour
+          squares and the only ADD on the page. */}
       {!sheet && (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden">
+        <div
+          ref={barRef}
+          className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t bg-background px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 lg:hidden"
+        >
           <div className="min-w-0 flex-1">
-            <p className="type-meta tabular-nums">{priceLabel}</p>
-            <p className="type-meta truncate text-muted-foreground">{colors.find(([c]) => c === color)?.[1] ?? ""}</p>
+            <p className="type-meta truncate">{name}</p>
+            <div className="mt-1 flex min-w-0 items-center gap-3">
+              <span className="type-meta shrink-0 tabular-nums">{priceLabel}</span>
+              {colors.length > 1 ? <div className="min-w-0">{swatchesOf(true)}</div> : null}
+            </div>
           </div>
           <button
             type="button"

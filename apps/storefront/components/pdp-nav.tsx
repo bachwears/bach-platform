@@ -75,8 +75,8 @@ export function PdpStrip({ items, current }: { items: PdpNavItem[]; current: str
     <div
       ref={ref}
       aria-label="More in this category"
-      className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-20 flex gap-1 overflow-x-auto border-t bg-background px-2 py-1 transition-transform duration-200 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden ${
-        shown ? "translate-y-0" : "pointer-events-none translate-y-[calc(100%+4.25rem+env(safe-area-inset-bottom,0px))]"
+      className={`fixed inset-x-0 bottom-[var(--buybar-h,4.5rem)] z-20 flex gap-1 overflow-x-auto border-t bg-background px-2 py-1 transition-transform duration-200 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden ${
+        shown ? "translate-y-0" : "pointer-events-none translate-y-[calc(100%+var(--buybar-h,4.5rem))]"
       }`}
     >
       {items.map((it) => (
