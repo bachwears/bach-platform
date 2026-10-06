@@ -407,22 +407,8 @@ export default async function ProductPage({
               </>
             )}
           </nav>
-          <h1 className="type-label text-[15px] leading-snug lg:mt-4">{displayName}</h1>
-          <p className="type-label mt-2 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums">
-            {onSale ? (
-              <>
-                <span>{usd(product.sale_price_usd_cents!)}</span>
-                <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
-              </>
-            ) : (
-              usd(product.price_usd_cents)
-            )}
-          </p>
 
           {/* phones: name, price, colours and ADD share the first screen with the photo; the description follows */}
-          {displayDescription ? (
-            <p className="mt-6 hidden text-sm leading-relaxed text-muted-foreground lg:block">{displayDescription}</p>
-          ) : null}
 
           <AddToCart
             productId={product.id}
@@ -435,6 +421,21 @@ export default async function ProductPage({
             priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             fit={product.fit}
+            heading={
+              <>
+              <h1 className="type-label text-[15px] leading-snug lg:mt-4">{displayName}</h1>
+              <p className="type-label mt-2 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums">
+                {onSale ? (
+                  <>
+                    <span>{usd(product.sale_price_usd_cents!)}</span>
+                    <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
+                  </>
+                ) : (
+                  usd(product.price_usd_cents)
+                )}
+              </p>
+              </>
+            }
             variants={variants.map((v) => ({
               id: v.id,
               size: v.size,
@@ -450,7 +451,7 @@ export default async function ProductPage({
             <FitFinder guide={guide} categoryCodes={lineage} sizes={sizeRun(variants.map((v) => v.size), product.fit)} />
           </div>
           {displayDescription ? (
-            <p className="mt-8 text-sm leading-relaxed text-muted-foreground lg:hidden">{displayDescription}</p>
+            <p className="mt-8 text-sm leading-relaxed text-muted-foreground">{displayDescription}</p>
           ) : null}
 
           <dl className="mt-10 border-t">

@@ -16,6 +16,7 @@ import { lhref, useLocale } from "../lib/locale-client";
 import { availableFirst } from "../lib/sizes";
 import { DeliveryProgress, useBagGoods } from "./delivery-progress";
 import { FIT_OPEN_EVENT } from "./fit-finder";
+import { colorFill } from "../lib/colors";
 
 /** "Regular fit" → "This product has a regular fit." */
 function fitSentence(fit: string) {
@@ -68,6 +69,7 @@ export function AddToCart({
   priceLabel,
   sizeGuide,
   fit,
+  heading,
   shownColor = null,
   photoColors = [],
   initialColorCode = null,
@@ -90,6 +92,8 @@ export function AddToCart({
   sizeGuide?: React.ReactNode;
   /** the product's fit (Regular fit, Oversized…), said at the top of the size list */
   fit?: string | null;
+  /** name + price, laid out with the colour squares beside them on phones */
+  heading?: React.ReactNode;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -299,45 +303,70 @@ export function AddToCart({
   const soldOutEverywhere = variants.every((v) => v.available <= 0);
   const addLabel = soldOutEverywhere ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
 
+  // picking a colour: swap the photos (and bring them into view on phones), keep the link shareable
+  function chooseColor(code: string) {
+    const nextEn = variants.find((v) => v.color_code === code)?.color_en ?? null;
+    const swaps = code !== color && !!nextEn && photoColors.includes(nextEn);
+    setColor(code);
+    closeSheet();
+    // On phones the photos sit far above the chips: bring the new colour's photos into view.
+    if (swaps && window.matchMedia("(max-width: 1023px)").matches) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById("pdp-gallery")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    }
+    // shareable without a reload or a history entry per tap
+    const url = new URL(window.location.href);
+    url.searchParams.set("color", code);
+    window.history.replaceState(window.history.state, "", url);
+  }
+
+  // Colours as small squares (Zara-style); a colour without a known swatch shows its name.
+  const swatches = (
+    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t(locale, "sf.pdp.color")}>
+      {colors.map(([code, label]) => {
+        const en = variants.find((v) => v.color_code === code)?.color_en ?? "";
+        const fill = colorFill(en);
+        return (
+          <button
+            key={code}
+            type="button"
+            role="radio"
+            aria-checked={color === code}
+            aria-label={label}
+            title={label}
+            onClick={() => chooseColor(code)}
+            className={`grid place-items-center border p-[3px] transition-colors ${
+              color === code ? "border-foreground" : "border-transparent hover:border-border"
+            } ${fill ? "h-8 w-8" : "type-meta h-8 px-2"}`}
+          >
+            {fill ? <span className="block h-full w-full border border-black/10" style={{ background: fill }} /> : label}
+          </button>
+        );
+      })}
+    </div>
+  );
+  const shownNote =
+    shownLabel && pickedEn && !photoColors.includes(pickedEn) ? (
+      <p className="type-meta mt-3 text-muted-foreground">{t(locale, "sf.pdp.shownIn", { c: shownLabel })}</p>
+    ) : null;
+
   return (
     <div className="mt-6 space-y-5 lg:mt-8 lg:space-y-6">
+      {/* phones: name and price on the left, colour squares on the right (Zara-style) */}
+      {heading ? (
+        <div className="-mt-6 flex items-start justify-between gap-4 lg:mt-0 lg:block">
+          <div className="min-w-0">{heading}</div>
+          {colors.length > 1 ? <div className="shrink-0 pt-0.5 lg:hidden">{swatches}</div> : null}
+        </div>
+      ) : null}
+      {colors.length > 1 ? <div className="lg:hidden">{shownNote}</div> : null}
       {colors.length > 1 && (
-        <div>
+        <div className="hidden lg:block">
           <p className="type-meta text-muted-foreground">
             {t(locale, "sf.pdp.color")} — <span className="text-foreground">{colors.find(([c]) => c === color)?.[1]}</span>
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {colors.map(([code, label]) => (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={color === code}
-                onClick={() => {
-                  const nextEn = variants.find((v) => v.color_code === code)?.color_en ?? null;
-                  const swaps = code !== color && !!nextEn && photoColors.includes(nextEn);
-                  setColor(code);
-                  closeSheet();
-                  // On phones the photos sit far above the chips: bring the new colour's photos into view.
-                  if (swaps && window.matchMedia("(max-width: 1023px)").matches) {
-                    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                    document.getElementById("pdp-gallery")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-                  }
-                  // shareable without a reload or a history entry per tap
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("color", code);
-                  window.history.replaceState(window.history.state, "", url);
-                }}
-                className={`type-meta h-10 border px-3 transition-colors ${
-                  color === code ? "border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {shownLabel && pickedEn && !photoColors.includes(pickedEn) ? (
-            <p className="type-meta mt-3 text-muted-foreground">{t(locale, "sf.pdp.shownIn", { c: shownLabel })}</p>
-          ) : null}
+          <div className="mt-3">{swatches}</div>
+          {shownNote}
         </div>
       )}
       {/* One size only: ADD adds it straight away, so say which size it is first. */}
