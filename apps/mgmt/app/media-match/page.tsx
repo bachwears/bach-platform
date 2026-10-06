@@ -21,7 +21,7 @@ export default async function MediaMatchPage() {
         <PageHeader
           icon="photosMatch"
           title="مطابقة الصور"
-          description="الصور يلّي ما انربطت تلقائياً بقطعة — اختار الصورة، دوّر عالقطعة، حدّد نوع اللقطة واربط. وفيك تعدّل خانات صور أي قطعة."
+          description="قطعة قطعة: بتشوف الصور وحدّها القطعة المقترحة — إذا هي، اكبس «إيه» وبتنربط كلها لحالها."
         />
         {canEdit ? (
           <MediaMatch />
