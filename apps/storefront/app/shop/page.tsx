@@ -384,9 +384,10 @@ export default async function ShopPage({
         </picture>
       ) : null}
       <main className="mx-auto max-w-[1440px] px-4 pb-10 pt-6 sm:px-8">
-        {/* Inside a category the shopper already knows where they are: breadcrumb,
-            title and count stay for search engines and screen readers only. */}
-        <nav aria-label="Breadcrumb" className={cat ? "sr-only" : "type-meta text-muted-foreground"}>
+        {/* Inside a category or a collection the shopper already knows where they
+            are (the header image and tabs say it): breadcrumb, title and count stay
+            for search engines and screen readers only. */}
+        <nav aria-label="Breadcrumb" className={cat || col ? "sr-only" : "type-meta text-muted-foreground"}>
           <ol className="flex flex-wrap items-center gap-1.5">
             <li>
               <Link href={lhref(locale, "/")} className="hover:text-foreground">
@@ -418,10 +419,10 @@ export default async function ShopPage({
           </ol>
         </nav>
 
-        <h1 className={cat ? "sr-only" : "type-display mt-6 text-[34px] sm:text-5xl"} style={{ textWrap: "balance" }}>
+        <h1 className={cat || col ? "sr-only" : "type-display mt-6 text-[34px] sm:text-5xl"} style={{ textWrap: "balance" }}>
           {title}
         </h1>
-        <p className={cat ? "sr-only" : "type-meta mt-3 text-muted-foreground"}>
+        <p className={cat || col ? "sr-only" : "type-meta mt-3 text-muted-foreground"}>
           {items.length} {items.length === 1 ? t(locale, "sf.shop.piece") : t(locale, "sf.shop.pieces")}
           {(activeFilters > 0 || cat) && (
             <>
