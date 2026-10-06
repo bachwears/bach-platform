@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../../components/nav";
+import { DeleteProduct } from "../../../components/delete-product";
 import { ColourPhotos, type ProductColour } from "../../../components/colour-photos";
 import { colourCode, onSite, photoView, type MediaRow } from "../../../components/photo-tools";
 import {
@@ -229,6 +230,8 @@ export default async function EditProductPage({
               <SeoFields />
               <SaveProductButton className="mt-5 border-t pt-4" />
             </ProductSection>
+
+            <DeleteProduct productId={product.id} name={product.name_en} />
           </div>
         </ProductEditorProvider>
       </main>
