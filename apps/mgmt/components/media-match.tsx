@@ -104,26 +104,38 @@ interface Group {
   hits: Array<{ p: Product; sure: boolean }>;
 }
 
+
+interface Category {
+  id: string;
+  name_ar: string | null;
+  name_en: string;
+  parent_id: string | null;
+}
+
 /**
- * مطابقة الصور، قطعة قطعة: بتطلع صور قطعة وحدة (مجمّعة من اسم الملف) وحدّها القطعة
- * المقترحة من الكتالوج، وسؤال واحد: «هيدي هي؟». إيه = بتنربط كلها (الخانة واللون
- * تلقائيًا من اسم الملف)، لا = دوّر على قطعة تانية، مكرّرة = بتنخبّى (بتضل بالستورج).
- * بعد كل جواب بتنتقل عالقطعة يلّي بعدها. يلّي بلا صور بالكتالوج بيطلعوا أول.
+ * مطابقة الصور، قطعة قطعة: عاليمين صور القطعة (كبيرة، بلا قصّ، وبتتكبّر بكبسة)،
+ * عالشمال لايحة القطع مفتوحة دايمًا — الاقتراح فوق، وتحتو بحث وفئات و«بلا صور».
+ * بتكبس عالقطعة الصح وبعدين «اربط»، أو «مكرّرة» إذا الصور موجودة أصلًا.
+ * بعد كل جواب بتنتقل عالقطعة يلّي بعدها. يلّي إلها اقتراح لقطعة بلا صور بيطلعوا أول.
  */
 export function MediaMatch() {
   const supabase = supabaseBrowser();
   const [files, setFiles] = useState<Pending[]>([]);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [allMedia, setAllMedia] = useState<MediaRow[]>([]);
   const [photos, setPhotos] = useState<PhotoMap | null>(null);
 
   const [at, setAt] = useState(0);
   const [skipped, setSkipped] = useState<string[]>([]);
   const [off, setOff] = useState<string[]>([]); // photos of this piece left out of the link
-  const [chosen, setChosen] = useState<Product | null>(null); // "another piece" pick
-  const [searching, setSearching] = useState(false);
+  const [view, setView] = useState(0); // the photo shown large
+  const [zoom, setZoom] = useState(false);
+  const [picked, setPicked] = useState<Product | null>(null);
   const [query, setQuery] = useState("");
+  const [cat, setCat] = useState("");
+  const [noPhotos, setNoPhotos] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -140,12 +152,13 @@ export function MediaMatch() {
 
   useEffect(() => {
     void (async () => {
-      const [{ data: prods }, media] = await Promise.all([
+      const [{ data: prods }, { data: cats }, media] = await Promise.all([
         supabase
           .from("products")
           .select("id, name_en, name_ar, slug, status, category_id, product_variants(sku, color_en, is_active)")
           .neq("status", "archived")
           .order("name_en"),
+        supabase.from("categories").select("id, name_ar, name_en, parent_id"),
         loadMedia(),
       ]);
       type Row = Omit<Product, "codes" | "colours"> & {
@@ -161,6 +174,7 @@ export function MediaMatch() {
           };
         }),
       );
+      setCategories((cats ?? []) as Category[]);
       const all: Pending[] = [];
       for (let offset = 0; ; offset += 100) {
         const { data, error } = await supabase.storage
@@ -192,36 +206,75 @@ export function MediaMatch() {
   }, [allMedia]);
   const countOf = (id: string) => mediaOf.get(id)?.length ?? 0;
 
-  // one piece at a time: pieces with no photos on the site first, then unknown, then likely duplicates
+  // one piece at a time: a likely match for a piece with no photos first, then unknown, then likely duplicates
   const queue = useMemo(() => {
     const byCode = new Map<string, Pending[]>();
     for (const f of files) (byCode.get(f.code) ?? byCode.set(f.code, []).get(f.code)!).push(f);
+    const make = ([code, list]: [string, Pending[]]): Group => ({
+      code,
+      files: list,
+      hits: suggest(code, [...new Set(list.map((f) => f.colour))], products),
+    });
     const rank = (g: Group) => (!g.hits[0] ? 1 : countOf(g.hits[0].p.id) ? 2 : 0);
-    return [...byCode.entries()]
-      .map(([code, list]): Group => ({ code, files: list, hits: suggest(code, [...new Set(list.map((f) => f.colour))], products) }))
-      .filter((g) => !skipped.includes(g.code))
-      .sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code))
-      .concat(
-        [...byCode.entries()]
-          .filter(([code]) => skipped.includes(code))
-          .map(([code, list]) => ({ code, files: list, hits: suggest(code, [...new Set(list.map((f) => f.colour))], products) })),
-      );
+    const entries = [...byCode.entries()];
+    return [
+      ...entries
+        .filter(([c]) => !skipped.includes(c))
+        .map(make)
+        .sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code)),
+      ...skipped.flatMap((c) => (byCode.has(c) ? [make([c, byCode.get(c)!])] : [])),
+    ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, products, mediaOf, skipped]);
 
   const group = queue[Math.min(at, queue.length - 1)] ?? null;
-  const target = chosen ?? group?.hits[0]?.p ?? null;
+  const target = picked ?? group?.hits[0]?.p ?? null;
   const linkFiles = group ? group.files.filter((f) => !off.includes(f.name)) : [];
   const hasPhotos = target ? countOf(target.id) > 0 : false;
   const fileColours = group ? [...new Set(group.files.map((f) => f.colour).filter(Boolean))] : [];
-  // the photos name a colour this piece doesn't come in: probably another piece
   const colourOff = Boolean(target && fileColours.length && !fileColours.some((c) => colourMatch(target, c)));
+  const shown = group?.files[Math.min(view, (group?.files.length ?? 1) - 1)] ?? null;
+
+  // categories that hold pieces, top level only (Knitwear, Jackets & Coats…)
+  const parentOf = useMemo(() => new Map(categories.map((c) => [c.id, c.parent_id])), [categories]);
+  const rootOf = (id: string | null) => {
+    let cur = id;
+    for (let i = 0; cur && parentOf.get(cur) && i < 5; i++) cur = parentOf.get(cur)!;
+    return cur;
+  };
+  const roots = useMemo(() => {
+    const ids = new Set(products.map((p) => rootOf(p.category_id)));
+    return categories.filter((c) => ids.has(c.id)).sort((a, b) => a.name_en.localeCompare(b.name_en));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, products, parentOf]);
+
+  // the list: the suggestions first, then every piece that fits the search / category / filter
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const hitIds = new Set((group?.hits ?? []).map((h) => h.p.id));
+    const rest = products
+      .filter((p) => !hitIds.has(p.id))
+      .filter((p) => !cat || rootOf(p.category_id) === cat)
+      .filter((p) => !noPhotos || countOf(p.id) === 0)
+      .filter(
+        (p) =>
+          !q ||
+          p.name_en.toLowerCase().includes(q) ||
+          (p.name_ar ?? "").includes(query.trim()) ||
+          p.codes.some((c) => c.toLowerCase().includes(q)) ||
+          p.colours.some((c) => c.toLowerCase().includes(q)),
+      );
+    // pieces in the photos' colour first
+    rest.sort((a, b) => Number(fileColours.some((c) => colourMatch(b, c))) - Number(fileColours.some((c) => colourMatch(a, c))));
+    return { hits: q || cat ? [] : group?.hits ?? [], rest: rest.slice(0, 60), total: rest.length };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, query, cat, noPhotos, group, mediaOf, parentOf]);
 
   function reset() {
     setOff([]);
-    setChosen(null);
-    setSearching(false);
-    setQuery("");
+    setPicked(null);
+    setView(0);
+    setZoom(false);
     setErr("");
   }
   function go(i: number) {
@@ -229,6 +282,18 @@ export function MediaMatch() {
     reset();
     setMsg("");
   }
+
+  useEffect(() => {
+    if (!zoom || !group) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoom(false);
+      // RTL: the left arrow moves forward
+      if (e.key === "ArrowLeft") setView((v) => Math.min(v + 1, group.files.length - 1));
+      if (e.key === "ArrowRight") setView((v) => Math.max(v - 1, 0));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom, group]);
 
   /** The piece's colour for a photo; unknown → the colour its photos already show, so it still appears. */
   function colourOf(p: Product, f: Pending) {
@@ -308,29 +373,52 @@ export function MediaMatch() {
     setMsg("");
   }
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    return products
-      .filter(
-        (p) =>
-          p.name_en.toLowerCase().includes(q) ||
-          (p.name_ar ?? "").includes(query.trim()) ||
-          p.codes.some((c) => c.toLowerCase().includes(q)),
-      )
-      .slice(0, 12);
-  }, [products, query]);
-
   if (loading) return <p className="text-sm text-muted-foreground">عم نحمّل الصور…</p>;
-  if (!group)
+  if (!group || !shown)
     return <p className="border p-10 text-center text-sm text-muted-foreground">خلصنا — ما في صور ناطرة تنربط.</p>;
 
-  const big = "h-44 w-32 shrink-0 bg-muted object-cover sm:h-52 sm:w-36";
+  const chip = (on: boolean) =>
+    `shrink-0 border px-3 py-1.5 text-xs transition-colors ${on ? "border-foreground bg-foreground text-background" : "hover:bg-muted"}`;
+
+  const card = (p: Product, note?: string) => {
+    const on = target?.id === p.id;
+    const img = photoFor(photos, p.id);
+    const match = fileColours.some((c) => colourMatch(p, c));
+    return (
+      <button
+        key={p.id}
+        type="button"
+        onClick={() => setPicked(p)}
+        aria-pressed={on}
+        className={`flex w-full items-center gap-3 border p-2 text-start transition-colors ${
+          on ? "border-foreground bg-muted/60 ring-1 ring-foreground" : "hover:border-foreground"
+        }`}
+      >
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt="" loading="lazy" className="h-20 w-14 shrink-0 bg-muted object-cover" />
+        ) : (
+          <span className="grid h-20 w-14 shrink-0 place-items-center bg-muted text-[10px] text-muted-foreground">بلا صورة</span>
+        )}
+        <span className="min-w-0 flex-1 space-y-0.5">
+          <span dir="ltr" className="block truncate text-end text-sm">{p.name_en}</span>
+          <span dir="ltr" className={`block truncate text-end text-xs ${match ? "text-foreground" : "text-muted-foreground"}`}>
+            {p.colours.join(", ") || "—"}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {note ? `${note} · ` : ""}
+            {countOf(p.id) ? `إلها ${countOf(p.id)} صورة` : "بلا صور"}
+          </span>
+        </span>
+        {on ? <span className="shrink-0 bg-foreground px-2 py-1 text-xs text-background">✓ مختارة</span> : null}
+      </button>
+    );
+  };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-4">
       {/* progress */}
-      <div className="flex items-center justify-between gap-3 text-sm">
+      <div className="flex items-center justify-between gap-3 border-b pb-3 text-sm">
         <Button variant="ghost" size="sm" onClick={() => go(at - 1)} disabled={at === 0 || busy}>
           <Icon name="back" size={16} /> السابقة
         </Button>
@@ -345,169 +433,165 @@ export function MediaMatch() {
       {msg && <p className="border border-green-600/30 bg-green-600/5 p-3 text-sm text-green-700 dark:text-green-400">{msg}</p>}
       {err && <p className="text-sm text-destructive">{err}</p>}
 
-      {/* 1 — the photos */}
-      <section className="space-y-2">
-        <h2 className="font-medium">
-          ١. هيدي الصور <span className="text-sm font-normal text-muted-foreground">({group.files.length})</span>
-        </h2>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {group.files.map((f) => {
-            const on = !off.includes(f.name);
-            return (
-              <button
-                key={f.name}
-                type="button"
-                onClick={() => setOff((o) => (on ? [...o, f.name] : o.filter((n) => n !== f.name)))}
-                aria-pressed={on}
-                title={f.name}
-                className={`relative shrink-0 ${on ? "" : "opacity-30"}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={f.url} alt={f.name} loading="lazy" className={big} />
-                {!on ? <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-background/90 py-1 text-center text-xs">مش معهم</span> : null}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          اسم الملف: <span dir="ltr" className="text-foreground">{group.code.replace(/-/g, " ")}</span>
-          {fileColours.length ? (
-            <>
-              {" · "}اللون: <span dir="ltr" className="text-foreground">{fileColours.map((c) => c.replace(/-/g, " ")).join(", ")}</span>
-            </>
-          ) : null}
-        </p>
-        {group.files.length > 1 ? (
-          <p className="text-xs text-muted-foreground">صورة مش من نفس القطعة؟ كبسة عليها بتطلّعها من الربط.</p>
-        ) : null}
-      </section>
-
-      {/* 2 — the piece */}
-      <section className="space-y-3">
-        <h2 className="font-medium">٢. لأي قطعة؟</h2>
-
-        {target && !searching ? (
-          <div className="flex gap-4 border p-3">
-            {photoFor(photos, target.id) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoFor(photos, target.id)!} alt="" className={big} />
-            ) : (
-              <span className={`${big} grid place-items-center text-xs text-muted-foreground`}>بلا صورة</span>
-            )}
-            <div className="min-w-0 flex-1 space-y-2">
-              <p dir="ltr" className="text-end text-lg">{target.name_en}</p>
-              <p className="text-sm text-muted-foreground">
-                {chosen
-                  ? "انت اخترتها"
-                  : /^BW-/i.test(group.code)
-                    ? "نفس كود الموديل — تطابق أكيد"
-                    : group.hits[0]?.sure
-                      ? "نفس الاسم واللون"
-                      : "اقتراح من الاسم — تأكّد"}
-              </p>
-              <p className="text-sm">
-                ألوانها: <span dir="ltr">{target.colours.join(", ") || "—"}</span>
-              </p>
-              {colourOff ? (
-                <p className="border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
-                  لون الصور مش من ألوان هالقطعة — غالبًا مش هي. دوّر على قطعة تانية.
-                </p>
-              ) : null}
-              {hasPhotos ? (
-                <div className="space-y-1">
-                  <p className="text-sm">عندها {countOf(target.id)} صورة عالموقع — قارن:</p>
-                  <div className="flex gap-1 overflow-x-auto">
-                    {(mediaOf.get(target.id) ?? []).slice(0, 8).map((m) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={m.id} src={m.storage_path.replace(/-1600\.webp$/, "-400.webp")} alt="" loading="lazy" className="h-16 w-12 shrink-0 bg-muted object-cover" />
-                    ))}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        {/* ============ the photos: large, uncropped, zoomable ============ */}
+        <section className="space-y-3 lg:sticky lg:top-4 lg:self-start">
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="block w-full cursor-zoom-in bg-muted"
+            aria-label="كبّر الصورة"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shown.url} alt={shown.name} className="mx-auto h-[60vh] max-h-[640px] w-full object-contain" />
+          </button>
+          <p className="text-xs text-muted-foreground">كبسة عالصورة بتكبّرها عالشاشة كلها.</p>
+          {group.files.length > 1 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {group.files.map((f, i) => {
+                const on = !off.includes(f.name);
+                return (
+                  <div key={f.name} className="shrink-0 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setView(i)}
+                      className={`block border-2 ${i === view ? "border-foreground" : "border-transparent"} ${on ? "" : "opacity-30"}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.url} alt="" loading="lazy" className="h-20 w-14 bg-muted object-contain" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOff((o) => (on ? [...o, f.name] : o.filter((n) => n !== f.name)))}
+                      className="block w-14 text-center text-[10px] text-muted-foreground underline"
+                    >
+                      {on ? "شيلها" : "رجّعها"}
+                    </button>
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm text-green-700 dark:text-green-400">بعدها بلا صور — هالصور رح تصير صورها.</p>
-              )}
+                );
+              })}
             </div>
-          </div>
-        ) : !searching ? (
-          <p className="border p-4 text-sm text-muted-foreground">ما لقينا قطعة بتشبه اسم الملف — دوّر عليها.</p>
-        ) : null}
-
-        {/* 3 — one clear choice */}
-        {target && !searching ? (
-          <div className="flex flex-wrap gap-2">
-            {hasPhotos ? (
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            اسم الملف: <span dir="ltr" className="text-foreground">{group.code.replace(/-/g, " ")}</span>
+            {fileColours.length ? (
               <>
-                <Button size="lg" onClick={() => void hide()} disabled={busy}>
-                  مكرّرة — خبّيهم
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => void link()} disabled={busy || !linkFiles.length}>
-                  زيدهم عليها كصور جديدة
-                </Button>
+                {" · "}اللون: <span dir="ltr" className="text-foreground">{fileColours.map((c) => c.replace(/-/g, " ")).join(", ")}</span>
               </>
-            ) : (
-              <Button size="lg" variant={colourOff ? "outline" : "default"} onClick={() => void link()} disabled={busy || !linkFiles.length}>
-                {busy ? "عم نربط…" : `إيه، هيدي هي — اربط ${linkFiles.length} صورة`}
-              </Button>
-            )}
-            <Button size="lg" variant={colourOff && !hasPhotos ? "default" : "outline"} onClick={() => setSearching(true)} disabled={busy}>
-              لا، قطعة تانية
-            </Button>
-            <Button size="lg" variant="ghost" onClick={skip} disabled={busy}>
-              بعدين
-            </Button>
-          </div>
-        ) : null}
+            ) : null}
+          </p>
+        </section>
 
-        {(searching || !target) && (
-          <div className="space-y-2 border p-3">
-            <Input
-              autoFocus
-              placeholder="اكتب اسم القطعة أو الكود…"
-              aria-label="دوّر عالقطعة"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {results.length ? (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {results.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setChosen(p);
-                      setSearching(false);
-                    }}
-                    className="space-y-1 border p-1 text-start hover:border-foreground"
-                  >
-                    {photoFor(photos, p.id) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoFor(photos, p.id)!} alt="" loading="lazy" className="aspect-[3/4] w-full bg-muted object-cover" />
-                    ) : (
-                      <span className="grid aspect-[3/4] w-full place-items-center bg-muted text-[11px] text-muted-foreground">بلا صورة</span>
-                    )}
-                    <span dir="ltr" className="line-clamp-2 block text-end text-xs">{p.name_en}</span>
-                  </button>
-                ))}
-              </div>
-            ) : query.trim().length >= 2 ? (
-              <p className="text-sm text-muted-foreground">ما في قطعة بهالاسم.</p>
+        {/* ============ which piece: always open ============ */}
+        <section className="min-w-0 space-y-3">
+          <h2 className="font-medium">لأي قطعة؟ كبسة عالقطعة الصح</h2>
+
+          <Input placeholder="دوّر: اسم القطعة، الكود أو اللون…" aria-label="دوّر عالقطعة" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button type="button" className={chip(!cat)} onClick={() => setCat("")}>
+              كل الفئات
+            </button>
+            {roots.map((c) => (
+              <button key={c.id} type="button" className={chip(cat === c.id)} onClick={() => setCat(cat === c.id ? "" : c.id)}>
+                {c.name_ar || c.name_en}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" className="h-4 w-4 accent-foreground" checked={noPhotos} onChange={(e) => setNoPhotos(e.target.checked)} />
+            بس القطع يلّي بعدها بلا صور
+          </label>
+
+          <div className="max-h-[52vh] space-y-2 overflow-y-auto border p-2">
+            {list.hits.length ? (
+              <>
+                <p className="px-1 text-xs text-muted-foreground">مقترحة من اسم الملف</p>
+                {list.hits.map((h) => card(h.p, /^BW-/i.test(group.code) ? "نفس الكود" : "اقتراح"))}
+                <p className="px-1 pt-2 text-xs text-muted-foreground">أو قطعة تانية</p>
+              </>
+            ) : null}
+            {picked && !list.hits.some((h) => h.p.id === picked.id) && !list.rest.some((p) => p.id === picked.id) ? card(picked) : null}
+            {list.rest.length ? (
+              list.rest.map((p) => card(p))
+            ) : (
+              <p className="p-4 text-center text-sm text-muted-foreground">ما في قطع بهالبحث{noPhotos ? " — جرّب تشيل «بس القطع يلّي بلا صور»" : ""}.</p>
+            )}
+            {list.total > list.rest.length ? (
+              <p className="p-2 text-center text-xs text-muted-foreground">في {list.total - list.rest.length} قطعة كمان — اكتب بالبحث لتلاقيها.</p>
+            ) : null}
+          </div>
+
+          {/* the one decision */}
+          <div className="space-y-2 border-t pt-3">
+            {target ? (
+              <p className="text-sm">
+                المختارة: <span dir="ltr" className="font-medium">{target.name_en}</span>
+                {hasPhotos ? ` — إلها ${countOf(target.id)} صورة عالموقع` : " — بعدها بلا صور"}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">اختار القطعة من اللايحة.</p>
+            )}
+            {colourOff ? (
+              <p className="border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+                لون الصور مش من ألوان هالقطعة — تأكّد إنها هي قبل ما تربط.
+              </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              {target ? (
-                <Button variant="ghost" onClick={() => setSearching(false)}>
-                  رجوع
-                </Button>
-              ) : null}
-              <Button variant="ghost" onClick={skip} disabled={busy}>
-                بعدين
+              <Button size="lg" onClick={() => void link()} disabled={busy || !target || !linkFiles.length}>
+                {busy ? "عم نربط…" : `اربط ${linkFiles.length} صورة${target ? " بهالقطعة" : ""}`}
               </Button>
-              <Button variant="ghost" onClick={() => void hide()} disabled={busy}>
-                خبّيهم (مش لازمين)
+              <Button size="lg" variant="outline" onClick={() => void hide()} disabled={busy}>
+                مكرّرة / مش لازمة — خبّيها
+              </Button>
+              <Button size="lg" variant="ghost" onClick={skip} disabled={busy}>
+                بعدين
               </Button>
             </div>
           </div>
-        )}
-      </section>
+        </section>
+      </div>
+
+      {/* full-screen photo */}
+      {zoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setZoom(false)} role="dialog" aria-label="الصورة كبيرة">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shown.url} alt={shown.name} className="max-h-[94vh] max-w-[94vw] object-contain" />
+          <button type="button" className="absolute end-4 top-4 bg-white px-3 py-1.5 text-sm text-black" onClick={() => setZoom(false)}>
+            سكّر ✕
+          </button>
+          {group.files.length > 1 ? (
+            <>
+              <button
+                type="button"
+                aria-label="الصورة السابقة"
+                className="absolute start-4 top-1/2 -translate-y-1/2 bg-white/90 px-3 py-6 text-black disabled:opacity-30"
+                disabled={view === 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setView((v) => Math.max(v - 1, 0));
+                }}
+              >
+                <Icon name="back" size={20} />
+              </button>
+              <button
+                type="button"
+                aria-label="الصورة التالية"
+                className="absolute end-4 top-1/2 -translate-y-1/2 bg-white/90 px-3 py-6 text-black disabled:opacity-30"
+                disabled={view >= group.files.length - 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setView((v) => Math.min(v + 1, group.files.length - 1));
+                }}
+              >
+                <Icon name="next" size={20} />
+              </button>
+              <span className="absolute bottom-4 start-1/2 -translate-x-1/2 bg-white/90 px-3 py-1 text-sm tabular-nums text-black">
+                {view + 1} / {group.files.length}
+              </span>
+            </>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
