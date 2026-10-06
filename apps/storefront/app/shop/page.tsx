@@ -95,6 +95,53 @@ function price(p: ShopProduct) {
 /** Pieces pinned in MGMT ("Pin as hero") lead the featured order. */
 const isHero = (p: ShopProduct) => (p.tags ?? []).includes("hero");
 const ANCHOR_EVERY = 8;
+/** One grid card: a piece, opened on one of its colours (null = the photographed one). */
+interface Listed {
+  card: CardProduct;
+  colour: string | null;
+}
+
+/** Stable 0..1 from a string (FNV-1a), so the day's mix is the same on every page load. */
+function unit(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return (h >>> 0) / 4294967296;
+}
+
+/**
+ * MGMT "every colour in the shop": each colour that has its own photos gets its
+ * own card (opening the product page on that colour; the card still shows every
+ * swatch). In the featured order the extra colours are scattered through the grid
+ * — reshuffled once a day — and never land near another card of the same piece, so
+ * the shop reads as variety, not the same sweater five times in a row. The first
+ * row stays the featured pieces (price anchor / pinned hero). Other sorts keep a
+ * piece's colours together. With a colour filter, each piece shows once, in it.
+ */
+function listColours(cards: CardProduct[], on: boolean, colourFilter: string, scatter: boolean): Listed[] {
+  if (!on) return cards.map((card) => ({ card, colour: null }));
+  const own = (card: CardProduct) =>
+    Object.keys(card.photos ?? {}).filter((c) => c && card.photos![c]!.length && (card.colors ?? []).includes(c));
+  if (colourFilter) return cards.map((card) => ({ card, colour: own(card).includes(colourFilter) ? colourFilter : null }));
+  if (!scatter) return cards.flatMap((card) => [{ card, colour: null }, ...own(card).map((colour) => ({ card, colour }))]);
+
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Beirut" });
+  const n = cards.length;
+  const keep = Math.min(4, n);
+  const keyed = cards.flatMap((card, i) => [
+    { e: { card, colour: null } as Listed, k: i },
+    ...own(card).map((colour) => ({ e: { card, colour } as Listed, k: keep + unit(`${day}|${card.slug}|${colour}`) * (n - keep) })),
+  ]);
+  const out = keyed.sort((a, b) => a.k - b.k).map((x) => x.e);
+  // no two cards of the same piece within 4 of each other (when the list allows)
+  const near = (i: number, slug: string) => out.slice(Math.max(0, i - 3), i).some((e) => e.card.slug === slug);
+  for (let i = 1; i < out.length; i++) {
+    if (!near(i, out[i]!.card.slug)) continue;
+    const j = out.findIndex((e, k) => k > i && !near(i, e.card.slug));
+    if (j > 0) [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
 /** Pieces per page of the grid (a multiple of 2 and 4 so rows stay full). */
 const PAGE = 48;
 
@@ -143,7 +190,8 @@ export default async function ShopPage({
   }
 
   const locale = await getLocale();
-  const { data, merch, catTree } = await getShopCatalog();
+  const [{ data, merch, catTree }, site] = await Promise.all([getShopCatalog(), getSiteContent()]);
+  const colourCards = (site.shop as { colour_cards?: boolean } | undefined)?.colour_cards === true;
   // Pieces without a front photo stay off the storefront until they are shot
   // (MGMT flags them under Product Data Health).
   const all = ((data ?? []) as unknown as ShopProduct[]).filter((p) =>
@@ -233,8 +281,9 @@ export default async function ShopPage({
   // A page of the grid at a time: only the shown pieces are rendered and sent to the
   // browser (the full catalogue would be a heavy page at 500+ models). "Load more"
   // links to the same page with a bigger ?show=, so it also works without script.
-  const show = Math.min(items.length, Math.max(PAGE, Math.floor(Number(params.show) / PAGE) * PAGE || PAGE));
-  const cards: CardProduct[] = items.slice(0, show).map(toCardProduct);
+  const listed = listColours(items.map(toCardProduct), colourCards, color, sort === "featured");
+  const show = Math.min(listed.length, Math.max(PAGE, Math.floor(Number(params.show) / PAGE) * PAGE || PAGE));
+  const cards = listed.slice(0, show);
 
   // URL builder: toggles one param while keeping the rest, so every state is a link.
   const href = (patch: Record<string, string | undefined>) => {
@@ -477,18 +526,25 @@ export default async function ShopPage({
             data-density="standard"
             className="mt-4 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4 data-[density=large]:grid-cols-1 lg:data-[density=large]:grid-cols-2"
           >
-            {cards.map((p, i) => (
+            {cards.map(({ card, colour }, i) => (
               // the first row (2 on phones, 4 on desktop) is what the shopper sees first
-              <ProductCard key={p.slug} product={p} locale={locale} priority={i < 4} source={sort === "featured" ? "shop_featured" : "shop"} />
+              <ProductCard
+                key={`${card.slug}|${colour ?? ""}`}
+                product={card}
+                initialColour={colour}
+                locale={locale}
+                priority={i < 4}
+                source={sort === "featured" ? "shop_featured" : "shop"}
+              />
             ))}
           </div>
-          {items.length > show ? (
+          {listed.length > show ? (
             <div className="mt-14 flex flex-col items-center gap-3">
               <p className="type-meta text-muted-foreground tabular-nums">
-                {t(locale, "sf.shop.showing", { n: String(show), total: String(items.length) })}
+                {t(locale, "sf.shop.showing", { n: String(show), total: String(listed.length) })}
               </p>
               <div className="h-px w-40 bg-foreground/15" aria-hidden>
-                <div className="h-px bg-foreground" style={{ width: `${Math.round((show / items.length) * 100)}%` }} />
+                <div className="h-px bg-foreground" style={{ width: `${Math.round((show / listed.length) * 100)}%` }} />
               </div>
               {/* keeps the scroll position: the next page appends below what's already seen */}
               <Link

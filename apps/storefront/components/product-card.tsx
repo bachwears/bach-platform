@@ -58,6 +58,7 @@ export function ProductCard({
   variant = "full",
   priority = false,
   source,
+  initialColour,
 }: {
   product: CardProduct;
   locale?: Locale;
@@ -68,6 +69,8 @@ export function ProductCard({
   priority?: boolean;
   /** the row or grid the card sits in ("similar", "wear_with", "shop_featured", …), for analytics */
   source?: string;
+  /** open on this colour (the shop's one-card-per-colour mode); the other swatches still show */
+  initialColour?: string | null;
 }) {
   const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;
   // Product names stay English in every locale (founder decision 2026-09-07).
@@ -78,7 +81,10 @@ export function ProductCard({
   const colours = [...new Set(variants.map((v) => v.color))];
   // Start on the colour the photos show, so a quick add matches what the shopper sees.
   const [colour, setColour] = useState<string | null>(
-    colours.find((c) => c === product.heroColor) ?? colours[0] ?? null,
+    (initialColour && colours.includes(initialColour) ? initialColour : null) ??
+      colours.find((c) => c === product.heroColor) ??
+      colours[0] ??
+      null,
   );
 
   const photos = product.photos

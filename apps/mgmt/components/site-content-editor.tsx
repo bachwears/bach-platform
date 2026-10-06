@@ -80,6 +80,7 @@ export function SiteContentEditor() {
   const [busy, setBusy] = useState(false);
   // collections on/off and the share image save on their own (one click, no Save button)
   const [colsVisible, setColsVisible] = useState(true);
+  const [colourCards, setColourCards] = useState(false);
   const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -88,7 +89,7 @@ export function SiteContentEditor() {
     void supabase
       .from("site_content")
       .select("key, value")
-      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms", "collections", "seo"])
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms", "collections", "seo", "shop"])
       .then(({ data, error }) => {
         if (!error) setLegalLoaded(true);
         for (const row of data ?? []) {
@@ -101,6 +102,7 @@ export function SiteContentEditor() {
           if (row.key === "page_privacy") setPrivacy({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
           if (row.key === "page_terms") setTerms({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
           if (row.key === "collections") setColsVisible((v as { visible?: boolean }).visible !== false);
+          if (row.key === "shop") setColourCards((v as { colour_cards?: boolean }).colour_cards === true);
           if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
       });
@@ -120,7 +122,7 @@ export function SiteContentEditor() {
     return null;
   }
 
-  async function saveKey(key: "collections" | "seo", value: Record<string, unknown>) {
+  async function saveKey(key: "collections" | "seo" | "shop", value: Record<string, unknown>) {
     const { error } = await supabase.from("site_content").upsert({ key, value, updated_at: new Date().toISOString() });
     return error ? `ما انحفظ: ${error.message}` : null;
   }
@@ -291,6 +293,38 @@ export function SiteContentEditor() {
             }}
           />
           {colsVisible ? "ظاهرين عالموقع" : "مخفيين عن الموقع"}
+        </label>
+      </div>
+
+      <div className="space-y-3 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="colour" size={18} className="text-muted-foreground" />
+          كل الألوان بالشوب
+          <HintDot
+            hint={{
+              title: "كل لون بكرت لحالو",
+              what: "لمّا تشغّلها، كل لون إلو صوره الخاصة بيطلع بكرت لحالو بالشوب، والكبسة عليه بتفتح صفحة القطعة عهاللون (والألوان التانية بتضل ظاهرة). الألوان بتتوزّع بين القطع بشكل عشوائي (بيتغيّر كل يوم) مش ورا بعض، فبيبيّن الشوب أغنى وأكثر تنوّع. الصف الأول بيضل للقطع المثبّتة.",
+              source: "جدول site_content (مفتاح shop). اللون بيطلع بكرت إذا عندو صور بلونو (من صور المنتج).",
+              edit: "من هون. صور كل لون بتنزل من صفحة المنتج.",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-foreground"
+            checked={colourCards}
+            onChange={async (e) => {
+              const v = e.target.checked;
+              setColourCards(v);
+              const problem = await saveKey("shop", { colour_cards: v });
+              if (problem) {
+                setColourCards(!v);
+                setErr(problem);
+              } else setMsg(v ? "صار كل لون بكرت لحالو بالشوب — بيبيّن خلال دقيقة." : "رجع كل منتج بكرت واحد بالشوب — خلال دقيقة.");
+            }}
+          />
+          {colourCards ? "شغّالة: كل لون بكرت لحالو، مخلوطين" : "مطفية: كل منتج بكرت واحد"}
         </label>
       </div>
 

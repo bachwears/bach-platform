@@ -85,10 +85,10 @@ export const getSiteContent = unstable_cache(
     const { data } = await supabasePublic()
       .from("site_content")
       .select("key, value")
-      .in("key", ["wheel", "home_hero", "home_banner", "collections", "seo"]);
+      .in("key", ["wheel", "home_hero", "home_banner", "collections", "seo", "shop"]);
     return Object.fromEntries((data ?? []).map((r) => [r.key as string, r.value as unknown]));
   },
-  ["site-content-v2"],
+  ["site-content-v3"],
   { revalidate: MINUTE, tags: ["site-content"] },
 );
 
