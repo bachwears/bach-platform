@@ -22,6 +22,8 @@ interface Totals {
   /** online orders collected at this shop and paid in cash (part of cash in) */
   pickupUsd: number;
   pickupLbp: number;
+  courierUsd: number;
+  courierLbp: number;
 }
 
 interface Closeout {
@@ -69,7 +71,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
     setError("");
     const from = new Date(`${date}T00:00:00`);
     const to = new Date(from.getTime() + 24 * 3600 * 1000);
-    const [ordersQ, paysQ, retsQ, closeQ, pickupQ] = await Promise.all([
+    const [ordersQ, paysQ, retsQ, closeQ, pickupQ, courierQ] = await Promise.all([
       supabase
         .from("orders")
         .select("id, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, status")
@@ -107,6 +109,13 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
         .eq("orders.branch_id", branchId)
         .gte("created_at", from.toISOString())
         .lt("created_at", to.toISOString()),
+      // Courier cash paid over and put in this drawer that day (MGMT → مصاري الشحن).
+      supabase
+        .from("courier_settlements")
+        .select("usd_cents, lbp")
+        .eq("destination", "drawer")
+        .eq("branch_id", branchId)
+        .eq("received_on", date),
     ]);
 
     const orders = ordersQ.data ?? [];
@@ -123,6 +132,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
       returnsCount: (retsQ.data ?? []).length,
       pickupUsd: 0,
       pickupLbp: 0,
+      courierUsd: 0,
+      courierLbp: 0,
     };
     for (const p of pickupQ.data ?? []) {
       if (p.currency === "USD") t.pickupUsd += Number(p.amount_minor);
@@ -130,6 +141,12 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
     }
     t.cashInUsd += t.pickupUsd;
     t.cashInLbp += t.pickupLbp;
+    for (const c of courierQ.data ?? []) {
+      t.courierUsd += Number(c.usd_cents);
+      t.courierLbp += Number(c.lbp);
+    }
+    t.cashInUsd += t.courierUsd;
+    t.cashInLbp += t.courierLbp;
     for (const p of paysQ.data ?? []) {
       if (p.method === "credit") t.creditUsed += Number(p.amount_minor);
       else if (p.currency === "USD") t.cashInUsd += Number(p.amount_minor);
@@ -251,6 +268,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
                 <Row label="Cash in (USD)" value={usd(totals.cashInUsd)} />
                 {totals.pickupUsd > 0 && <Row label="incl. online pickups (USD)" value={usd(totals.pickupUsd)} />}
                 {totals.pickupLbp > 0 && <Row label="incl. online pickups (LBP)" value={lbp(totals.pickupLbp)} />}
+                {totals.courierUsd > 0 && <Row label="incl. courier cash paid in (USD)" value={usd(totals.courierUsd)} />}
+                {totals.courierLbp > 0 && <Row label="incl. courier cash paid in (LBP)" value={lbp(totals.courierLbp)} />}
                 <Row label="Cash in (LBP)" value={lbp(totals.cashInLbp)} />
                 {(totals.cashOutUsd > 0 || totals.cashOutLbp > 0) && (
                   <>

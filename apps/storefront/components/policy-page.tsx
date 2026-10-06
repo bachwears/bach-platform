@@ -18,7 +18,7 @@ export const policyFallbacks: Record<"shipping" | "returns" | "privacy" | "terms
   },
   returns: {
     title: "Returns & Exchanges",
-    body: "Delivered online orders can be returned or exchanged within 30 days.\n\nPieces should be unworn, unwashed, and with their original tags attached.",
+    body: "Returns are accepted within 3 days and exchanges within 7 days of the day you receive your order.\n\nPieces should be unworn, unwashed, and with their original tags attached. A $5 delivery fee applies to returns and exchanges of delivered orders.",
   },
   privacy: {
     title: "Privacy Policy",

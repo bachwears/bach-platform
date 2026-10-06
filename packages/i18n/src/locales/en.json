@@ -276,7 +276,7 @@
   "sf.ostatus.returned": "Returned",
   "sf.ostatus.exchanged": "Exchanged",
   "sf.ret.title": "Returns & exchanges",
-  "sf.ret.sub": "Delivered online orders can be returned or exchanged within 30 days. Enter your order number and the phone you ordered with.",
+  "sf.ret.sub": "Delivered online orders can be returned within 3 days and exchanged within 7 days of delivery. A $5 delivery fee applies. Enter your order number and the phone you ordered with.",
   "sf.ret.orderNo": "Order number",
   "sf.ret.phone": "Phone",
   "sf.ret.find": "Find order",
@@ -284,7 +284,7 @@
   "sf.ret.order": "Order",
   "sf.ret.reason.pos_order": "This order was placed in store — visit us and we'll sort it at the counter.",
   "sf.ret.reason.not_delivered": "This order hasn't been delivered yet. Once it arrives, you can request a return here.",
-  "sf.ret.reason.window_passed": "The 30-day return window for this order has passed. Contact care@bachwears.com if something's wrong.",
+  "sf.ret.reason.window_passed": "The return and exchange windows for this order have closed (3 days to return, 7 to exchange, from delivery). Contact care@bachwears.com if something's wrong.",
   "sf.ret.reason.open_request": "There's already an open request on this order — we're on it.",
   "sf.ret.existing": "Requests on this order",
   "sf.ret.kind": "What would you like?",
@@ -330,7 +330,7 @@
   "sf.pdp.delivery": "Delivery",
   "sf.pdp.deliveryBody": "Lebanon-wide delivery. We call to confirm before dispatch, and the courier fee is settled on arrival. Cash on delivery in USD or LBP.",
   "sf.pdp.returnsTitle": "Returns & exchanges",
-  "sf.pdp.returnsBody": "Delivered online orders can be returned or exchanged within 30 days.",
+  "sf.pdp.returnsBody": "Return within 3 days or exchange within 7 days of delivery, unworn with tags attached. A $5 delivery fee applies.",
   "sf.pdp.returnsLink": "Start a return",
   "sf.pdp.recentlyViewed": "Recently viewed",
   "sf.home.heroAlt": "Two men in considered BACH Wears tailoring against a stone facade",
@@ -559,5 +559,8 @@
   "sf.fit.edge.nearest": "It's the closest size this piece is made in.",
   "sf.fit.saved": "Saved to your profile — we'll suggest it next time.",
   "sf.fit.honest": "A guide, not a guarantee",
-  "sf.fit.use": "Use size {s}"
+  "sf.fit.use": "Use size {s}",
+  "sf.ret.deadlines": "Return by {r} · Exchange by {e}",
+  "sf.ret.fee": "A {v} delivery fee is deducted from your refund, or added to an exchange.",
+  "sf.ret.closed": "Window closed"
 }

@@ -53,7 +53,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
   // the window starts at Beirut midnight, not the server's (UTC)
   const from = beirutDayStart(days);
 
-  const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ, photos] = await Promise.all([
+  const [ordersQ, paysQ, returnsQ, custNewQ, custTotalQ, lowStockQ, rateQ, courierQ, photos] = await Promise.all([
     // paged: PostgREST max_rows would otherwise cap long windows at 1000 rows
     fetchAllPages((a, b) =>
       supabase
@@ -97,6 +97,16 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
         .range(from, to),
     ),
     supabase.from("exchange_rates").select("lbp_per_usd").order("effective_at", { ascending: false }).limit(1).maybeSingle(),
+    // delivered cash-on-delivery money still with the courier (not in the shop yet)
+    supabase
+      .from("orders")
+      .select("total_usd_cents")
+      .eq("channel", "online")
+      .eq("payment_method", "cod")
+      .eq("fulfilment", "delivery")
+      .in("status", ["delivered", "completed", "returned", "exchanged"])
+      .is("cod_settled_at", null)
+      .limit(1000),
     // same query API as the browser client; the helper is typed for that one
     loadFrontPhotos(supabase as unknown as Parameters<typeof loadFrontPhotos>[0]),
   ]);
@@ -253,7 +263,11 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
         />
         <Kpi label="مبيعات المحل" value={usd(posRevenue)} sub={revenue ? `${Math.round((posRevenue / revenue) * 100)}%` : "—"} />
         <Kpi label="مبيعات الأونلاين" value={usd(onlineRevenue)} sub={revenue ? `${Math.round((onlineRevenue / revenue) * 100)}%` : "—"} />
-        <Kpi label="كاش مقبوض" value={usd(cashUsd)} sub={lbp(cashLbp)} />
+        <Kpi
+          label="كاش مقبوض"
+          value={usd(cashUsd)}
+          sub={`${lbp(cashLbp)} · عند شركة الشحن ${usd((courierQ.data ?? []).reduce((s, o) => s + o.total_usd_cents, 0))}`}
+        />
         <Kpi label="الزبائن" value={String(custTotalQ.count ?? 0)} sub={`${custNewQ.count ?? 0} جديد بالفترة`} />
       </div>
 

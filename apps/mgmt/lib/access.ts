@@ -19,6 +19,8 @@ const SERVICE: StaffRole[] = ["store_manager", "support_agent", "cashier"];
 // Longest matching prefix wins (/categories/images before /categories).
 const ROUTES: Array<[string, StaffRole[]]> = [
   ["/orders", SERVICE],
+  // courier cash: managers record it, support follows up
+  ["/orders/courier", ["store_manager", "support_agent"]],
   ["/customers", SERVICE],
   ["/returns", SERVICE],
   ["/complaints", ["store_manager", "support_agent"]],

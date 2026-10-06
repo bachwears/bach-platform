@@ -1,6 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
+import { ReturnsPolicySettings } from "../../components/returns-policy-settings";
 import { ReturnsRequestsQueue } from "../../components/returns-requests-queue";
 
 const QUEUE_ROLES = new Set(["super_admin", "store_manager", "support_agent", "cashier"]);
@@ -23,6 +24,7 @@ export default async function ReturnsRequestsPage() {
             الطلبات يلي بيقدّمها الزبائن من الموقع بتوصل لهون — راجعها، اقبلها أو ارفضها، والإرجاع الفعلي بيتسكّر من نقطة البيع.
           </p>
         </div>
+        <ReturnsPolicySettings canEdit={["super_admin", "store_manager", "marketing_manager"].includes(profile?.role ?? "")} />
         {allowed ? (
           <ReturnsRequestsQueue />
         ) : (

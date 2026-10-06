@@ -36,7 +36,7 @@ export default async function OrdersPage({
     .limit(q ? 500 : 100);
   if (status && STATUS_LABELS[status]) query = query.eq("status", status);
 
-  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }, { data: pickupPays }] = await Promise.all([
+  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }, { data: pickupPays }, { data: atCourier }] = await Promise.all([
     query,
     supabase
       .from("orders")
@@ -64,6 +64,16 @@ export default async function OrdersPage({
       .eq("orders.fulfilment", "pickup")
       .not("orders.status", "in", '("cancelled","returned")')
       .gte("created_at", startOfDay.toISOString()),
+    // delivered cash-on-delivery money the courier hasn't paid over yet
+    supabase
+      .from("orders")
+      .select("total_usd_cents")
+      .eq("channel", "online")
+      .eq("payment_method", "cod")
+      .eq("fulfilment", "delivery")
+      .in("status", ["delivered", "completed", "returned", "exchanged"])
+      .is("cod_settled_at", null)
+      .limit(1000),
   ]);
   // site_content is writable by these roles (RLS); others see the pickup card read-only
   const canEditPickup = ["super_admin", "store_manager", "marketing_manager"].includes(profile?.role ?? "");
@@ -109,7 +119,7 @@ export default async function OrdersPage({
         </div>
 
         {/* اليوم (بتوقيت بيروت) — cash drawer expectation per currency */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">مبيعات اليوم</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd(todayTotal)}</p>
@@ -125,6 +135,11 @@ export default async function OrdersPage({
             <p className="mt-1 text-2xl font-semibold font-mono">{cashLbp.toLocaleString("en-US")} ل.ل</p>
             <p className="text-xs text-muted-foreground">كاش بالمحل + طلبات الاستلام يلي انقبضت اليوم</p>
           </div>
+          <Link href="/orders/courier" className="rounded-lg border p-4 hover:border-foreground">
+            <p className="text-sm text-muted-foreground">عند شركة الشحن</p>
+            <p className="mt-1 text-2xl font-semibold font-mono">{usd((atCourier ?? []).reduce((s, o) => s + o.total_usd_cents, 0))}</p>
+            <p className="text-xs text-muted-foreground">{(atCourier ?? []).length} طلب وصل ولسّا ما قبضنا — فتّح</p>
+          </Link>
         </div>
 
         <PickupSettings canEdit={canEditPickup} />

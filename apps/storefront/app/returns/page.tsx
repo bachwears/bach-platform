@@ -28,6 +28,16 @@ interface Lookup {
   ineligible_reason: string | null;
   items: LookupItem[];
   requests: Array<{ kind: string; status: string; created_at: string }>;
+  received_at?: string | null;
+  return_until?: string | null;
+  exchange_until?: string | null;
+  fee_usd_cents?: number;
+}
+
+/** Still inside the window for this kind (unknown dates: let the server decide). */
+function isOpen(o: Lookup, k: "return" | "exchange") {
+  const until = k === "return" ? o.return_until : o.exchange_until;
+  return !until || Date.now() <= new Date(until).getTime();
 }
 
 function reqStatus(locale: Locale, status: string) {
@@ -67,12 +77,20 @@ function ReturnsForm() {
       setError(t(locale, "sf.ret.notFound"));
       return;
     }
-    setOrder(data[0] as unknown as Lookup);
+    const o = data[0] as unknown as Lookup;
+    setOrder(o);
+    // start on what is still possible: the return window is the shorter one
+    setKind(isOpen(o, "return") ? "return" : "exchange");
   }
 
   const chosenItems = Object.entries(selected).filter(([, q]) => q > 0);
   const canSubmit =
-    !busy && order?.eligible && chosenItems.length > 0 && reason.trim() && (kind !== "exchange" || exchangeNote.trim());
+    !busy &&
+    order?.eligible &&
+    isOpen(order, kind) &&
+    chosenItems.length > 0 &&
+    reason.trim() &&
+    (kind !== "exchange" || exchangeNote.trim());
 
   async function submit() {
     if (!canSubmit || !order) return;
@@ -169,6 +187,24 @@ function ReturnsForm() {
             </div>
           )}
 
+          {order.eligible && (order.return_until || order.exchange_until) ? (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>
+                {t(locale, "sf.ret.deadlines", {
+                  r: order.return_until
+                    ? new Date(order.return_until).toLocaleDateString(dateLocale, { day: "numeric", month: "long" })
+                    : "—",
+                  e: order.exchange_until
+                    ? new Date(order.exchange_until).toLocaleDateString(dateLocale, { day: "numeric", month: "long" })
+                    : "—",
+                })}
+              </p>
+              {(order.fee_usd_cents ?? 0) > 0 && (
+                <p>{t(locale, "sf.ret.fee", { v: `$${((order.fee_usd_cents ?? 0) / 100).toFixed(0)}` })}</p>
+              )}
+            </div>
+          ) : null}
+
           {!order.eligible ? (
             <p className="border border-dashed p-4 text-sm text-muted-foreground">
               {t(locale, `sf.ret.reason.${order.ineligible_reason}`)}
@@ -182,8 +218,9 @@ function ReturnsForm() {
                     <button
                       key={k}
                       type="button"
+                      disabled={!isOpen(order, k)}
                       onClick={() => setKind(k)}
-                      className={`border p-3 text-start text-sm transition-colors ${
+                      className={`border p-3 text-start text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                         kind === k ? "border-foreground" : "hover:border-foreground/50"
                       }`}
                     >
@@ -191,7 +228,9 @@ function ReturnsForm() {
                         {t(locale, k === "return" ? "sf.ret.kindReturn" : "sf.ret.kindExchange")}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {t(locale, k === "return" ? "sf.ret.kindReturnSub" : "sf.ret.kindExchangeSub")}
+                        {isOpen(order, k)
+                          ? t(locale, k === "return" ? "sf.ret.kindReturnSub" : "sf.ret.kindExchangeSub")
+                          : t(locale, "sf.ret.closed")}
                       </span>
                     </button>
                   ))}

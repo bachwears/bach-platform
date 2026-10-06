@@ -32,6 +32,10 @@ interface LoadedOrder {
   customer_id: string | null;
   customerName: string | null;
   items: OrderItem[];
+  channel: string;
+  fulfilment: string | null;
+  delivered_at: string | null;
+  delivery_usd_cents: number;
 }
 
 interface NewLine {
@@ -71,13 +75,25 @@ export function Returns({
   branchName,
   rate: initialRate,
   tva,
+  isManager = false,
 }: {
   branchId: string;
   branchName: string;
   rate: number;
   tva: { enabled: boolean; rateBasisPoints: number; pricesIncludeTva: boolean };
+  /** managers may go past the return/exchange window and waive the delivery fee */
+  isManager?: boolean;
 }) {
   const supabase = supabaseBrowser();
+  // returns policy (MGMT → المرتجعات): windows in days, delivery fee kept on online deliveries
+  const [policy, setPolicy] = useState({ return_days: 3, exchange_days: 7, fee_usd_cents: 500 });
+  const [waiveFee, setWaiveFee] = useState(false);
+  useEffect(() => {
+    void supabase.rpc("returns_policy").then(({ data }) => {
+      const p = (data as Array<{ return_days: number; exchange_days: number; fee_usd_cents: number }> | null)?.[0];
+      if (p) setPolicy(p);
+    });
+  }, [supabase]);
   const [rate, setRate] = useState(initialRate);
   const [invoice, setInvoice] = useState("");
   const [order, setOrder] = useState<LoadedOrder | null>(null);
@@ -106,6 +122,7 @@ export function Returns({
     setRetQty({});
     setNewCart([]);
     setToWallet(false);
+    setWaiveFee(false);
     const num = parseInt(invoice.replace(/[^0-9]/g, ""), 10);
     if (!num) {
       setError("اكتب رقم الفاتورة (أرقام بس).");
@@ -114,7 +131,7 @@ export function Returns({
     setSearching(true);
     const { data: o } = await supabase
       .from("orders")
-      .select("id, number, status, subtotal_usd_cents, total_usd_cents, created_at, customer_id, customers(full_name), order_items(*)")
+      .select("id, number, status, subtotal_usd_cents, total_usd_cents, delivery_usd_cents, channel, fulfilment, delivered_at, created_at, customer_id, customers(full_name), order_items(*)")
       .eq("number", num)
       .maybeSingle();
     setSearching(false);
@@ -140,6 +157,10 @@ export function Returns({
       subtotal_usd_cents: o.subtotal_usd_cents,
       total_usd_cents: o.total_usd_cents,
       created_at: o.created_at,
+      channel: o.channel,
+      fulfilment: o.fulfilment,
+      delivered_at: o.delivered_at,
+      delivery_usd_cents: o.delivery_usd_cents ?? 0,
       customer_id: (o as { customer_id?: string | null }).customer_id ?? null,
       customerName: (() => {
         const c = (o as unknown as { customers?: { full_name: string | null } | Array<{ full_name: string | null }> }).customers;
@@ -152,14 +173,28 @@ export function Returns({
     });
   }
 
-  // Credit mirrors the server formula: line share × (total / subtotal).
-  const factor = order ? order.total_usd_cents / Math.max(order.subtotal_usd_cents, 1) : 1;
-  const credit = order
+  // Credit mirrors the server formula: line share × ((total − delivery) / subtotal).
+  const factor = order
+    ? (order.total_usd_cents - order.delivery_usd_cents) / Math.max(order.subtotal_usd_cents, 1)
+    : 1;
+  const itemsCredit = order
     ? order.items.reduce((s, i) => {
         const q = retQty[i.id] ?? 0;
         return s + Math.round(((i.line_total_usd_cents * q) / i.quantity) * factor);
       }, 0)
     : 0;
+  // Policy: online deliveries keep the delivery fee; windows count from when
+  // the customer received the order (online: delivered; in store: the sale).
+  const feeApplies = !!order && order.channel === "online" && (order.fulfilment ?? "delivery") === "delivery";
+  const fee = feeApplies && !waiveFee && itemsCredit > 0 ? Math.min(policy.fee_usd_cents, itemsCredit) : 0;
+  const credit = itemsCredit - fee;
+  const receivedAt = order ? (order.channel === "online" ? order.delivered_at : order.created_at) : null;
+  const until = (days: number) => (receivedAt ? new Date(new Date(receivedAt).getTime() + days * 86_400_000) : null);
+  const returnUntil = until(policy.return_days);
+  const exchangeUntil = until(policy.exchange_days);
+  const deadline = mode === "return" ? returnUntil : exchangeUntil;
+  const windowPassed = !!deadline && Date.now() > deadline.getTime();
+  const dateAr = (d: Date | null) => (d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
   // Same total pos_exchange charges: TVA is added on top when prices exclude it.
   const newItemsCents = newCart.reduce((s, l) => s + l.unitUsdCents * l.quantity, 0);
@@ -174,7 +209,8 @@ export function Returns({
   const settled =
     net > 5 ? paidEquiv >= net - 5 : net < -5 ? (toWallet ? payUsdCents === 0 && payLbpAmt === 0 : Math.abs(paidEquiv + net) <= 5) : payUsdCents === 0 && payLbpAmt === 0;
   const anyReturn = credit > 0;
-  const canSubmit = !busy && anyReturn && settled && (mode === "return" || newCart.length > 0);
+  const canSubmit =
+    !busy && anyReturn && settled && (mode === "return" || newCart.length > 0) && (!windowPassed || isManager);
 
   async function search(text: string) {
     // PostgREST filter syntax: commas, brackets and wildcards would break or widen the .or() query
@@ -241,6 +277,7 @@ export function Returns({
         p_items: retItems,
         p_refunds: useWallet ? [] : cash,
         ...(useWallet ? { p_to_wallet: true } : {}),
+        ...(waiveFee ? { p_waive_fee: true } : {}),
       });
       setBusy(false);
       if (err) {
@@ -267,6 +304,7 @@ export function Returns({
         p_payments: net > 5 ? cash : [],
         p_refunds: net < -5 && !useWallet ? cash : [],
         ...(useWallet ? { p_to_wallet: true } : {}),
+        ...(waiveFee ? { p_waive_fee: true } : {}),
       });
       setBusy(false);
       if (err) {
@@ -436,6 +474,33 @@ export function Returns({
             </Button>
           </div>
 
+          <div className={`space-y-1 rounded-lg border p-3 text-sm ${windowPassed ? "border-destructive/60" : ""}`}>
+            <p>
+              {order.channel === "online" ? "وصل للزبون" : "اشترى بالمحل"}: <span dir="ltr">{dateAr(receivedAt ? new Date(receivedAt) : null)}</span>
+              {" · "}الإرجاع لغاية <span dir="ltr">{dateAr(returnUntil)}</span>
+              {" · "}التبديل لغاية <span dir="ltr">{dateAr(exchangeUntil)}</span>
+            </p>
+            {windowPassed && (
+              <p className="text-destructive">
+                {mode === "return" ? "انتهت مدة الإرجاع" : "انتهت مدة التبديل"}
+                {isManager ? " — إنت مدير، فيك تكمّل كاستثناء." : " — بدّها موافقة مدير (بدّل عالمدير وكمّل)."}
+              </p>
+            )}
+            {feeApplies && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">
+                  رسوم توصيل المرتجع/التبديل: {waiveFee ? "معفى" : usd(policy.fee_usd_cents)} — بتنطرح من المبلغ يلي بيرجع للزبون.
+                </span>
+                {isManager && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <input type="checkbox" checked={waiveFee} onChange={(e) => setWaiveFee(e.target.checked)} className="h-4 w-4 accent-foreground" />
+                    إعفاء (رجّعها عالمحل)
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+
           {order.customer_id ? (
             <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
               <input type="checkbox" className="h-5 w-5 shrink-0 cursor-pointer accent-foreground" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
@@ -514,6 +579,12 @@ export function Returns({
           )}
 
           <div className="space-y-2 rounded-lg border p-4 text-sm">
+            {fee > 0 ? (
+              <>
+                <Row label="قيمة القطع المرجوعة" value={usd(itemsCredit)} />
+                <Row label="رسوم التوصيل" value={`− ${usd(fee)}`} />
+              </>
+            ) : null}
             <Row label="قيمة المرجوع" value={usd(credit)} />
             {mode === "exchange" && (
               <Row label={tva.enabled && !tva.pricesIncludeTva ? "قيمة القطع الجديدة (مع TVA)" : "قيمة القطع الجديدة"} value={usd(newTotal)} />

@@ -58,6 +58,7 @@ export default async function ReturnsPage() {
           <p className="p-8 text-center text-muted-foreground">لازم فرع مفعّل وسعر صرف محدّد قبل المرتجعات.</p>
         ) : (
           <Returns
+            isManager={["super_admin", "store_manager"].includes(profile?.role ?? "")}
             branchId={branch.id}
             branchName={branch.name}
             rate={Number(rate.lbp_per_usd)}
