@@ -182,7 +182,7 @@ export default async function ShopPage({
   const band = params.price ?? "";
   const sort = params.sort ?? "featured";
   const sale = params.sale === "1";
-  // SPECIAL PRICES: pieces ticked in MGMT ("special" tag), on top of their own category
+  // SPECIAL PRICES: pieces ticked in MGMT ("special" tag) and everything on sale, on top of their own category
   const special = params.special === "1";
   // collections switched off in MGMT: their pages fold back into the shop
   if (col && ((await getSiteContent()).collections as { visible?: boolean } | undefined)?.visible === false) {
@@ -256,7 +256,9 @@ export default async function ShopPage({
     if (f.size && !p.product_variants.some((v) => v.is_active && v.size === f.size)) return false;
     if (f.color && !p.product_variants.some((v) => v.is_active && v.color_en === f.color)) return false;
     if (f.sale && p.sale_price_usd_cents == null) return false;
-    if (f.special && !(p.tags ?? []).includes("special")) return false;
+    // Special Prices = pieces ticked in MGMT + everything on sale
+    if (f.special && !(p.tags ?? []).includes("special") && !(p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents))
+      return false;
     if (f.band) {
       const b = PRICE_BANDS.find(([k]) => k === f.band);
       if (b && (price(p) < b[2] || price(p) > b[3])) return false;
@@ -310,8 +312,8 @@ export default async function ShopPage({
   const saleOnly = sale && activeFilters === 1 && !cat;
   // Shop all, a category or a collection: the tabs (and header image) already say
   // where the shopper is, so breadcrumb, title and count stay for search engines and
-  // screen readers only. Special prices, sale, search and filtered views keep them.
-  const quietHead = Boolean(cat || col || (!special && activeFilters === 0));
+  // screen readers only (Special Prices too). Search and filtered views keep them.
+  const quietHead = Boolean(cat || col || activeFilters === 0);
   // Facets the shopper picked in the drawer — the collection or category being browsed isn't one.
   const drawerActive = [size, color, band, sale ? "sale" : ""].filter(Boolean).length;
   const colName = col

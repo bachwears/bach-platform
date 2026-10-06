@@ -208,7 +208,7 @@ export function HeaderActions({
           <nav
             id="site-menu"
             aria-label={t(locale, "sf.nav.menu")}
-            className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e"
+            className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e lg:w-[640px] xl:w-[720px]"
           >
             {/* Close X on every screen — on phones the MENU tab also toggles, but it
                 sits at the bottom where nobody looks for a way out. */}
@@ -246,7 +246,7 @@ export function HeaderActions({
             {tab === "categories" && tiles.length > 0 && (
               <ul className="mt-6 flex shrink-0 snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:scroll-px-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
                 {tiles.map((tile) => (
-                  <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-36">
+                  <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-36 lg:w-44">
                     <Link href={tile.href} onClick={close} className="block">
                       <span className="block aspect-[3/4] overflow-hidden bg-secondary">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -271,22 +271,6 @@ export function HeaderActions({
                         {t(locale, "sf.home.theNew")}
                       </Link>
                     </li>
-                    {/* SPECIAL PRICES: the one coloured line, right under The New */}
-                    {hasSpecial && (
-                      <li>
-                        <Link href={lhref(locale, "/shop?special=1")} className="type-label text-special block py-2 transition-opacity hover:opacity-60" onClick={close}>
-                          {t(locale, "sf.nav.special")}
-                        </Link>
-                      </li>
-                    )}
-                    {hasSale && (
-                      <li>
-                        <Link href={lhref(locale, "/shop?sale=1")} className={`${textLink} block`} onClick={close}>
-                          {t(locale, "sf.nav.onSale")}
-                        </Link>
-                      </li>
-                    )}
-
                   </ul>
                 </li>
                 {groups.map((g, i) => (
@@ -312,6 +296,21 @@ export function HeaderActions({
                     </ul>
                   </li>
                 ))}
+                {/* SPECIAL PRICES (ticked pieces + everything on sale): the last row, the one in colour */}
+                {(hasSpecial || hasSale) && (
+                  <li className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-x-4">
+                    <span className="type-meta text-special pt-2">
+                      <span className="tabular-nums">|{two(groups.length + 2)}|</span> {t(locale, "sf.nav.special")}
+                    </span>
+                    <ul>
+                      <li>
+                        <Link href={lhref(locale, "/shop?special=1")} className="type-label text-special block py-2 transition-opacity hover:opacity-60" onClick={close}>
+                          {t(locale, "sf.nav.viewAll")}
+                        </Link>
+                      </li>
+                    </ul>
+                  </li>
+                )}
               </ol>
             ) : (
               <ul className="flex-1 px-4 py-8 sm:px-8">
