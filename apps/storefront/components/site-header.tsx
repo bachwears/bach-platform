@@ -52,7 +52,7 @@ export async function SiteHeader() {
   const loose = all
     .filter((c) => !c.parent_id && count(c) > 0 && !all.some((k) => k.parent_id === c.id))
     .map((c) => ({ code: c.code, label: pick(locale, c.name_en, c.name_ar) }));
-  if (loose.length) groups.push({ code: null, label: t(locale, "sf.nav.categories"), items: loose });
+  if (loose.length) groups.push({ code: null, label: t(locale, "sf.nav.more"), items: loose });
 
   // Menu photo tiles: New in (newest photographed piece), then each group's
   // portrait banner, else the first child's.

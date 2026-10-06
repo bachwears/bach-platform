@@ -564,5 +564,6 @@
   "sf.ret.fee": "A {v} delivery fee is deducted from your refund, or added to an exchange.",
   "sf.ret.closed": "Window closed",
   "sf.nav.special": "Special Prices",
-  "sf.shop.specialTitle": "Special Prices"
+  "sf.shop.specialTitle": "Special Prices",
+  "sf.nav.more": "More"
 }

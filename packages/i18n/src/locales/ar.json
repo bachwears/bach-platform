@@ -564,5 +564,6 @@
   "sf.ret.fee": "رسوم توصيل {v} بتنطرح من المبلغ يلي بيرجعلك، أو بتنزاد عالتبديل.",
   "sf.ret.closed": "خلصت المهلة",
   "sf.nav.special": "أسعار مميّزة",
-  "sf.shop.specialTitle": "أسعار مميّزة"
+  "sf.shop.specialTitle": "أسعار مميّزة",
+  "sf.nav.more": "المزيد"
 }
