@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { PageHeader } from "@bach/ui/components/page-header";
+
 import { ComplaintsQueue } from "../../components/complaints-queue";
 import { Nav } from "../../components/nav";
 
@@ -17,16 +19,20 @@ export default async function ComplaintsPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">الشكاوى</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            كل تذكرة من البورتال بتوصل لهون — عيّن، علّق، ردّ عالزبون، وسكّرها.
-          </p>
-        </div>
+        <PageHeader
+          title="الشكاوى"
+          description="كل تذكرة بيفتحها زبون من الموقع بتوصل لهون — عيّنها إلك، علّق، ردّ عالزبون، وسكّرها."
+          hint={{
+            title: "طابور الشكاوى",
+            what: "كل شكوى إلها رقم وحالة. «ظاهر للزبون» بيبعت الرد للزبون بصفحة تتبّع الشكوى؛ بلاه بتضل ملاحظة داخلية.",
+            source: "الشكاوى من نموذج الدعم عالموقع (complaints) وسجلها (complaint_events).",
+            edit: "من هون: التعيين، الملاحظات والحالة. للسوبر أدمن، مدير المحل وخدمة الزبائن.",
+          }}
+        />
         {allowed ? (
           <ComplaintsQueue myId={user!.id} />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة الشكاوى.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">دورك ما بيسمح بإدارة الشكاوى — إذا لازمك، احكي السوبر أدمن.</p>
         )}
       </main>
     </div>

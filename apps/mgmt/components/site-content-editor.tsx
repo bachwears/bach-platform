@@ -145,7 +145,7 @@ export function SiteContentEditor() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           واجهة الصفحة الرئيسية (Hero)
           <HintDot
@@ -194,7 +194,7 @@ export function SiteContentEditor() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           صورة الواجهة
           <HintDot
@@ -210,7 +210,7 @@ export function SiteContentEditor() {
         <img
           src={hero.image_url || "https://bachwears.com/hero-campaign.jpg"}
           alt="معاينة"
-          className="h-44 w-full rounded-md object-cover"
+          className="h-44 w-full object-cover"
         />
         <div className="flex flex-wrap items-center gap-3">
           <Input
@@ -250,7 +250,7 @@ export function SiteContentEditor() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           بانر العروض تحت الواجهة
           <HintDot
@@ -289,7 +289,7 @@ export function SiteContentEditor() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           صفحة التوصيل والشحن
           <HintDot
@@ -311,7 +311,7 @@ export function SiteContentEditor() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           صفحة الإرجاع والتبديل
           <HintDot
@@ -333,7 +333,7 @@ export function SiteContentEditor() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-5">
+      <div className="space-y-4 border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           عجلة الحظ (Spin the wheel)
           <HintDot
@@ -372,7 +372,7 @@ export function SiteContentEditor() {
           ["page_terms", "شروط البيع", "/terms", terms, setTerms, "tm"],
         ] as const
       ).map(([key, label, path, doc, setDoc, id]) => (
-        <div key={key} className="space-y-4 rounded-lg border p-5">
+        <div key={key} className="space-y-4 border p-5">
           <h2 className="flex items-center gap-2 font-medium">
             {label}
             <HintDot
@@ -404,10 +404,10 @@ export function SiteContentEditor() {
         </div>
       ))}
 
-      {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
-      {msg && <p className="rounded-md border px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
+      {err && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
+      {msg && <p className="border px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
       <Button onClick={() => void save()} disabled={busy}>
-        {busy ? "عم نحفظ…" : "حفظ التغييرات"}
+        {busy ? "عم نحفظ…" : "احفظ التغييرات"}
       </Button>
     </div>
   );

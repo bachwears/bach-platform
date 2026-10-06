@@ -59,16 +59,16 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
   const onSale = saved.saleCents != null && saved.saleCents < saved.priceCents;
 
   return (
-    <div className="sticky top-[4.75rem] z-30 -mx-4 border-b bg-background/90 px-4 pb-2 pt-3 backdrop-blur supports-[backdrop-filter]:bg-background/75 sm:mx-0 sm:rounded-b-xl sm:border-x">
+    <div className="sticky top-14 z-30 -mx-4 border-b bg-background px-4 pb-2 pt-3 sm:mx-0">
       <div className="flex items-center gap-3">
         {saved.front ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb(saved.front)} alt="" className="h-12 w-9 shrink-0 rounded bg-muted object-cover" />
+          <img src={thumb(saved.front)} alt="" className="h-12 w-9 shrink-0 bg-muted object-cover" />
         ) : (
-          <span className="h-12 w-9 shrink-0 rounded border border-dashed border-red-500/60 bg-muted" />
+          <span className="h-12 w-9 shrink-0 border border-dashed border-red-500/60 bg-muted" />
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold sm:text-lg" dir="ltr">
+          <h1 className="truncate text-base font-medium sm:text-lg" dir="ltr">
             {saved.name}
           </h1>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -93,7 +93,7 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
             href={`/labels?product=${saved.id}`}
             title="اطبع ليبلات هالمنتج"
             aria-label="اطبع ليبل"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-muted"
+            className="inline-flex h-9 items-center gap-1.5 border px-3 text-sm hover:bg-muted"
           >
             <Printer className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">اطبع ليبل</span>
@@ -102,7 +102,7 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
             href={`https://bachwears.com/products/${saved.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="hidden h-9 items-center rounded-md border px-3 text-sm hover:bg-muted sm:inline-flex"
+            className="hidden h-9 items-center border px-3 text-sm hover:bg-muted sm:inline-flex"
           >
             شوف عالموقع
           </a>
@@ -114,7 +114,7 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
       {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
       <nav aria-label="أقسام المنتج" className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-1 text-xs [scrollbar-width:none]">
         {PRODUCT_SECTIONS.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="shrink-0 rounded-full border px-3 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <a key={id} href={`#${id}`} className="shrink-0 border px-3 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
             {label}
           </a>
         ))}
@@ -122,7 +122,7 @@ export function ProductStatusBar({ saved }: { saved: SavedState }) {
           href={`https://bachwears.com/products/${saved.slug}`}
           target="_blank"
           rel="noreferrer"
-          className="shrink-0 rounded-full border px-3 py-1 text-muted-foreground hover:bg-muted sm:hidden"
+          className="shrink-0 border px-3 py-1 text-muted-foreground hover:bg-muted sm:hidden"
         >
           شوف عالموقع
         </a>
@@ -165,11 +165,11 @@ export function ProductOverview({ saved, photos }: { saved: SavedState; photos: 
       <div className="space-y-3">
         <div
           role={visible ? undefined : "alert"}
-          className={`rounded-lg border p-4 text-sm ${
+          className={`border p-4 text-sm ${
             visible ? "border-emerald-500/40 bg-emerald-500/5" : "border-red-500/40 bg-red-500/10"
           }`}
         >
-          <p className={`font-semibold ${visible ? "text-emerald-800 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}>
+          <p className={`font-medium ${visible ? "text-emerald-800 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}>
             {visible ? "المنتج ظاهر عالموقع" : "المنتج مخفي عن الموقع"}
           </p>
           {blockers.length ? (
@@ -193,24 +193,24 @@ export function ProductOverview({ saved, photos }: { saved: SavedState; photos: 
           ) : null}
         </div>
         <dl className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg border p-3">
+          <div className="border p-3">
             <dt className="text-xs text-muted-foreground">السعر</dt>
             <dd className="mt-1 font-medium tabular-nums" dir="ltr">
               {usd(saved.saleCents != null && saved.saleCents < saved.priceCents ? saved.saleCents : saved.priceCents)}
             </dd>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="border p-3">
             <dt className="text-xs text-muted-foreground">الستوك</dt>
             <dd className={`mt-1 font-medium tabular-nums ${saved.stock <= 0 ? "text-red-700 dark:text-red-400" : ""}`}>{saved.stock}</dd>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="border p-3">
             <dt className="text-xs text-muted-foreground">الألوان</dt>
             <dd className="mt-1 font-medium tabular-nums">{photos.colourCount}</dd>
           </div>
         </dl>
       </div>
 
-      <div className="rounded-lg border p-4">
+      <div className="border p-4">
         <p className="flex items-center gap-2 text-sm font-medium">
           شو ناقص
           <span className="text-xs font-normal text-muted-foreground tabular-nums">
@@ -225,13 +225,13 @@ export function ProductOverview({ saved, photos }: { saved: SavedState; photos: 
             }}
           />
         </p>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-foreground transition-[width]" style={{ width: `${(done / items.length) * 100}%` }} />
+        <div className="mt-2 h-1.5 overflow-hidden bg-muted">
+          <div className="h-full bg-foreground transition-[width]" style={{ width: `${(done / items.length) * 100}%` }} />
         </div>
         <ul className="mt-3 grid gap-1 sm:grid-cols-2">
           {items.map((i) => (
             <li key={i.label}>
-              <a href={i.href} className="flex items-start gap-2 rounded-md p-1.5 text-sm hover:bg-muted">
+              <a href={i.href} className="flex items-start gap-2 p-1.5 text-sm hover:bg-muted">
                 <span
                   aria-hidden
                   className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] ${

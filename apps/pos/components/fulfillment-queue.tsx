@@ -119,7 +119,7 @@ function CollectPanel({
   const ok = short <= 5 && !whishTooMuch && !lbpChangeTooBig && (paidLbp === 0 || rate !== null) && covered > 0;
 
   return (
-    <div className="w-full space-y-3 rounded-md border p-3">
+    <div className="w-full space-y-3 border p-3">
       <p className="text-sm font-medium">قبض طلب الاستلام — المطلوب {usd(total)}</p>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="grid gap-1 text-xs text-muted-foreground">
@@ -152,9 +152,9 @@ function CollectPanel({
         {short > 5 ? (
           <p>باقي: {usd(short)}{rate ? ` (${lbp(Math.ceil((short / 100) * rate))})` : ""}</p>
         ) : changeUsd > 0 ? (
-          <p className="font-medium text-green-600 dark:text-green-400">الباقي للزبون: {usd(changeUsd)}</p>
+          <p className="font-medium">الباقي للزبون: {usd(changeUsd)}</p>
         ) : changeLbp > 0 ? (
-          <p className="font-medium text-green-600 dark:text-green-400">الباقي للزبون: {lbp(changeLbp)}</p>
+          <p className="font-medium">الباقي للزبون: {lbp(changeLbp)}</p>
         ) : covered > 0 ? (
           <p className="text-muted-foreground">المبلغ مزبوط.</p>
         ) : null}
@@ -163,12 +163,13 @@ function CollectPanel({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
+          className="h-10"
           disabled={busy || !ok}
           onClick={() => onCollect({ usd: paidUsd - changeUsd, lbp: paidLbp - changeLbp, whish: paidWhish })}
         >
           {busy ? "لحظة…" : "انستلم — سجّل الدفع"}
         </Button>
-        <Button variant="outline" disabled={busy} onClick={onClose}>
+        <Button variant="outline" className="h-10" disabled={busy} onClick={onClose}>
           رجوع
         </Button>
       </div>
@@ -239,9 +240,9 @@ export function FulfillmentQueue() {
 
   return (
     <div className="space-y-4">
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
       {loadError && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <div className="flex flex-wrap items-center justify-between gap-2 border border-destructive/40 px-4 py-2 text-sm text-destructive">
           <span>{loadError}</span>
           <Button size="sm" variant="outline" onClick={() => void load()}>
             جرّب مرة تانية
@@ -250,7 +251,7 @@ export function FulfillmentQueue() {
       )}
       {orders.length === 0 ? (
         loaded && !loadError ? (
-          <p className="p-10 text-center text-muted-foreground">ما في طلبات أونلاين حالياً — كل شي مسكّر.</p>
+          <p className="border p-10 text-center text-sm text-muted-foreground">ما في طلبات أونلاين مفتوحة حالياً — كل شي مسكّر. أول طلب جديد من bachwears.com بيطلع هون لحالو (الصفحة بتتحدّث كل 30 ثانية).</p>
         ) : null
       ) : (
         orders.map((o) => {
@@ -259,10 +260,10 @@ export function FulfillmentQueue() {
           // collecting a pay-at-the-shop order: cash or Whish at the counter
           const collectAtShop = pickup && o.status === "shipped" && o.payment_method === "cod";
           return (
-          <div key={o.id} className="space-y-3 rounded-lg border p-4">
+          <div key={o.id} className="space-y-3 border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-lg font-semibold">#{o.number}</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-mono text-lg font-medium">#{o.number}</span>
                 <Badge variant={o.status === "pending" ? "default" : "secondary"}>
                   {(pickup ? PICKUP_STATUS_AR[o.status] : undefined) ?? STATUS_AR[o.status] ?? o.status}
                 </Badge>
@@ -294,10 +295,10 @@ export function FulfillmentQueue() {
             </div>
             {o.note && <p className="text-sm text-muted-foreground">ملاحظة: {o.note}</p>}
 
-            <ul className="space-y-1 rounded-md bg-muted/50 p-3 text-sm">
+            <ul className="space-y-1 bg-muted/50 p-3 text-sm">
               {o.order_items.map((i, idx) => (
-                <li key={idx} className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-3">
+                <li key={idx} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <span className="flex min-w-0 items-center gap-3">
                     <Thumb src={photoFor(photos, i.product_variants?.product_id, i.color_en)} />
                     <span>
                       {i.name_en} — {i.size} {i.color_en} × {i.quantity}
@@ -313,11 +314,12 @@ export function FulfillmentQueue() {
             <div className="flex flex-wrap gap-2">
               {collectAtShop ? (
                 <>
-                  <Button disabled={busy === o.id} onClick={() => void advance(o.id, "delivered")}>
+                  <Button className="h-10" disabled={busy === o.id} onClick={() => void advance(o.id, "delivered")}>
                     {busy === o.id ? "لحظة…" : `انستلم — قبضنا ${usd(o.total_usd_cents)} كاش`}
                   </Button>
                   <Button
                     variant="outline"
+                    className="h-10"
                     disabled={busy === o.id}
                     onClick={() => void advance(o.id, "delivered", { usd: 0, lbp: 0, whish: o.total_usd_cents })}
                   >
@@ -331,19 +333,20 @@ export function FulfillmentQueue() {
                       onClose={() => setCollecting(null)}
                     />
                   ) : (
-                    <Button variant="outline" disabled={busy === o.id} onClick={() => setCollecting(o.id)}>
+                    <Button variant="outline" className="h-10" disabled={busy === o.id} onClick={() => setCollecting(o.id)}>
                       ليرة أو دفع مختلط…
                     </Button>
                   )}
                 </>
               ) : next ? (
-                <Button disabled={busy === o.id} onClick={() => void advance(o.id, next.to)}>
+                <Button className="h-10" disabled={busy === o.id} onClick={() => void advance(o.id, next.to)}>
                   {busy === o.id ? "لحظة…" : next.label}
                 </Button>
               ) : null}
               {CANCELLABLE.has(o.status) && (
                 <Button
                   variant="outline"
+                  className="h-10"
                   disabled={busy === o.id}
                   onClick={() => {
                     if (window.confirm(`إلغاء الطلب #${o.number}؟ المخزون المحجوز بيرجع متاح.`)) {
@@ -351,7 +354,7 @@ export function FulfillmentQueue() {
                     }
                   }}
                 >
-                  إلغاء
+                  ألغِ الطلب
                 </Button>
               )}
             </div>

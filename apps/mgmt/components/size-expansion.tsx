@@ -135,12 +135,14 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="فتّش بالاسم أو SKU…"
+          aria-label="فتّش بالاسم أو SKU"
           className="h-9 w-64"
         />
         <select
           value={catFilter}
           onChange={(e) => setCatFilter(e.target.value)}
-          className="h-9 rounded-md border bg-transparent px-2 text-sm"
+          aria-label="الفئة"
+          className="h-9 border bg-transparent px-2 text-sm"
         >
           <option value="">كل الفئات</option>
           {cats.map(([code, name]) => (
@@ -155,10 +157,12 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
         </span>
       </div>
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
       {visible.length === 0 && (
-        <p className="p-8 text-center text-muted-foreground">
-          {products.length === 0 ? "ما ضل ولا موديل بمقاس واحد — خلص الشغل." : "ما في نتائج بهالفلتر."}
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          {products.length === 0
+            ? "ما ضل ولا موديل بمقاس واحد — خلص الشغل."
+            : "ما في نتائج بهالفلتر — امسح البحث أو اختار «كل الفئات»."}
         </p>
       )}
 
@@ -167,10 +171,10 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
           const open = openId === p.id;
           const total = sumFor(p, sizes);
           return (
-            <li key={p.id} className="rounded-lg border">
+            <li key={p.id} className="border">
               <button
                 type="button"
-                className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-right"
+                className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-start"
                 onClick={() => (open ? setOpenId(null) : openProduct(p))}
               >
                 <span className="flex min-w-0 items-center gap-3">
@@ -193,11 +197,12 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="text-muted-foreground">المقاسات:</span>
                     {sizes.map((sz) => (
-                      <span key={sz} className="flex items-center gap-1 rounded-full border px-2 py-0.5">
+                      <span key={sz} className="flex items-center gap-1 border px-2 py-0.5">
                         <span dir="ltr">{sz}</span>
                         <button
                           type="button"
                           className="text-muted-foreground hover:text-foreground"
+                          aria-label={`شيل المقاس ${sz}`}
                           onClick={() => setSizes((prev) => prev.filter((x) => x !== sz))}
                         >
                           ✕

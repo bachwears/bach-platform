@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Label } from "@bach/ui/components/label";
 
 export function RateForm({ currentRate }: { currentRate: number | null }) {
   const router = useRouter();
@@ -41,10 +42,12 @@ export function RateForm({ currentRate }: { currentRate: number | null }) {
   }
 
   return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <p className="text-sm font-medium">حدّد سعر جديد</p>
+    <div className="space-y-3 border p-4">
+      <Label htmlFor="rate-new">سعر جديد (ليرة لكل $1)</Label>
       <div className="flex gap-2">
         <Input
+          id="rate-new"
+          dir="ltr"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
@@ -61,7 +64,7 @@ export function RateForm({ currentRate }: { currentRate: number | null }) {
           inputMode="numeric"
         />
         <Button disabled={parsed <= 0 || busy} onClick={() => void save()}>
-          {busy ? "عم نسجّل…" : confirmBig ? "أكيد؟ سجّل" : "تسجيل"}
+          {busy ? "عم نسجّل…" : confirmBig ? "أكيد؟ سجّل" : "سجّل السعر"}
         </Button>
       </div>
       {parsed > 0 && currentRate != null && (

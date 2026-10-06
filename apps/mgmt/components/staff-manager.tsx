@@ -128,7 +128,7 @@ export function StaffManager() {
 
   return (
     <div className="space-y-8">
-      {msg && <p className={`text-sm ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={`text-sm ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</p>}
       {shown && (
         <div className="space-y-1 border p-4 text-sm">
           <p className="font-medium">بلّغ الموظف بمعلومات الدخول (بتبيّن هلّق بس):</p>
@@ -136,14 +136,14 @@ export function StaffManager() {
             {shown.email} · {shown.password}
           </p>
           <p className="text-xs text-muted-foreground">أوّل ما يفوت، البرنامج بيطلب منو يغيّر كلمة السر.</p>
-          <button type="button" className="text-xs underline" onClick={() => setShown(null)}>
-            خبّي
+          <button type="button" className="text-xs underline underline-offset-4" onClick={() => setShown(null)}>
+            خبّي المعلومات
           </button>
         </div>
       )}
 
       {/* New account */}
-      <section className="space-y-4 border p-4">
+      <section id="new-staff" className="scroll-mt-6 space-y-4 border p-4">
         <h2 className="font-medium">حساب موظف جديد</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -196,7 +196,7 @@ export function StaffManager() {
             <div className="flex gap-2">
               <Input id="st-pw" dir="ltr" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="font-mono" />
               <Button type="button" variant="outline" onClick={() => setForm({ ...form, password: tempPassword() })}>
-                وحدة تانية
+                ولّد وحدة تانية
               </Button>
             </div>
           </div>
@@ -226,7 +226,9 @@ export function StaffManager() {
       <section className="space-y-3">
         <h2 className="font-medium">الحسابات ({staff.length})</h2>
         {loading ? (
-          <p className="text-sm text-muted-foreground">عم نحمّل…</p>
+          <p className="text-sm text-muted-foreground">عم نحمّل الحسابات…</p>
+        ) : staff.length === 0 ? (
+          <p className="border p-6 text-center text-sm text-muted-foreground">ما في حسابات بعد — اعمل أول حساب من «حساب موظف جديد» فوق.</p>
         ) : (
           <ul className="divide-y border">
             {staff.map((s) => (
@@ -251,7 +253,7 @@ export function StaffManager() {
                     </div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => setEditing(editing === s.id ? null : s.id)}>
-                    {editing === s.id ? "سكّر" : "عدّل"}
+                    {editing === s.id ? "سكّر التعديل" : "عدّل"}
                   </Button>
                 </div>
                 {editing === s.id && <StaffEdit s={s} branches={branches} busy={busy} run={run} onShow={setShown} />}
@@ -281,31 +283,40 @@ function StaffEdit({
   return (
     <div className="space-y-4 border-t pt-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Input value={v.full_name} onChange={(e) => setV({ ...v, full_name: e.target.value })} aria-label="الاسم" />
-        <select
-          value={v.role}
-          onChange={(e) => setV({ ...v, role: e.target.value })}
-          className="h-10 border bg-transparent px-2 text-sm"
-          aria-label="الدور"
-        >
-          {Object.entries(ROLE_LABELS).map(([k, l]) => (
-            <option key={k} value={k}>
-              {l}
-            </option>
-          ))}
-        </select>
-        <select
-          value={v.branch_id}
-          onChange={(e) => setV({ ...v, branch_id: e.target.value })}
-          className="h-10 border bg-transparent px-2 text-sm"
-          aria-label="الفرع"
-        >
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`se-name-${s.id}`}>الاسم</Label>
+          <Input id={`se-name-${s.id}`} value={v.full_name} onChange={(e) => setV({ ...v, full_name: e.target.value })} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`se-role-${s.id}`}>الدور</Label>
+          <select
+            id={`se-role-${s.id}`}
+            value={v.role}
+            onChange={(e) => setV({ ...v, role: e.target.value })}
+            className="h-10 border bg-transparent px-2 text-sm"
+          >
+            {Object.entries(ROLE_LABELS).map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`se-branch-${s.id}`}>الفرع</Label>
+          <select
+            id={`se-branch-${s.id}`}
+            value={v.branch_id}
+            onChange={(e) => setV({ ...v, branch_id: e.target.value })}
+            className="h-10 border bg-transparent px-2 text-sm"
+          >
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {v.role !== s.role && (
         <ul className="list-inside list-disc text-xs text-muted-foreground">
@@ -316,7 +327,7 @@ function StaffEdit({
       )}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" disabled={busy} onClick={() => void run("انحفظ.", { action: "update", id: s.id, ...v })}>
-          احفظ
+          احفظ التعديلات
         </Button>
         <Button
           size="sm"

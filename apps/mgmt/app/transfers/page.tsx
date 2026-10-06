@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
@@ -105,31 +104,26 @@ export default async function TransfersPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            التحويل بين الفروع
-            <HintDot
-              hint={{
-                title: "تحويل بضاعة بين الفروع",
-                what: "بتنقل قطع من فرع لفرع: الفرع المرسِل بينقص والمستلِم بيزيد بنفس اللحظة، وكل تحويل بيتسجّل كحركتين (صادر ووارد) برقم مرجع واحد.",
-                source: "المتوفّر = الكمية بالفرع ناقص المحجوز لطلبات الأونلاين. الحركات بتظهر كمان بشاشة المخزون.",
-                edit: "اختار الفرعين، زيد القطع بالـSKU أو الباركود أو الاسم، حط الكمية واكبس «حوّل».",
-              }}
-            />
-          </h1>
-          <Link href="/inventory" className="text-sm text-muted-foreground hover:text-foreground">
-            → رجوع للمخزون
-          </Link>
-        </div>
+        <PageHeader
+          title="التحويل بين الفروع"
+          description="انقل قطع من فرع لفرع — الفرع المرسِل بينقص والمستلِم بيزيد بنفس اللحظة."
+          hint={{
+            title: "تحويل بضاعة بين الفروع",
+            what: "بتنقل قطع من فرع لفرع: الفرع المرسِل بينقص والمستلِم بيزيد بنفس اللحظة، وكل تحويل بيتسجّل كحركتين (صادر ووارد) برقم مرجع واحد.",
+            source: "المتوفّر = الكمية بالفرع ناقص المحجوز لطلبات الأونلاين. الحركات بتظهر كمان بشاشة المخزون.",
+            edit: "اختار الفرعين، زيد القطع بالـSKU أو الباركود أو الاسم، حط الكمية واكبس «حوّل».",
+          }}
+          back={{ href: "/inventory", label: "المخزون" }}
+        />
 
         {!allowed ? (
-          <p className="rounded-lg border p-8 text-center text-muted-foreground">
-            التحويل بين الفروع للمدير أو مسؤول المخزون بس.
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            التحويل بين الفروع للمدير أو مسؤول المخزون بس — اطلب من حدا منهن يعمل التحويل.
           </p>
         ) : (
           <>
             {branchList.length < 2 ? (
-              <div className="space-y-2 rounded-lg border p-5 text-sm">
+              <div className="space-y-2 border p-5 text-sm">
                 <p className="font-medium">
                   عندك فرع واحد حالياً{branchList[0] ? ` (${branchList[0].name_ar || branchList[0].name})` : ""}.
                 </p>
@@ -145,13 +139,13 @@ export default async function TransfersPage() {
             {role === "super_admin" ? <AddBranch /> : null}
 
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold">آخر التحويلات</h2>
+              <h2 className="text-lg font-medium">آخر التحويلات</h2>
               {transfers.length === 0 ? (
-                <p className="rounded-lg border p-6 text-sm text-muted-foreground">ما في تحويلات بعد.</p>
+                <p className="border p-6 text-sm text-muted-foreground">ما في تحويلات بعد — أول تحويل بتعملو من فوق بيطلع هون.</p>
               ) : (
                 <div className="space-y-3">
                   {transfers.map((t) => (
-                    <details key={t.id} className="rounded-lg border">
+                    <details key={t.id} className="border">
                       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 p-4 text-sm">
                         <span className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{t.from}</span>

@@ -95,12 +95,16 @@ export function ReturnsRequestsQueue() {
   const open = rows.filter((r) => ["requested", "approved"].includes(r.status));
   const closed = rows.filter((r) => !["requested", "approved"].includes(r.status));
 
-  if (!loaded) return <p className="p-8 text-center text-muted-foreground">عم يحمّل…</p>;
+  if (!loaded) return <p className="p-8 text-center text-sm text-muted-foreground">عم نحمّل طلبات الإرجاع…</p>;
 
   return (
     <div className="space-y-8">
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {rows.length === 0 && <p className="p-8 text-center text-muted-foreground">ما في طلبات إرجاع لسا.</p>}
+      {error && <p role="alert" className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {rows.length === 0 && !error && (
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          ما في طلبات إرجاع أو تبديل بعد — لما زبون يطلب من حسابو عالموقع، الطلب بيطلع هون.
+        </p>
+      )}
 
       {[
         ["المفتوحة", open] as const,
@@ -108,10 +112,12 @@ export function ReturnsRequestsQueue() {
       ].map(([title, list]) =>
         list.length ? (
           <section key={title}>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+              {title} ({list.length})
+            </h2>
             <ul className="mt-3 space-y-4">
               {list.map((r) => (
-                <li key={r.id} className="rounded-md border p-4">
+                <li key={r.id} className="border p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-3">
                       <a href={`/orders/${r.orders.id}`} className="font-mono font-medium underline-offset-2 hover:underline" dir="ltr">
@@ -153,25 +159,43 @@ export function ReturnsRequestsQueue() {
 
                   {["requested", "approved"].includes(r.status) && (
                     <div className="mt-4 space-y-2 border-t pt-3">
+                      <label htmlFor={`rr-note-${r.id}`} className="block text-sm">
+                        ملاحظات داخلية
+                      </label>
                       <Textarea
+                        id={`rr-note-${r.id}`}
                         value={notes[r.id] ?? r.staff_notes ?? ""}
                         onChange={(e) => setNotes({ ...notes, [r.id]: e.target.value })}
                         rows={2}
-                        placeholder="ملاحظات داخلية…"
+                        placeholder="للفريق بس — ما بتنبعت للزبون"
                       />
                       <div className="flex flex-wrap gap-2">
                         {r.status === "requested" && (
                           <>
                             <Button size="sm" onClick={() => void setStatus(r, "approved")}>
-                              قبول
+                              اقبل الطلب
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => void setStatus(r, "rejected")}>
-                              رفض
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (window.confirm(`نرفض طلب ${KIND_AR[r.kind] ?? r.kind} للطلب #${r.orders.number}؟ الزبون بيوصلو إيميل ورسالة بالرفض.`))
+                                  void setStatus(r, "rejected");
+                              }}
+                            >
+                              ارفض الطلب
                             </Button>
                           </>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => void setStatus(r, "cancelled")}>
-                          إلغاء
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (window.confirm(`نلغي طلب ${KIND_AR[r.kind] ?? r.kind} للطلب #${r.orders.number}؟ بيتسكّر بلا قبول ولا رفض.`))
+                              void setStatus(r, "cancelled");
+                          }}
+                        >
+                          ألغِ طلب الإرجاع
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">

@@ -231,14 +231,14 @@ export function MediaImport() {
   return (
     <div className="space-y-4">
       <label
-        className="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center hover:bg-muted/50"
+        className="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed p-8 text-center hover:bg-muted/50"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
           void handleFiles(e.dataTransfer.files);
         }}
       >
-        <p className="font-medium">اسحب الصور لهون أو دوس لتختار</p>
+        <p className="font-medium">اسحب الصور لهون أو اكبس لتختارها</p>
         <p className="text-sm text-muted-foreground" dir="ltr">
           BW-SWT-109-LGR_front.jpg · _back · _model-front · _model-back · _model-zoom · _model-front-2 · _detail
         </p>
@@ -262,7 +262,14 @@ export function MediaImport() {
           className="h-4 w-4"
           checked={replaceAll}
           disabled={busy}
-          onChange={(e) => setReplaceAll(e.target.checked)}
+          onChange={(e) => {
+            if (
+              e.target.checked &&
+              !window.confirm("أكيد؟ كل الصور القديمة للقطع يلّي بهالدفعة رح تنمسح وتنحط الجديدة محلّها.")
+            )
+              return;
+            setReplaceAll(e.target.checked);
+          }}
         />
         استبدل كل الصور القديمة للمنتجات يلي بهالدفعة (الصور القديمة بتنمسح، مش بس يلي إلها نفس الاسم)
       </label>
@@ -274,7 +281,7 @@ export function MediaImport() {
           <p className="text-sm font-medium">
             خلصنا: {ok} من {results.length} انرفعت.
           </p>
-          <ul className="max-h-72 space-y-1 overflow-y-auto rounded-lg border p-3 text-sm">
+          <ul className="max-h-72 space-y-1 overflow-y-auto border p-3 text-sm">
             {results.map((r, i) => (
               <li key={i} className={r.status === "ok" ? "text-muted-foreground" : "text-destructive"}>
                 <span dir="ltr">{r.name}</span>
@@ -284,7 +291,7 @@ export function MediaImport() {
           </ul>
           {results.some((r) => r.status !== "ok") && (
             <Button variant="outline" size="sm" onClick={() => setResults([])}>
-              مسح النتائج
+              امسح النتائج
             </Button>
           )}
         </div>

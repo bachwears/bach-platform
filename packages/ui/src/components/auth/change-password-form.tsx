@@ -46,7 +46,7 @@ export function ChangePasswordForm() {
   return (
     <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">غيّر كلمة السر</h1>
+        <h1 className="text-2xl font-normal tracking-tight">غيّر كلمة السر</h1>
         <p className="text-sm text-muted-foreground">
           لأمان حسابك، لازم تغيّر كلمة السر المؤقتة قبل ما تكمّل
         </p>

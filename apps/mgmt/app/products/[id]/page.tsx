@@ -138,6 +138,12 @@ export default async function EditProductPage({
             hero: ((product.tags as string[] | null) ?? []).includes("hero"),
           }}
         >
+          <a
+            href="/products"
+            className="inline-block pt-3 text-xs uppercase tracking-[0.06em] text-muted-foreground hover:text-foreground print:hidden"
+          >
+            → المنتجات
+          </a>
           <ProductStatusBar saved={saved} />
 
           <div className="space-y-4 pt-2">

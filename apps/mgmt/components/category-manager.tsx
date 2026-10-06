@@ -108,8 +108,8 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
   return (
     <div className="space-y-6">
       {categories.length ? (
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto border">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-3 text-start font-medium">الكود</th>
@@ -134,7 +134,7 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
                       aria-label={`الفئة الأم لـ ${c.name_ar}`}
                       value={c.parent_id ?? ""}
                       onChange={(e) => void moveTo(c, e.target.value)}
-                      className="h-9 max-w-[14rem] rounded-md border bg-background px-2 text-sm"
+                      className="h-9 max-w-[14rem] border bg-background px-2 text-sm"
                     >
                       <option value="">— رئيسية —</option>
                       {rows
@@ -154,7 +154,7 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
                   </td>
                   <td className="p-3 text-end">
                     <Button variant="ghost" size="sm" onClick={() => toggleActive(c)}>
-                      {c.is_active ? "وقّف" : "فعّل"}
+                      {c.is_active ? "وقّف الفئة" : "فعّل الفئة"}
                     </Button>
                   </td>
                 </tr>
@@ -163,12 +163,12 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
           </table>
         </div>
       ) : (
-        <p className="rounded-md border p-6 text-sm text-muted-foreground">
-          ما في فئات بعد — ضيف أول فئة لتقدر تعمل منتجات.
+        <p className="border p-6 text-sm text-muted-foreground">
+          ما في فئات بعد — زيد أول فئة من الخانات تحت لتقدر تعمل منتجات.
         </p>
       )}
 
-      <form onSubmit={addCategory} className="grid items-end gap-3 rounded-md border p-4 sm:grid-cols-5">
+      <form onSubmit={addCategory} className="grid items-end gap-3 border p-4 sm:grid-cols-5">
         <div className="space-y-1">
           <Label htmlFor="c-code">الكود (للـ SKU)</Label>
           <Input id="c-code" dir="ltr" required placeholder="SH" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
@@ -187,7 +187,7 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
             id="c-parent"
             value={parentId}
             onChange={(e) => setParentId(e.target.value)}
-            className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            className="h-9 w-full border bg-background px-2 text-sm"
           >
             <option value="">— رئيسية —</option>
             {rows.map((p) => (
@@ -198,7 +198,7 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
           </select>
         </div>
         <Button type="submit" disabled={busy}>
-          {busy ? "عم نضيف…" : "+ ضيف فئة"}
+          {busy ? "عم نزيد…" : "+ زيد الفئة"}
         </Button>
       </form>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

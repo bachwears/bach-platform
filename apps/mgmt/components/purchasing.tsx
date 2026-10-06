@@ -222,22 +222,31 @@ export function Purchasing({ branchId }: { branchId: string }) {
 
   return (
     <div className="space-y-8">
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {/* Suppliers */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">الموردين</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Input value={supName} onChange={(e) => setSupName(e.target.value)} placeholder="اسم المورّد" className="h-9 w-56" />
-          <Input value={supPhone} onChange={(e) => setSupPhone(e.target.value)} placeholder="التلفون" className="h-9 w-40" dir="ltr" />
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label htmlFor="po-sup-name" className="block text-sm">اسم المورّد</label>
+            <Input id="po-sup-name" value={supName} onChange={(e) => setSupName(e.target.value)} className="h-9 w-56" />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="po-sup-phone" className="block text-sm">التلفون (اختياري)</label>
+            <Input id="po-sup-phone" value={supPhone} onChange={(e) => setSupPhone(e.target.value)} placeholder="+961…" className="h-9 w-40" dir="ltr" />
+          </div>
           <Button size="sm" disabled={!supName.trim()} onClick={() => void addSupplier()}>
-            ضيف مورّد
+            زيد المورّد
           </Button>
         </div>
+        {suppliers.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">ما في موردين بعد — زيد أول مورّد لتقدر تعمل طلب شراء.</p>
+        ) : null}
         {suppliers.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2 text-sm">
             {suppliers.map((s) => (
-              <li key={s.id} className={`rounded-full border px-3 py-1 ${s.is_active ? "" : "opacity-50"}`}>
+              <li key={s.id} className={`border px-3 py-1 ${s.is_active ? "" : "opacity-50"}`}>
                 {s.name}
                 {s.phone && <span className="text-xs text-muted-foreground" dir="ltr"> {s.phone}</span>}
               </li>
@@ -247,13 +256,16 @@ export function Purchasing({ branchId }: { branchId: string }) {
       </section>
 
       {/* New PO */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">طلب شراء جديد</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+          <label htmlFor="po-supplier" className="block text-sm">المورّد</label>
           <select
+            id="po-supplier"
             value={poSupplier}
             onChange={(e) => setPoSupplier(e.target.value)}
-            className="h-9 rounded-md border bg-transparent px-2 text-sm"
+            className="h-9 w-full border bg-transparent px-2 text-sm"
           >
             <option value="">اختار المورّد…</option>
             {suppliers.filter((s) => s.is_active).map((s) => (
@@ -262,26 +274,32 @@ export function Purchasing({ branchId }: { branchId: string }) {
               </option>
             ))}
           </select>
-          <Input value={poNote} onChange={(e) => setPoNote(e.target.value)} placeholder="ملاحظة (اختياري)" className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="po-note" className="block text-sm">ملاحظة (اختياري)</label>
+            <Input id="po-note" value={poNote} onChange={(e) => setPoNote(e.target.value)} className="h-9" />
+          </div>
         </div>
 
-        <div className="relative mt-3">
+        <div className="relative mt-3 space-y-1">
+          <label htmlFor="po-search" className="block text-sm">زيد قطعة للطلب</label>
           <Input
+            id="po-search"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               void searchVariants(e.target.value);
             }}
-            placeholder="ضيف قطعة: SKU أو اسم…"
+            placeholder="SKU أو اسم القطعة…"
             className="h-9"
           />
           {results.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+            <div className="absolute z-10 mt-1 w-full border bg-background">
               {results.map((v) => (
                 <button
                   key={v.id}
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-right text-sm hover:bg-muted"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-muted"
                   onClick={() => addLine(v)}
                 >
                   <span className="flex min-w-0 items-center gap-3">
@@ -300,7 +318,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
         {lines.length > 0 && (
           <ul className="mt-3 space-y-2 text-sm">
             {lines.map((l) => (
-              <li key={l.variant_id} className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
+              <li key={l.variant_id} className="flex flex-wrap items-center gap-2 border px-3 py-2">
                 <span className="flex min-w-0 flex-1 items-center gap-3">
                   <Thumb src={photoFor(photos, l.product_id, l.color_en)} size="md" />
                   <span className="min-w-0">
@@ -332,7 +350,12 @@ export function Purchasing({ branchId }: { branchId: string }) {
                     placeholder="0.00"
                   />
                 </label>
-                <Button size="sm" variant="ghost" onClick={() => setLines((prev) => prev.filter((x) => x.variant_id !== l.variant_id))}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`شيل ${l.label} من الطلب`}
+                  onClick={() => setLines((prev) => prev.filter((x) => x.variant_id !== l.variant_id))}
+                >
                   ✕
                 </Button>
               </li>
@@ -352,12 +375,16 @@ export function Purchasing({ branchId }: { branchId: string }) {
 
       {/* PO list */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">طلبات الشراء</h2>
-        {pos.length === 0 && <p className="p-6 text-center text-muted-foreground">ما في طلبات شراء لسا.</p>}
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">طلبات الشراء</h2>
+        {pos.length === 0 && (
+          <p className="border p-6 text-center text-sm text-muted-foreground">
+            ما في طلبات شراء بعد — أول طلب بتعملو من «طلب شراء جديد» فوق بيطلع هون.
+          </p>
+        )}
         {pos.map((po) => {
           const receivable = ["ordered", "partial"].includes(po.status);
           return (
-            <div key={po.id} className="rounded-lg border p-4">
+            <div key={po.id} className="border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="font-mono font-medium" dir="ltr">PO-{po.number}</span>
@@ -384,14 +411,14 @@ export function Purchasing({ branchId }: { branchId: string }) {
                       size="sm"
                       variant="ghost"
                       onClick={async () => {
-                        if (window.confirm("إلغاء طلب الشراء؟")) {
+                        if (window.confirm(`تلغي طلب الشراء PO-${po.number}؟`)) {
                           const { error: err } = await supabase.rpc("po_cancel", { p_po_id: po.id });
                           setError(err ? `ما انلغى الطلب: ${err.message}` : "");
                           void load();
                         }
                       }}
                     >
-                      إلغاء
+                      ألغي الطلب
                     </Button>
                   )}
                   <span className="text-xs text-muted-foreground">
@@ -401,14 +428,15 @@ export function Purchasing({ branchId }: { branchId: string }) {
               </div>
               {po.note && <p className="mt-1 text-xs text-muted-foreground">{po.note}</p>}
 
-              <table className="mt-3 w-full text-sm">
+              <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
                 <thead>
-                  <tr className="border-b text-right text-muted-foreground">
-                    <th className="p-2 font-normal">القطعة</th>
-                    <th className="p-2 font-normal">مطلوب</th>
-                    <th className="p-2 font-normal">مستلم</th>
-                    <th className="p-2 font-normal">كلفة $</th>
-                    {receivable && <th className="p-2 font-normal">استلام الآن</th>}
+                  <tr className="border-b text-start text-muted-foreground">
+                    <th className="p-2 text-start font-normal">القطعة</th>
+                    <th className="p-2 text-start font-normal">مطلوب</th>
+                    <th className="p-2 text-start font-normal">مستلم</th>
+                    <th className="p-2 text-start font-normal">كلفة $</th>
+                    {receivable && <th className="p-2 text-start font-normal">استلام هلّق</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -452,6 +480,7 @@ export function Purchasing({ branchId }: { branchId: string }) {
                   })}
                 </tbody>
               </table>
+              </div>
               {receivable && (
                 <Button size="sm" className="mt-3" disabled={busy} onClick={() => void receive(po)}>
                   سجّل الاستلام

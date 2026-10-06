@@ -70,9 +70,9 @@ export function PaymentsConfig() {
 
   return (
     <div className="space-y-4">
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
       {methods.map((m) => (
-        <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+        <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 border p-4">
           <div className="flex items-start gap-3">
             {(() => { const I = KIND_META[m.kind]?.icon; return I ? <I className="h-6 w-6 text-muted-foreground" aria-hidden /> : null; })()}
             <div>
@@ -95,14 +95,22 @@ export function PaymentsConfig() {
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={m.is_enabled ? "default" : "secondary"}>{m.is_enabled ? "شغّال" : "مطفّي"}</Badge>
-            <Button size="sm" variant={m.is_enabled ? "outline" : "default"} disabled={busy} onClick={() => void toggle(m)}>
-              {m.is_enabled ? "طفّي" : "فعّل"}
+            <Button
+              size="sm"
+              variant={m.is_enabled ? "outline" : "default"}
+              disabled={busy}
+              onClick={() => {
+                if (m.is_enabled && !window.confirm(`تطفّي «${m.display_name_ar}»؟ الزبائن والكاشير ما بقى فيهن يدفعو فيها لحتى ترجع تفعّلها.`)) return;
+                void toggle(m);
+              }}
+            >
+              {m.is_enabled ? "طفّيها" : "فعّلها"}
             </Button>
           </div>
         </div>
       ))}
       <p className="text-xs text-muted-foreground">
-        تفعيل Stripe لاحقاً: <span dir="ltr" className="font-mono">supabase secrets set STRIPE_SECRET_KEY=sk_live_… STRIPE_WEBHOOK_SECRET=whsec_…</span> وبعدين كبسة "فعّل" — بلا أي نشر جديد.
+        تفعيل Stripe لاحقاً: <span dir="ltr" className="font-mono">supabase secrets set STRIPE_SECRET_KEY=sk_live_… STRIPE_WEBHOOK_SECRET=whsec_…</span> وبعدين كبسة «فعّلها» — بلا أي نشر جديد.
       </p>
     </div>
   );

@@ -112,7 +112,7 @@ export function CameraScanner({ onDetect }: { onDetect: (code: string) => void }
             <button
               type="button"
               aria-label="سكّر الماسح"
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/10"
+              className="grid h-10 w-10 place-items-center bg-white/10"
               onClick={() => setOpen(false)}
             >
               <X className="h-5 w-5" aria-hidden />
@@ -120,18 +120,18 @@ export function CameraScanner({ onDetect }: { onDetect: (code: string) => void }
           </div>
           <div className="relative mx-auto w-full max-w-lg flex-1 overflow-hidden px-4 pb-6">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video ref={videoRef} playsInline muted className="h-full w-full rounded-2xl object-cover" />
+            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-10 top-1/2 h-28 -translate-y-1/2 rounded-xl border-2 border-white/70"
+              className="pointer-events-none absolute inset-x-10 top-1/2 h-28 -translate-y-1/2 border-2 border-white/70"
             />
             {error && (
-              <p className="absolute inset-x-4 bottom-10 rounded-lg bg-black/70 px-4 py-3 text-center text-sm text-white">
+              <p className="absolute inset-x-4 bottom-10 bg-black/70 px-4 py-3 text-center text-sm text-white">
                 {error}
               </p>
             )}
             {!error && lastCode && (
-              <p className="absolute inset-x-4 bottom-10 rounded-lg bg-black/70 px-4 py-2 text-center text-sm text-white">
+              <p className="absolute inset-x-4 bottom-10 bg-black/70 px-4 py-2 text-center text-sm text-white">
                 انمسح: <span className="font-mono">{lastCode}</span> — كمّل مسح أو سكّر
               </p>
             )}

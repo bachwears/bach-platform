@@ -49,6 +49,19 @@ const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const SELECT =
   "id, number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(variant_id, name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
 
+/** Status names staff read (the raw enum value meant nothing at the counter). */
+const STATUS_AR: Record<string, string> = {
+  pending: "جديد",
+  confirmed: "مؤكّد",
+  picking: "قيد التجهيز",
+  packed: "جاهز",
+  shipped: "بالشحن",
+  delivered: "وصل",
+  completed: "مسكّر",
+  cancelled: "ملغى",
+  returned: "مرتجع",
+  exchanged: "مبدّل",
+};
 const METHOD_EN: Record<string, string> = { credit: "Store credit", whish: "Whish", cod: "Cash on delivery", stripe: "Card" };
 
 /** Rebuild the till receipt from what the sale recorded (a reprint). */
@@ -143,10 +156,10 @@ export function Invoices() {
           <PackingSlip o={printing} />
         )}
         <div className="flex gap-3 print:hidden">
-          <Button className="flex-1" onClick={() => window.print()}>
-            طباعة
+          <Button className="h-11 flex-1" onClick={() => window.print()}>
+            اطبع
           </Button>
-          <Button className="flex-1" variant="outline" onClick={() => setPrinting(null)}>
+          <Button className="h-11 flex-1" variant="outline" onClick={() => setPrinting(null)}>
             رجوع للفواتير
           </Button>
         </div>
@@ -160,26 +173,34 @@ export function Invoices() {
         value={q}
         placeholder="رقم الفاتورة، أو اسم/تلفون الزبون…"
         className="h-12 text-lg"
+        aria-label="فتّش الفواتير"
         onChange={(e) => void search(e.target.value)}
       />
       {searched && rows.length === 0 && (
-        <p className="rounded-md border p-8 text-center text-muted-foreground">ما لقينا شي.</p>
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          ما لقينا ولا فاتورة لـ«{q.trim()}» — جرّب رقم الفاتورة بلا #، أو جزء من اسم الزبون أو آخر أرقام تلفونو.
+        </p>
+      )}
+      {!searched && (
+        <p className="p-8 text-center text-sm text-muted-foreground">
+          اكتب رقم الفاتورة (مثلاً 1024) أو اسم/تلفون الزبون لتطلع فواتيرو هون.
+        </p>
       )}
       {rows.map((o) => (
-        <div key={o.id} className="rounded-lg border">
+        <div key={o.id} className="border">
           <button
             type="button"
-            className="flex w-full flex-wrap items-center justify-between gap-2 p-4 text-start"
+            className="flex min-h-12 w-full flex-wrap items-center justify-between gap-2 p-4 text-start hover:bg-muted/50"
             onClick={() => setOpen(open === o.id ? null : o.id)}
           >
-            <span className="flex items-center gap-3">
-              <span className="font-mono text-lg font-semibold" dir="ltr">#{o.number}</span>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-mono text-lg font-medium" dir="ltr">#{o.number}</span>
               <Badge variant="secondary">{o.channel === "pos" ? "محل" : "أونلاين"}</Badge>
               {o.fulfilment === "pickup" ? <Badge variant="outline">استلام من المحل</Badge> : null}
-              <span className="text-xs text-muted-foreground">{o.status}</span>
+              <span className="text-xs text-muted-foreground">{STATUS_AR[o.status] ?? o.status}</span>
             </span>
             <span className="flex items-center gap-3 text-sm">
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground" dir="ltr">
                 {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
               </span>
               <span className="font-mono font-medium" dir="ltr">{usd(o.total_usd_cents)}</span>
@@ -215,7 +236,7 @@ export function Invoices() {
               <ul className="space-y-1">
                 {o.order_items.map((i, idx) => (
                   <li key={idx} className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-3">
+                    <span className="flex min-w-0 items-center gap-3">
                       <Thumb src={photoOf(i.variant_id)} size="sm" />
                       <span dir="ltr">{i.name_en} — {i.size} {i.color_en} × {i.quantity}</span>
                     </span>
@@ -227,7 +248,7 @@ export function Invoices() {
                 {o.discount_usd_cents > 0 && <span>خصم: <span className="font-mono" dir="ltr">{usd(o.discount_usd_cents)}</span></span>}
                 <span>الدفع: {o.payment_method === "whish" ? "Whish / محفظة" : o.payment_method === "cod" ? "عند الاستلام" : o.payment_method ?? "كاش"}</span>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setPrinting(o)}>
+              <Button variant="outline" className="h-10" onClick={() => setPrinting(o)}>
                 {o.channel === "pos" ? "اطبع الإيصال مرة تانية" : "اطبع ورقة التجهيز"}
               </Button>
             </div>
@@ -245,7 +266,7 @@ function PackingSlip({ o }: { o: Inv }) {
   return (
     <>
       <style>{`@media print { @page { size: 80mm auto; margin: 0; } .receipt-80 { width: 72mm; margin: 0 auto; font-size: 11px; } }`}</style>
-      <div className="receipt-80 rounded-lg border p-6 print:rounded-none print:border-0 print:p-1" dir="ltr">
+      <div className="receipt-80 border p-6 print:border-0 print:p-1" dir="ltr">
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-bach.png" alt="BACH WEARS" className="mx-auto h-5 w-auto" />

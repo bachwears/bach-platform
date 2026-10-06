@@ -64,9 +64,9 @@ export function MovementForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid items-end gap-3 rounded-md border p-4 sm:grid-cols-5">
+    <form onSubmit={onSubmit} className="grid items-end gap-3 border p-4 sm:grid-cols-5">
       <div className="space-y-1 sm:col-span-2">
-        <Label htmlFor="m-variant">الفاريانت</Label>
+        <Label htmlFor="m-variant">القطعة (مقاس ولون)</Label>
         {/* a native list can't hold photos, so the chosen piece shows beside it */}
         <div className="flex items-center gap-2">
           <Thumb src={variants.find((v) => v.id === variantId)?.photo} size="sm" />
@@ -103,6 +103,7 @@ export function MovementForm({
       <div className="space-y-1">
         <Label htmlFor="m-delta">الكمية (±)</Label>
         <Input id="m-delta" dir="ltr" type="number" required placeholder="+10" value={delta} onChange={(e) => setDelta(e.target.value)} />
+        <p className="text-xs text-muted-foreground">+ للزيادة، − للنقص</p>
       </div>
       <Button type="submit" disabled={busy} className="sm:col-span-5 sm:justify-self-start">
         {busy ? "عم نسجّل…" : "سجّل الحركة"}

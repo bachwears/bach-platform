@@ -216,16 +216,21 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
   return (
     <div className="space-y-5">
       {pendingOffline > 0 && (
-        <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm print:hidden">
+        <p className="border border-foreground px-4 py-2 text-sm print:hidden">
           <TriangleAlert className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
           في {pendingOffline} مبيعات أوفلاين لسا ما تزامنت — ارجع عشاشة الكاشير وزامنها قبل ما تسكّر اليوم،
           وإلا أرقام اليوم بتطلع ناقصة.
         </p>
       )}
-      <div className="flex items-center gap-3 print:hidden">
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" dir="ltr" />
+      <div className="flex flex-wrap items-end gap-3 print:hidden">
+        <div className="space-y-1">
+          <label className="block text-xs text-muted-foreground" htmlFor="eod-date">
+            اليوم
+          </label>
+          <Input id="eod-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 w-44" dir="ltr" />
+        </div>
         {closed && (
-          <span className="rounded-full bg-secondary px-3 py-1 text-xs">
+          <span className="bg-secondary px-3 py-2 text-xs">
             اليوم مسكّر
             {existing.profiles?.full_name ? ` — ${existing.profiles.full_name}` : ""}
           </span>
@@ -233,8 +238,8 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
       </div>
 
       {totals && (
-        <div className="rounded-lg border p-6 print:border-0 print:p-0" dir="ltr" id="eod-report">
-          <div className="flex items-start justify-between border-b pb-4">
+        <div className="border p-4 sm:p-6 print:border-0 print:p-0" dir="ltr" id="eod-report">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
             <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo-bach.png" alt="BACH" className="h-5 w-auto dark:invert print:invert-0" />
@@ -248,7 +253,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
 
           <div className="mt-5 grid gap-6 sm:grid-cols-2">
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Sales</h3>
+              <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Sales</h3>
               <dl className="mt-2 space-y-1.5 text-sm">
                 <Row label="POS orders" value={String(totals.ordersCount)} />
                 <Row label="Gross sales" value={usd(totals.gross)} />
@@ -260,7 +265,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
             </section>
 
             <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-muted-foreground">
                 Cash drawer
                 {hint && <HintDot hint={hint} />}
               </h3>
@@ -286,7 +291,7 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
           </div>
 
           <div className="mt-6 border-t pt-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Count</h3>
+            <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Count</h3>
             <div className="mt-2 grid gap-4 sm:grid-cols-2">
               <dl className="space-y-1.5 text-sm">
                 <Row label="Counted (USD)" value={usd(showCountedUsd)} />
@@ -315,44 +320,51 @@ export function Eod({ branchId, branchName, hint }: { branchId: string; branchNa
         </div>
       )}
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive print:hidden">{error}</p>}
+      {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive print:hidden">{error}</p>}
 
       {totals && !closed && (
-        <div className="space-y-3 rounded-lg border p-4 print:hidden">
+        <div className="space-y-3 border p-4 print:hidden">
           <p className="text-sm font-medium">عدّ الدرج وسكّر اليوم</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground" htmlFor="c-usd">
                 الموجود دولار ($)
               </label>
-              <Input id="c-usd" value={countedUsd} onChange={(e) => setCountedUsd(e.target.value)} className="text-left font-mono" inputMode="decimal" placeholder="0.00" />
+              <Input id="c-usd" value={countedUsd} onChange={(e) => setCountedUsd(e.target.value)} className="h-11 text-left font-mono" inputMode="decimal" placeholder="0.00" />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground" htmlFor="c-lbp">
                 الموجود ليرة (ل.ل)
               </label>
-              <Input id="c-lbp" value={countedLbp} onChange={(e) => setCountedLbp(e.target.value)} className="text-left font-mono" inputMode="numeric" placeholder="0" />
+              <Input id="c-lbp" value={countedLbp} onChange={(e) => setCountedLbp(e.target.value)} className="h-11 text-left font-mono" inputMode="numeric" placeholder="0" />
             </div>
           </div>
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة (اختياري)" />
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground" htmlFor="c-note">
+              ملاحظة (اختياري)
+            </label>
+            <Input id="c-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: سحبنا 20$ للمصاريف" />
+          </div>
           {(countedUsd || countedLbp) && (
-            <p className={`text-sm ${varUsd === 0 && varLbp === 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+            <p className={`text-sm ${varUsd === 0 && varLbp === 0 ? "text-foreground" : "text-destructive"}`}>
               {varUsd === 0 && varLbp === 0
                 ? "الدرج مظبوط تماماً."
                 : `فرق: ${varUsd >= 0 ? "+" : ""}${usd(varUsd)} و ${varLbp >= 0 ? "+" : ""}${lbp(varLbp)}`}
             </p>
           )}
-          <Button className="h-11 w-full" disabled={busy} onClick={() => void close()}>
-            {busy ? "عم نسكّر…" : "تسكير اليوم"}
+          <Button
+            className="h-12 w-full"
+            disabled={busy}
+            onClick={() => {
+              if (window.confirm(`نسكّر يوم ${date}؟ بعد التسكير العدّ بينحفظ وما بيعود فيك تعدّلو.`)) void close();
+            }}
+          >
+            {busy ? "عم نسكّر…" : "سكّر اليوم"}
           </Button>
         </div>
       )}
 
-      <div className="flex gap-3 print:hidden">
-        <Button variant="outline" onClick={() => window.print()}>
-          طباعة التقرير
-        </Button>
-      </div>
+      {!totals && !error && <p className="p-8 text-center text-sm text-muted-foreground print:hidden">عم نجيب أرقام اليوم…</p>}
     </div>
   );
 }

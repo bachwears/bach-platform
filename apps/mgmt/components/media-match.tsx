@@ -222,7 +222,7 @@ export function MediaMatch() {
       {/* ---- unmatched photos ---- */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold">صور بلا منتج ({files.length})</h2>
+          <h2 className="font-medium">صور بلا منتج ({files.length})</h2>
           <HintDot
             hint={{
               title: "من وين هالصور؟",
@@ -232,22 +232,22 @@ export function MediaMatch() {
             }}
           />
         </div>
-        <Input placeholder="فلترة بالاسم (نوع القطعة أو اللون بالإنجليزي)" value={filter} onChange={(e) => setFilter(e.target.value)} dir="ltr" />
+        <Input placeholder="فلترة بالاسم (نوع القطعة أو اللون بالإنجليزي)" aria-label="فلترة الصور بالاسم" value={filter} onChange={(e) => setFilter(e.target.value)} dir="ltr" />
         {filesLoading ? (
           <p className="text-sm text-muted-foreground">عم نحمّل الصور…</p>
         ) : !visible.length ? (
-          <p className="rounded-md border p-6 text-center text-sm text-muted-foreground">
-            ما في صور غير مرتبطة — كل شي بمحله.
+          <p className="border p-6 text-center text-sm text-muted-foreground">
+            {files.length ? "ما في صور بهالاسم — امسح الفلتر لتشوف الكل." : "ما في صور غير مرتبطة — كل شي بمحلّو."}
           </p>
         ) : (
-          <div className="grid max-h-[70vh] grid-cols-3 gap-2 overflow-y-auto rounded-md border p-2 sm:grid-cols-4">
+          <div className="grid max-h-[70vh] grid-cols-3 gap-2 overflow-y-auto border p-2 sm:grid-cols-4">
             {visible.map((f) => (
               <button
                 key={f.name}
                 type="button"
                 onClick={() => setSelected(selected === f.name ? null : f.name)}
-                className={`group relative overflow-hidden rounded-md border bg-muted transition-shadow ${
-                  selected === f.name ? "ring-2 ring-foreground" : "hover:shadow"
+                className={`group relative overflow-hidden border bg-muted transition-shadow ${
+                  selected === f.name ? "ring-2 ring-foreground" : ""
                 }`}
                 title={f.name}
               >
@@ -265,7 +265,7 @@ export function MediaMatch() {
       {/* ---- product + assignment ---- */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold">المنتج</h2>
+          <h2 className="font-medium">المنتج</h2>
           <HintDot
             hint={{
               title: "كيف بتشتغل الخانات؟",
@@ -278,6 +278,7 @@ export function MediaMatch() {
         <div className="relative">
           <Input
             placeholder="دوّر عالمنتج بالاسم الإنجليزي…"
+            aria-label="دوّر عالمنتج"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -286,7 +287,7 @@ export function MediaMatch() {
             dir="ltr"
           />
           {hits.length > 0 && (
-            <div className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-md border bg-popover shadow-lg">
+            <div className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden border bg-popover">
               {hits.map((h) => (
                 <button
                   key={h.id}
@@ -307,15 +308,24 @@ export function MediaMatch() {
           )}
         </div>
 
+        {!(selected && product) ? (
+          <p className="text-sm text-muted-foreground">
+            {!selected && !product
+              ? "اختار صورة من «صور بلا منتج» ودوّر عالقطعة هون — بعدها بتطلع خيارات الربط."
+              : !selected
+                ? "هلّق اختار صورة من «صور بلا منتج» لتربطها بهالقطعة."
+                : "هلّق دوّر عالقطعة يلّي بدّك تربط فيها الصورة المختارة."}
+          </p>
+        ) : null}
         {selected && product && (
-          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-3">
+          <div className="flex flex-wrap items-center gap-2 border bg-muted/40 p-3">
             <span className="text-sm">اربط الصورة المختارة كـ</span>
             {KINDS.map((k) => (
               <button
                 key={k.value}
                 type="button"
                 onClick={() => setKind(k.value)}
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                className={`border px-3 py-1 text-sm transition-colors ${
                   kind === k.value ? "bg-foreground text-background" : "hover:bg-muted"
                 }`}
               >
@@ -323,7 +333,7 @@ export function MediaMatch() {
               </button>
             ))}
             <Button onClick={() => void assign()} disabled={busy}>
-              {busy ? "عم نربط…" : "اربط"}
+              {busy ? "عم نربط…" : "اربط الصورة"}
             </Button>
           </div>
         )}
@@ -336,12 +346,12 @@ export function MediaMatch() {
               صور <span dir="ltr">{product.name_en}</span> الحالية ({media.length})
             </p>
             {!media.length ? (
-              <p className="rounded-md border p-4 text-center text-sm text-muted-foreground">بعده بلا صور.</p>
+              <p className="border p-4 text-center text-sm text-muted-foreground">بعدها بلا صور — اختار صورة واربطها كـ«واجهة» أول شي.</p>
             ) : (
-              <div className="grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto rounded-md border p-2 sm:grid-cols-4">
+              <div className="grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto border p-2 sm:grid-cols-4">
                 {media.map((m) => (
                   <div key={m.id} className="space-y-1">
-                    <div className="relative overflow-hidden rounded-md border bg-muted">
+                    <div className="relative overflow-hidden border bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={m.storage_path} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
                       <Badge className="absolute start-1 top-1" variant={m.kind === "other" ? "secondary" : "default"}>
@@ -355,7 +365,7 @@ export function MediaMatch() {
                           type="button"
                           disabled={busy}
                           onClick={() => void setRowKind(m, k.value)}
-                          className="rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                          className="border px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
                         >
                           {k.label}
                         </button>
@@ -364,9 +374,9 @@ export function MediaMatch() {
                         type="button"
                         disabled={busy}
                         onClick={() => void removeRow(m)}
-                        className="rounded border px-1.5 py-0.5 text-[11px] text-destructive"
+                        className="border px-1.5 py-0.5 text-[11px] text-destructive"
                       >
-                        حذف
+                        امحي
                       </button>
                     </div>
                   </div>

@@ -73,7 +73,12 @@ export function CourierCash({ orders, canRecord }: { orders: WaitingOrder[]; can
     router.refresh();
   }
 
-  if (!orders.length) return <p className="border p-6 text-center text-sm text-muted-foreground">ما في مصاري عند شركة الشحن هلّق.</p>;
+  if (!orders.length)
+    return (
+      <p className="border p-6 text-center text-sm text-muted-foreground">
+        ما في مصاري عند شركة الشحن هلّق — كل طلب «دفع عند الاستلام» بيوصل للزبون بيطلع هون لحتى تسجّل استلام مصاريه.
+      </p>
+    );
 
   return (
     <div className="space-y-4">
@@ -96,7 +101,7 @@ export function CourierCash({ orders, canRecord }: { orders: WaitingOrder[]; can
                 <span className={`text-xs ${d != null && d > 7 ? "text-destructive" : "text-muted-foreground"}`}>
                   {d == null ? "" : d === 0 ? "وصل اليوم" : `من ${d} يوم`}
                 </span>
-                <span className="font-mono">{usd(o.total_usd_cents)}</span>
+                <span className="font-mono" dir="ltr">{usd(o.total_usd_cents)}</span>
               </label>
             </li>
           );
@@ -128,19 +133,22 @@ export function CourierCash({ orders, canRecord }: { orders: WaitingOrder[]; can
               </select>
             </label>
           </div>
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة (اختياري): مثلاً رقم إيصال الشركة" />
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            ملاحظة (اختياري)
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً رقم إيصال الشركة" />
+          </label>
           <div className="flex items-center gap-3">
             <Button disabled={busy || !picked.size} onClick={() => void record()}>
               {busy ? "عم نسجّل…" : "سجّل الاستلام"}
             </Button>
-            {msg && <span className={`text-sm ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span>}
+            {msg && <span role="status" className={`text-sm ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span>}
           </div>
           <p className="text-xs text-muted-foreground">
             إذا المبلغ مش متل المتوقّع، سجّل يلي استلمتو فعلياً — الفرق بيبيّن بالتاريخ تحت. يلي انحطّ بدرج المحل بينحسب بتقرير آخر النهار.
           </p>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">تسجيل الاستلام للمدير أو السوبر أدمن.</p>
+        <p className="text-xs text-muted-foreground">تسجيل الاستلام لمدير المحل أو السوبر أدمن.</p>
       )}
     </div>
   );

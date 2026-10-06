@@ -91,12 +91,12 @@ export function ReturnsPolicySettings({ canEdit }: { canEdit: boolean }) {
       {canEdit ? (
         <div className="flex items-center gap-3">
           <Button size="sm" disabled={busy || !loaded} onClick={() => void save()}>
-            {busy ? "عم نحفظ…" : "حفظ"}
+            {busy ? "عم نحفظ…" : "احفظ السياسة"}
           </Button>
-          {msg && <span className={`text-xs ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span>}
+          {msg && <span role="status" className={`text-xs ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span>}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">التعديل للمدير أو الإدارة بس.</p>
+        <p className="text-xs text-muted-foreground">التعديل للسوبر أدمن، مدير المحل أو مسؤول التسويق.</p>
       )}
     </section>
   );

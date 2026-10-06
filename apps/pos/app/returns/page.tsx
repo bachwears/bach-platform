@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { PageHeader } from "@bach/ui/components/page-header";
+
 import { Returns } from "../../components/returns";
 import { PosNav } from "../../components/pos-nav";
 
@@ -29,12 +31,25 @@ export default async function ReturnsPage() {
     <div className="min-h-dvh bg-background">
       <PosNav branchName={branch?.name} />
 
-      <main className="mx-auto max-w-3xl p-4 py-6">
-          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">مرتجع وتبديل</h1>
+      <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
+        <PageHeader
+          title="مرتجع وتبديل"
+          description="افتح فاتورة الزبون، اختار القطع يلي عم يرجّعها، وسجّل إرجاع بمصاري أو تبديل بقطع تانية."
+          hint={{
+            title: "المرتجع والتبديل",
+            what: "إرجاع: القطع بترجع عالمخزون والمبلغ بيرجع للزبون كاش أو رصيد بمحفظتو. تبديل: القطع المرجوعة بتنحسب رصيد للقطع الجديدة، والفرق بيندفع أو بيرجع.",
+            source: "الفاتورة الأصلية (محل أو أونلاين) ومدّة الإرجاع/التبديل من سياسة المحل.",
+            edit: "مدّة الإرجاع والتبديل ورسوم توصيل المرتجع من MGMT ← طلبات الإرجاع. بعد ما تخلص المدّة بدّا موافقة مدير.",
+          }}
+        />
         {!canSell ? (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بالمرتجعات.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بالمرتجعات — خلّي الكاشير أو المدير يسجّلها.
+          </p>
         ) : !branch || !rate ? (
-          <p className="p-8 text-center text-muted-foreground">لازم فرع مفعّل وسعر صرف محدّد قبل المرتجعات.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            لازم فرع مفعّل وسعر صرف محدّد قبل المرتجعات — الإدارة بتحدّدن من MGMT.
+          </p>
         ) : (
           <Returns
             isManager={["super_admin", "store_manager"].includes(profile?.role ?? "")}

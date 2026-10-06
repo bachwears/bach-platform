@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { NotificationSettings } from "../../components/notification-settings";
@@ -16,19 +17,19 @@ export default async function SiteContentPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">محتوى الموقع</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            عناوين وصورة واجهة bachwears.com — غيّرها من هون بلا ما تلمس الكود.
-          </p>
-        </div>
+        <PageHeader
+          title="محتوى الموقع"
+          description="عناوين وصور واجهة bachwears.com وإعدادات الإشعارات — غيّرها من هون بلا ما تلمس الكود."
+        />
         {canEdit ? (
           <>
             <SiteContentEditor />
             <NotificationSettings />
           </>
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بتعديل محتوى الموقع.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بتعديل محتوى الموقع — اطلب من مدير المحل أو مسؤول التسويق.
+          </p>
         )}
       </main>
     </div>

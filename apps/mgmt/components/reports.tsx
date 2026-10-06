@@ -260,24 +260,28 @@ export function Reports() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm text-muted-foreground">من</label>
-        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" dir="ltr" />
-        <label className="text-sm text-muted-foreground">إلى</label>
-        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" dir="ltr" />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label htmlFor="rep-from" className="block text-sm text-muted-foreground">من تاريخ</label>
+          <Input id="rep-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" dir="ltr" />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="rep-to" className="block text-sm text-muted-foreground">لتاريخ</label>
+          <Input id="rep-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" dir="ltr" />
+        </div>
       </div>
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
-      {done && <p className="rounded-md bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{done}</p>}
+      {error && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {done && <p className="bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{done}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {REPORTS.map((r) => (
-          <div key={r.key} className="flex flex-col rounded-lg border p-4">
+          <div key={r.key} className="flex flex-col border p-4">
             <p className="font-medium">{r.title}</p>
             <p className="mt-1 flex-1 text-sm text-muted-foreground">{r.desc}</p>
             <p className="mt-1 text-xs text-muted-foreground">{r.ranged ? "حسب الفترة المختارة" : "لقطة كاملة"}</p>
             <Button className="mt-3" size="sm" disabled={busy !== ""} onClick={() => void run(r.title, r.fn)}>
-              {busy === r.title ? "عم نجهّز…" : "تنزيل CSV (Excel)"}
+              {busy === r.title ? "عم نجهّز…" : "نزّل CSV (Excel)"}
             </Button>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { FulfillmentQueue } from "../../components/fulfillment-queue";
 import { PosNav } from "../../components/pos-nav";
@@ -17,19 +17,23 @@ export default async function QueuePage() {
   return (
     <div className="min-h-dvh bg-background">
       <PosNav branchName={null} />
-      <main className="mx-auto max-w-3xl p-4 py-6">
-          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">طلبات الأونلاين <HintDot
-              hint={{
-                title: "مراحل الطلب",
-                what: "جديد ← مؤكّد ← قيد التجهيز ← جاهز ← بالشحن ← وصل ← مسكّر. عند «جاهز» بينخصم المخزون فعليًا؛ قبلها القطع محجوزة بس.",
-                source: "الطلبات من متجر bachwears.com مباشرة، والزبون بيشوف كل نقلة بحسابه.",
-                edit: "كبس زر المرحلة الجاية عند كل طلب. الإلغاء ممكن قبل «جاهز» — بيرجّع الحجز عالبيع.",
-              }}
-            /></h1>
+      <main className="mx-auto max-w-3xl space-y-6 p-4 py-6">
+        <PageHeader
+          title="طلبات الأونلاين"
+          description="طلبات bachwears.com يلي لسّا مفتوحة، الأقدم فوق — كبس الزر عند كل طلب لتنقلو عالمرحلة الجاية."
+          hint={{
+            title: "مراحل الطلب",
+            what: "جديد ← مؤكّد ← قيد التجهيز ← جاهز ← بالشحن ← وصل ← مسكّر. عند «جاهز» بينخصم المخزون فعليًا؛ قبلها القطع محجوزة بس.",
+            source: "الطلبات من متجر bachwears.com مباشرة، والزبون بيشوف كل نقلة بحسابه.",
+            edit: "كبس زر المرحلة الجاية عند كل طلب. الإلغاء ممكن قبل «جاهز» — بيرجّع الحجز عالبيع.",
+          }}
+        />
         {allowed ? (
           <FulfillmentQueue />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة طلبات الأونلاين.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بإدارة طلبات الأونلاين — اطلب من المدير إذا لازمك هالشاشة.
+          </p>
         )}
       </main>
     </div>

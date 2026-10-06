@@ -35,7 +35,7 @@ export function LoginForm({ appTitle }: { appTitle: string }) {
       <div className="space-y-1 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-bach.png" alt="BACH" className="mx-auto h-6 w-auto dark:invert" />
-        <h1 className="mt-3 text-lg font-semibold tracking-tight text-muted-foreground">{appTitle}</h1>
+        <h1 className="mt-3 text-lg font-normal tracking-tight text-muted-foreground">{appTitle}</h1>
         <p className="text-sm text-muted-foreground">سجّل دخولك لتكمّل</p>
       </div>
       <div className="space-y-2">

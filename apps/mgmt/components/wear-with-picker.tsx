@@ -99,24 +99,24 @@ export function WearWithPicker({ productId, initial }: { productId: string; init
       {picked.length ? (
         <ol className="space-y-2">
           {picked.map((p, i) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-md border p-2">
+            <li key={p.id} className="flex items-center gap-3 border p-2">
               {thumb(p.photo) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumb(p.photo)!} alt="" className="h-14 w-11 rounded object-cover" />
+                <img src={thumb(p.photo)!} alt="" className="h-14 w-11 object-cover" />
               ) : (
-                <span className="h-14 w-11 rounded bg-muted" />
+                <span className="h-14 w-11 bg-muted" />
               )}
               <span className="min-w-0 flex-1 text-sm" dir="ltr">
                 <span className="block truncate">{p.name_en}</span>
                 <span className="text-muted-foreground">${(p.price_usd_cents / 100).toFixed(0)}</span>
               </span>
-              <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} className="h-9 w-9 rounded-md border text-sm disabled:opacity-30" aria-label="لفوق">
+              <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} className="h-9 w-9 border text-sm disabled:opacity-30" aria-label="لفوق">
                 ↑
               </button>
-              <button type="button" disabled={busy || i === picked.length - 1} onClick={() => move(i, 1)} className="h-9 w-9 rounded-md border text-sm disabled:opacity-30" aria-label="لتحت">
+              <button type="button" disabled={busy || i === picked.length - 1} onClick={() => move(i, 1)} className="h-9 w-9 border text-sm disabled:opacity-30" aria-label="لتحت">
                 ↓
               </button>
-              <button type="button" disabled={busy} onClick={() => void save(picked.filter((x) => x.id !== p.id))} className="h-9 rounded-md border px-3 text-sm hover:bg-muted disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => void save(picked.filter((x) => x.id !== p.id))} className="h-9 border px-3 text-sm hover:bg-muted disabled:opacity-50">
                 شيل
               </button>
             </li>
@@ -130,7 +130,7 @@ export function WearWithPicker({ productId, initial }: { productId: string; init
         <div className="space-y-2">
           <Input value={q} onChange={(e) => void search(e.target.value)} placeholder="دوّر على قطعة بالاسم (بالإنكليزي)…" dir="ltr" />
           {hits.length ? (
-            <ul className="divide-y rounded-md border">
+            <ul className="divide-y border">
               {hits.map((h) => (
                 <li key={h.id}>
                   <button
@@ -145,9 +145,9 @@ export function WearWithPicker({ productId, initial }: { productId: string; init
                   >
                     {thumb(h.photo) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb(h.photo)!} alt="" className="h-12 w-9 rounded object-cover" />
+                      <img src={thumb(h.photo)!} alt="" className="h-12 w-9 object-cover" />
                     ) : (
-                      <span className="h-12 w-9 rounded bg-muted" />
+                      <span className="h-12 w-9 bg-muted" />
                     )}
                     <span className="flex-1 truncate text-sm" dir="ltr">
                       {h.name_en}

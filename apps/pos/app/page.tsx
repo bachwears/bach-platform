@@ -29,14 +29,22 @@ export default async function Home() {
     <div className="min-h-dvh bg-background">
       <PosNav branchName={branch?.name} />
 
-      <main className="mx-auto max-w-6xl p-4 py-6">
+      <main className="mx-auto max-w-6xl p-4 py-4">
+        {/* Speed first: no big header here, one quiet line, and the scan box keeps the first focus. */}
+        <p className="mb-3 text-xs text-muted-foreground print:hidden">
+          بيع بالمحل — امسح القطعة، ضيف الزبون إذا في، وبعدين قبّض وسجّل البيع.
+        </p>
         {!canSell ? (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بالبيع من الكاشير.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بالبيع من الكاشير — فيك تفتح الفواتير أو طلبات الأونلاين من التبويبات، أو تطلب من المدير يبدّل دورك.
+          </p>
         ) : !branch ? (
-          <p className="p-8 text-center text-muted-foreground">ما في فرع مفعّل — ضيف فرع من لوحة الإدارة.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            ما في فرع مفعّل — الإدارة لازم تفعّل فرع من MGMT ← الإعدادات ← الفروع قبل البيع.
+          </p>
         ) : !rate ? (
-          <p className="p-8 text-center text-muted-foreground">
-            ما في سعر صرف محدّد — حدّد سعر الصرف من لوحة الإدارة قبل ما تبيع.
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            ما في سعر صرف محدّد — حدّد سعر الصرف من MGMT ← المالية ← سعر الصرف قبل ما تبيع.
           </p>
         ) : (
           <Cashier

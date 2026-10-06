@@ -111,11 +111,11 @@ export function HelpArticlesEditor({ articles }: { articles: HelpArticle[] }) {
   if (draft) {
     const set = <K extends keyof HelpArticle>(k: K, v: HelpArticle[K]) => setDraft({ ...draft, [k]: v });
     return (
-      <div className="space-y-5 rounded-lg border p-5">
+      <div className="space-y-5 border p-5">
         <div className="flex items-center justify-between">
           <h2 className="font-medium">{draft.id ? "تعديل مقالة" : "مقالة جديدة"}</h2>
           <Button variant="ghost" size="sm" onClick={() => setDraft(null)}>
-            رجوع للائحة
+            → ارجع للائحة
           </Button>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -190,7 +190,7 @@ export function HelpArticlesEditor({ articles }: { articles: HelpArticle[] }) {
 
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button onClick={() => void save()} disabled={busy}>
-          {busy ? "عم نحفظ…" : "حفظ"}
+          {busy ? "عم نحفظ…" : "احفظ المقالة"}
         </Button>
       </div>
     );
@@ -202,7 +202,7 @@ export function HelpArticlesEditor({ articles }: { articles: HelpArticle[] }) {
         <Button size="sm" onClick={() => open(null)}>
           + مقالة جديدة
         </Button>
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-auto">
+        <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-auto" aria-label="فلتر المقالات">
           <option value="all">الكل ({articles.length})</option>
           <option value="draft">مسودات</option>
           {AUDIENCES.map(([key, label]) => (
@@ -213,7 +213,14 @@ export function HelpArticlesEditor({ articles }: { articles: HelpArticle[] }) {
         </Select>
         {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
       </div>
-      <ul className="divide-y rounded-lg border">
+      {shown.length === 0 ? (
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          {articles.length === 0
+            ? "ما في مقالات بعد — اكبس «+ مقالة جديدة» لتكتب أول وحدة."
+            : "ما في مقالات بهالفلتر — اختار «الكل» لتشوف كل المقالات."}
+        </p>
+      ) : null}
+      <ul className="divide-y border empty:hidden">
         {shown.map((a) => (
           <li key={a.id}>
             <button type="button" onClick={() => open(a)} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-start hover:bg-muted/50">

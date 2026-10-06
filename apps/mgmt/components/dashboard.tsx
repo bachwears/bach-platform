@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
@@ -212,34 +213,42 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 py-8 print:max-w-none print:space-y-4 print:p-0">
-      {/* Branded header — screen + print */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4">
-        <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-bach.png" alt="BACH" className="mb-2 hidden h-5 w-auto print:block" />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            مرحبا {name || "بشار"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            لوحة القيادة — آخر {days} يوم · سعر الصرف {rate.toLocaleString("en-US")} ل.ل/$
-          </p>
-        </div>
-        <div className="flex items-center gap-2 print:hidden">
-          {[7, 30, 90].map((d) => (
-            <Link
-              key={d}
-              href={`/?days=${d}`}
-              className={`rounded-full border px-3 py-1 text-sm ${days === d ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {d} يوم
-            </Link>
-          ))}
-          <PrintButton label="طباعة التقرير" />
-        </div>
-        <p className="hidden text-xs text-muted-foreground print:block" dir="ltr">
+      {/* Branded header for print; the screen gets the standard PageHeader */}
+      <div className="hidden border-b pb-4 print:block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-bach.png" alt="BACH" className="mb-2 h-5 w-auto" />
+        <h1 className="text-2xl font-normal">لوحة القيادة — آخر {days} يوم</h1>
+        <p className="mt-1 text-xs text-muted-foreground" dir="ltr">
           Printed {fmt(new Date())}
         </p>
       </div>
+      <PageHeader
+        title={`مرحبا ${name || "بشار"}`}
+        description={`لوحة القيادة — كيف ماشي الشغل آخر ${days} يوم: المبيعات، الربح، المرتجعات والمخزون الناقص. سعر الصرف ${rate.toLocaleString("en-US")} ل.ل/$`}
+        hint={{
+          title: "لوحة القيادة",
+          what: "أرقام المحل والأونلاين للفترة يلي اخترتها، صافي من المرتجعات (المرتجع بينطرح بيومو).",
+          source: "الطلبات، الدفعات والمرتجعات المسجّلة بالكاشير والموقع؛ الكلفة من بطاقة كل منتج.",
+          edit: "ما في شي ينعدّل هون — غيّر الفترة من الأزرار، أو اطبع التقرير.",
+        }}
+        actions={
+          <>
+            <div role="group" aria-label="الفترة" className="flex">
+              {[7, 30, 90].map((d) => (
+                <Link
+                  key={d}
+                  href={`/?days=${d}`}
+                  aria-current={days === d ? "page" : undefined}
+                  className={`-ms-px border px-3 py-1.5 text-sm first:ms-0 ${days === d ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {d} يوم
+                </Link>
+              ))}
+            </div>
+            <PrintButton label="اطبع التقرير" />
+          </>
+        }
+      />
 
       {/* KPI grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
@@ -272,14 +281,14 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       </div>
 
       {/* Daily revenue bars */}
-      <section className="rounded-lg border p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">المبيعات اليومية</h2>
+      <section className="border p-4">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">المبيعات اليومية</h2>
         <div className="mt-4 flex h-32 items-end gap-1.5" dir="ltr">
           {series.map((s, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
               <span className="text-[10px] text-muted-foreground">{s.value > 0 ? `$${Math.round(s.value / 100)}` : ""}</span>
               <div
-                className="w-full rounded-t bg-foreground/80 print:bg-black"
+                className="w-full bg-foreground/80 print:bg-black"
                 style={{ height: `${Math.max((s.value / maxDay) * 100, s.value > 0 ? 4 : 1)}%` }}
               />
               <span className="font-mono text-[10px] text-muted-foreground">{s.label}</span>
@@ -290,10 +299,10 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
       <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
         {/* Top products */}
-        <section className="rounded-lg border p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">الأكثر مبيعاً</h2>
+        <section className="border p-4">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">الأكثر مبيعاً</h2>
           {topProducts.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بالفترة.</p>
+            <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بهالفترة — جرّب فترة أطول من فوق.</p>
           ) : (
             <table className="mt-3 w-full text-sm">
               <tbody>
@@ -306,7 +315,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
                       </span>
                     </td>
                     <td className="py-2 text-center font-mono text-muted-foreground">×{p.qty}</td>
-                    <td className="py-2 text-left font-mono">{usd(p.revenue)}</td>
+                    <td className="py-2 text-end font-mono">{usd(p.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -315,22 +324,22 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
         </section>
 
         {/* By category */}
-        <section className="rounded-lg border p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">حسب الفئة</h2>
+        <section className="border p-4">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">حسب الفئة</h2>
           {topCategories.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بالفترة.</p>
+            <p className="mt-3 text-sm text-muted-foreground">ما في مبيعات بهالفترة — جرّب فترة أطول من فوق.</p>
           ) : (
             <div className="mt-3 space-y-2">
               {topCategories.map(([cat, value]) => (
                 <div key={cat} className="flex items-center gap-3 text-sm">
                   <span className="w-24 shrink-0">{cat}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded bg-muted">
+                  <div className="h-2 flex-1 overflow-hidden bg-muted">
                     <div
                       className="h-full bg-foreground/80 print:bg-black"
                       style={{ width: `${(value / (topCategories[0]?.[1] ?? 1)) * 100}%` }}
                     />
                   </div>
-                  <span className="w-20 text-left font-mono">{usd(value)}</span>
+                  <span className="w-20 text-end font-mono">{usd(value)}</span>
                 </div>
               ))}
             </div>
@@ -339,20 +348,21 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       </div>
 
       {/* Low stock */}
-      <section className="rounded-lg border p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <section className="border p-4">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           مخزون تحت الحد ({lowStock.length})
         </h2>
         {lowStock.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">كل المخزون فوق الحدود المطلوبة.</p>
         ) : (
-          <table className="mt-3 w-full text-sm">
+          <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
-              <tr className="border-b text-right text-muted-foreground">
-                <th className="py-2 font-normal">القطعة</th>
-                <th className="py-2 font-normal">SKU</th>
-                <th className="py-2 font-normal">متاح</th>
-                <th className="py-2 font-normal">الحد</th>
+              <tr className="border-b text-muted-foreground">
+                <th className="py-2 text-start font-normal">القطعة</th>
+                <th className="py-2 text-start font-normal">SKU</th>
+                <th className="py-2 text-start font-normal">متاح</th>
+                <th className="py-2 text-start font-normal">الحد</th>
               </tr>
             </thead>
             <tbody>
@@ -371,9 +381,16 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
               ))}
             </tbody>
           </table>
+          </div>
         )}
         {lowStock.length > 15 && (
-          <p className="mt-2 text-xs text-muted-foreground">و{lowStock.length - 15} كمان — شوفهن بالمخزون.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            و{lowStock.length - 15} كمان —{" "}
+            <Link href="/inventory" className="underline underline-offset-4 hover:text-foreground print:no-underline">
+              شوفهن بالمخزون
+            </Link>
+            .
+          </p>
         )}
       </section>
     </main>
@@ -382,7 +399,7 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
 
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="border p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
         className={`mt-1 font-mono text-2xl font-semibold ${

@@ -43,7 +43,7 @@ export function NewsletterCard() {
   }
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="font-medium">النشرة البريدية</h2>
@@ -58,9 +58,12 @@ export function NewsletterCard() {
           </p>
         </div>
         <Button size="sm" variant="outline" disabled={!subs.length} onClick={exportCsv}>
-          تصدير CSV
+          نزّل لائحة المشتركين (CSV)
         </Button>
       </div>
+      {loaded && subs.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">ما في مشتركين بعد — أول ما حدا يشترك من الموقع بيطلع هون.</p>
+      ) : null}
       {active.length > 0 && (
         <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-muted-foreground">
           {active.slice(0, 50).map((s) => (

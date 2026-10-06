@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { PICKUP_BADGE, statusLabelFor } from "../../components/fulfilment";
@@ -105,44 +105,40 @@ export default async function OrdersPage({
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">الطلبات
-            <HintDot
-              hint={{
-                title: "شاشة الطلبات",
-                what: "كل مبيعات المحل والأونلاين بمطرح واحد — الحالة بتتحرك من هون أو من طابور الـPOS، والنتيجة وحدة.",
-                source: "فواتير الكاشير بتجي مباشرة من الـPOS، وطلبات الموقع من الشيك-آوت.",
-                edit: "افتح أي طلب لتفاصيله وأزرار نقل الحالة أو الإلغاء.",
-              }}
-            />
-          </h1>
-        </div>
+        <PageHeader
+          title="الطلبات"
+          description="كل طلبات المحل والأونلاين — افتح أي طلب لتشوف تفاصيلو وتغيّر حالتو."
+          hint={{
+            title: "شاشة الطلبات",
+            what: "كل مبيعات المحل والأونلاين بمطرح واحد — الحالة بتتحرك من هون أو من طابور الـPOS، والنتيجة وحدة.",
+            source: "فواتير الكاشير بتجي مباشرة من الـPOS، وطلبات الموقع من الشيك-آوت.",
+            edit: "افتح أي طلب لتفاصيله وأزرار نقل الحالة أو الإلغاء.",
+          }}
+        />
 
         {/* اليوم (بتوقيت بيروت) — cash drawer expectation per currency */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border p-4">
+          <div className="border p-4">
             <p className="text-sm text-muted-foreground">مبيعات اليوم</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd(todayTotal)}</p>
             <p className="text-xs text-muted-foreground">{(todayOrders ?? []).length} طلب</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="border p-4">
             <p className="text-sm text-muted-foreground">كاش دولار بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd(cashUsd)}</p>
             <p className="text-xs text-muted-foreground">كاش بالمحل + طلبات الاستلام يلي انقبضت اليوم</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="border p-4">
             <p className="text-sm text-muted-foreground">كاش ليرة بالدرج (اليوم)</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{cashLbp.toLocaleString("en-US")} ل.ل</p>
             <p className="text-xs text-muted-foreground">كاش بالمحل + طلبات الاستلام يلي انقبضت اليوم</p>
           </div>
-          <Link href="/orders/courier" className="rounded-lg border p-4 hover:border-foreground">
+          <Link href="/orders/courier" className="border p-4 hover:border-foreground">
             <p className="text-sm text-muted-foreground">عند شركة الشحن</p>
             <p className="mt-1 text-2xl font-semibold font-mono">{usd((atCourier ?? []).reduce((s, o) => s + o.total_usd_cents, 0))}</p>
-            <p className="text-xs text-muted-foreground">{(atCourier ?? []).length} طلب وصل ولسّا ما قبضنا — فتّح</p>
+            <p className="text-xs text-muted-foreground">{(atCourier ?? []).length} طلب وصل ولسّا ما قبضنا — افتح لتسجّل القبض</p>
           </Link>
         </div>
-
-        <PickupSettings canEdit={canEditPickup} />
 
         <form action="/orders" className="flex flex-wrap items-center gap-2">
           {status ? <input type="hidden" name="status" value={status} /> : null}
@@ -152,9 +148,9 @@ export default async function OrdersPage({
             defaultValue={rawQ}
             placeholder="دوّر برقم الطلب، الاسم أو التلفون…"
             aria-label="دوّر برقم الطلب، الاسم أو التلفون"
-            className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:max-w-sm"
+            className="h-10 min-w-0 flex-1 border bg-background px-3 text-sm sm:max-w-sm"
           />
-          <button type="submit" className="h-10 rounded-md border px-4 text-sm hover:bg-muted">
+          <button type="submit" className="h-10 border px-4 text-sm hover:bg-muted">
             دوّر
           </button>
           {q ? (
@@ -164,10 +160,11 @@ export default async function OrdersPage({
           ) : null}
         </form>
 
-        <div className="flex flex-wrap gap-2 text-sm">
+        <div className="flex flex-wrap gap-x-5 gap-y-2 border-b text-sm" aria-label="فلترة حسب الحالة">
           <Link
             href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"}
-            className={`rounded-full border px-3 py-1 ${!status ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+            aria-current={!status ? "page" : undefined}
+            className={`-mb-px border-b pb-2 ${!status ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             الكل
           </Link>
@@ -175,21 +172,35 @@ export default async function OrdersPage({
             <Link
               key={k}
               href={`/orders?status=${k}${q ? `&q=${encodeURIComponent(rawQ)}` : ""}`}
-              className={`rounded-full border px-3 py-1 ${status === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+              aria-current={status === k ? "page" : undefined}
+              className={`-mb-px border-b pb-2 ${status === k ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               {v}
             </Link>
           ))}
         </div>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border">
           {orders.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">{q ? "ما في طلب مطابق." : "ما في طلبات بعد."}</p>
+            <div className="space-y-3 p-8 text-center text-sm text-muted-foreground">
+              <p>
+                {q
+                  ? "ما في طلب بهالرقم أو الاسم أو التلفون — جرّب آخر أرقام التلفون، أو امسح البحث."
+                  : status
+                    ? `ما في طلبات حالتها «${STATUS_LABELS[status] ?? status}» هلّق.`
+                    : "ما في طلبات بعد — أول بيعة بالكاشير أو أول طلب أونلاين بيطلع هون."}
+              </p>
+              {status ? (
+                <Link href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"} className="inline-block underline underline-offset-4 hover:text-foreground">
+                  اعرض كل الطلبات
+                </Link>
+              ) : null}
+            </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="border-b text-start text-muted-foreground">
-                  <th className="p-3 text-start font-normal">رقم</th>
+                  <th className="p-3 text-start font-normal">الطلب</th>
                   <th className="p-3 text-start font-normal">الوقت</th>
                   <th className="p-3 text-start font-normal">الزبون</th>
                   <th className="p-3 text-start font-normal">القناة</th>
@@ -246,6 +257,8 @@ export default async function OrdersPage({
             </table>
           )}
         </div>
+
+        <PickupSettings canEdit={canEditPickup} />
       </main>
     </div>
   );

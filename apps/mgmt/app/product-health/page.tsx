@@ -3,6 +3,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
@@ -50,15 +51,13 @@ export default async function ProductHealthPage({
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">صحة بيانات المنتجات</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            شو ناقص بكل منتج قبل ما يكون جاهز للنشر — كمّل البيانات من صفحة المنتج نفسها.
-          </p>
-        </div>
+        <PageHeader
+          title="صحة بيانات المنتجات"
+          description="شو ناقص بكل قطعة قبل ما تكون جاهزة للنشر — اكبس على القطعة وكمّل بياناتها من صفحتها."
+        />
 
         <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border p-4">
+          <div className="border p-4">
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               نسبة الجهوزية
               {hint && (
@@ -80,7 +79,7 @@ export default async function ProductHealthPage({
         <div className="flex flex-wrap gap-2 text-sm">
           <Link
             href="/product-health"
-            className={`rounded-full border px-3 py-1 ${!issue ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+            className={`border px-3 py-1 ${!issue ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
           >
             كل النواقص
           </Link>
@@ -88,7 +87,7 @@ export default async function ProductHealthPage({
             <Link
               key={d.key}
               href={`/product-health?issue=${d.key}`}
-              className={`rounded-full border px-3 py-1 ${issue === d.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+              className={`border px-3 py-1 ${issue === d.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
             >
               <bdi>{d.label}</bdi>
               <bdi className="mr-1.5 font-mono text-xs">{counts[d.key] ?? 0}</bdi>
@@ -96,16 +95,23 @@ export default async function ProductHealthPage({
           ))}
         </div>
 
-        <div className="rounded-lg border">
+        <div className="overflow-x-auto border">
           {sorted.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">ما في نواقص هون — عال العال.</p>
+            <div className="space-y-2 p-8 text-center text-sm text-muted-foreground">
+              <p>{activeIssue ? `ما في قطع ناقصها «${activeIssue.label}» — عال العال.` : "كل القطع كاملة البيانات — عال العال."}</p>
+              {activeIssue ? (
+                <Link href="/product-health" className="inline-block text-foreground underline underline-offset-4">
+                  اعرض كل النواقص
+                </Link>
+              ) : null}
+            </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="border-b text-right text-muted-foreground">
-                  <th className="p-3 font-normal">المنتج</th>
-                  <th className="p-3 font-normal">الحالة</th>
-                  <th className="p-3 font-normal">النواقص</th>
+                <tr className="border-b text-start text-muted-foreground">
+                  <th className="p-3 text-start font-normal">المنتج</th>
+                  <th className="p-3 text-start font-normal">الحالة</th>
+                  <th className="p-3 text-start font-normal">النواقص</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,7 +133,7 @@ export default async function ProductHealthPage({
                         {issues.map((i) => (
                           <span
                             key={i.key}
-                            className={`rounded-full px-2 py-0.5 text-xs ${
+                            className={`px-2 py-0.5 text-xs ${
                               i.severity === "critical"
                                 ? "bg-destructive/10 text-destructive"
                                 : "bg-muted text-muted-foreground"
@@ -166,7 +172,7 @@ function Stat({
   tone?: "good" | "bad";
 }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="border p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
         className={`mt-1 font-mono text-2xl font-semibold ${

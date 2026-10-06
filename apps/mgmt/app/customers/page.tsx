@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { PageHeader } from "@bach/ui/components/page-header";
+
 import { Nav } from "../../components/nav";
 import { CustomersManager } from "../../components/customers-manager";
 
@@ -18,12 +20,16 @@ export default async function CustomersPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">العملاء</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            بحث بالعملاء، سجل طلباتهم، محافظهم ونقاطهم — وتأكيد تعبئات Whish (وعدنا: 6 ساعات كحد أقصى).
-          </p>
-        </div>
+        <PageHeader
+          title="الزبائن والمحفظة"
+          description="فتّش عن أي زبون لتشوف طلباتو، محفظتو ونقاطو — وأكّد تعبئات Whish المعلّقة (وعدنا: 6 ساعات كحد أقصى)."
+          hint={{
+            title: "الزبائن والمحفظة",
+            what: "كل زبون عمل حساب عالموقع أو انسجّل بالكاشير. افتح الزبون لتشوف سجل طلباتو، حركات محفظتو ونقاطو.",
+            source: "جدول الزبائن (customers) مع الطلبات، المحفظة وسجل النقاط.",
+            edit: "معلومات الزبون بيعدّلها هو من حسابو. التعبئات والنقاط بتتأكّد من هون.",
+          }}
+        />
         <CustomersManager canDecide={canDecide} canAdjust={canDecide} canRedeem={canRedeem} />
       </main>
     </div>

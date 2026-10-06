@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { LabelPrinting } from "../../components/label-printing";
 import { Nav } from "../../components/nav";
@@ -23,17 +24,23 @@ export default async function LabelsPage({ searchParams }: { searchParams: Promi
         <Nav />
       </div>
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8 print:max-w-none print:p-0">
-        <div className="print:hidden">
-          <h1 className="text-2xl font-semibold tracking-tight">طباعة الليبلات</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            ليبلات باركود للقطع — عالطابعة الحرارية (Gprinter GP-2120TUA). دوّر وزيد القطع، أو الصق
-            أكتر من كود، أو زيد فئة كاملة بالجملة؛ وبعدين اطبع: كل ليبل بيطلع عصفحة لحالو بقياس الرول.
-          </p>
-        </div>
+        <PageHeader
+          title="طباعة الليبلات"
+          description="ليبلات باركود للقطع عالطابعة الحرارية — دوّر وزيد القطع، الصق أكتر من كود، أو زيد فئة كاملة؛ وبعدين اطبع."
+          hint={{
+            title: "طباعة الليبلات",
+            what: "كل ليبل فيه اسم القطعة، المقاس واللون، السعر والباركود. كل ليبل بيطلع عصفحة لحالو بقياس الرول.",
+            source: "الـ SKU والباركود من فاريانتس كل قطعة؛ الطابعة: Gprinter GP-2120TUA.",
+            edit: "الباركود والـ SKU بيتعدّلوا من صفحة القطعة (الألوان والمقاسات). عدد النسخ لكل قطعة بتختارو هون.",
+          }}
+          back={productIds.length ? { href: "/products", label: "المنتجات" } : undefined}
+        />
         {LABEL_ROLES.has(profile?.role ?? "") ? (
           <LabelPrinting productIds={productIds} />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بطباعة الليبلات.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بطباعة الليبلات — اطلب من مدير المحل أو مسؤول المخزون.
+          </p>
         )}
       </main>
     </div>

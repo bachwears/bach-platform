@@ -93,7 +93,7 @@ export function LoyaltySettings() {
   }
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="border p-4">
       <h2 className="flex items-center gap-2 font-medium">
         برنامج النقاط
         <HintDot
@@ -121,7 +121,7 @@ export function LoyaltySettings() {
                 title: "تشغيل / توقيف",
                 what: "إذا وقّفتو: ما حدا بيربح نقاط جديدة، ما حدا بيقدر يحوّل، وبيختفي من المتجر والكاشير. الأرصدة الموجودة بتضل محفوظة.",
                 source: "site_content ← loyalty ← enabled.",
-                edit: "علّم أو شيل العلامة واكبس حفظ.",
+                edit: "علّم أو شيل العلامة واكبس «احفظ قواعد النقاط».",
               }}
             />
           </label>
@@ -175,10 +175,10 @@ export function LoyaltySettings() {
               <span className="text-muted-foreground">رصيد بالمحفظة</span>
             </div>
           </div>
-          {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
-          {msg && <p className="rounded-md bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
+          {err && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
+          {msg && <p className="bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
           <Button size="sm" disabled={busy} onClick={() => void save()}>
-            {busy ? "عم نحفظ…" : "حفظ قواعد النقاط"}
+            {busy ? "عم نحفظ…" : "احفظ قواعد النقاط"}
           </Button>
         </div>
       )}

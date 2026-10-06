@@ -548,10 +548,10 @@ export function Cashier({
         {/* C200I thermal receipt: 80mm roll, ~72mm printable. */}
         <ReceiptView receipt={receipt} branchName={branchName} />
         <div className="flex gap-3 print:hidden">
-          <Button className="flex-1" onClick={() => window.print()}>
-            طباعة
+          <Button className="h-12 flex-1" onClick={() => window.print()}>
+            اطبع الإيصال
           </Button>
-          <Button className="flex-1" variant="outline" onClick={() => setReceipt(null)}>
+          <Button className="h-12 flex-1" variant="outline" onClick={() => setReceipt(null)}>
             بيع جديد
           </Button>
         </div>
@@ -562,13 +562,13 @@ export function Cashier({
   return (
     <div className="space-y-4">
       {!online && (
-        <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm">
+        <p className="border border-foreground px-4 py-2 text-sm">
           <WifiOff className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
           النت مقطوع — البيع شغّال، والمبيعات بتتسجّل محليًا وبتتزامن لحالها لما يرجع الاتصال.
         </p>
       )}
       {queueCount > 0 && (
-        <p className="flex items-center justify-between rounded-md border px-4 py-2 text-sm">
+        <p className="flex flex-wrap items-center justify-between gap-2 border px-4 py-2 text-sm">
           <span><Clock className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />{queueCount} مبيعات بانتظار المزامنة</span>
           <Button size="sm" variant="outline" onClick={() => void doSync()}>
             زامن الآن
@@ -576,7 +576,7 @@ export function Cashier({
         </p>
       )}
       {failedSales.length > 0 && (
-        <div className="space-y-2 rounded-md border border-destructive/50 px-4 py-3 text-sm">
+        <div className="space-y-2 border border-destructive/50 px-4 py-3 text-sm">
           <p className="font-medium text-destructive">
             <AlertTriangle className="me-2 inline h-4 w-4 align-[-2px]" aria-hidden />
             {failedSales.length} مبيعات أوفلاين رفضها السيرفر — راجعها مع المدير.
@@ -599,7 +599,7 @@ export function Cashier({
                     جرّب مرة تانية
                   </Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => discardFailed(s)}>
-                    شيل
+                    شيلها من القائمة
                   </Button>
                 </span>
               </li>
@@ -607,7 +607,7 @@ export function Cashier({
           </ul>
         </div>
       )}
-      {syncMsg && <p className="rounded-md border px-4 py-2 text-sm text-green-600 dark:text-green-400">{syncMsg}</p>}
+      {syncMsg && <p className="border px-4 py-2 text-sm">{syncMsg}</p>}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       {/* Search + cart */}
       <section className="space-y-4">
@@ -616,6 +616,7 @@ export function Cashier({
             ref={searchRef}
             value={query}
             placeholder="امسح الباركود أو فتّش بالاسم / SKU…"
+            aria-label="امسح أو فتّش عن قطعة"
             className="h-12 text-lg"
             onChange={(e) => {
               setQuery(e.target.value);
@@ -631,7 +632,7 @@ export function Cashier({
           />
           <CameraScanner onDetect={(code) => void runSearch(code, true)} />
           {results.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+            <div className="absolute inset-x-0 top-full z-10 mt-1 max-h-[60vh] overflow-y-auto border bg-background">
               {results.map((v) => {
                 const avail = v.available;
                 const unit =
@@ -641,11 +642,11 @@ export function Cashier({
                   <button
                     key={v.id}
                     type="button"
-                    className="flex w-full items-center justify-between px-4 py-2 text-right hover:bg-muted disabled:opacity-40"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-right hover:bg-muted disabled:opacity-40"
                     disabled={avail <= 0}
                     onClick={() => addVariant(v)}
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex min-w-0 items-center gap-3">
                       <Thumb src={v.photo} />
                       <span>
                         {v.name_en} — {v.size} {v.color_en}
@@ -654,7 +655,7 @@ export function Cashier({
                         </span>
                       </span>
                     </span>
-                    <span className="text-sm">
+                    <span className="shrink-0 text-sm">
                       <span className="font-mono">{usd(unit)}</span>
                       <span className={`block text-xs ${avail > 0 ? "text-muted-foreground" : "text-destructive"}`}>
                         {avail > 0 ? `متوفر: ${avail}` : "خالص"}
@@ -667,7 +668,7 @@ export function Cashier({
           )}
         </div>
 
-        {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+        {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
 
         {parked.length > 0 && cart.length === 0 && (
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -677,7 +678,7 @@ export function Cashier({
                 key={p.id}
                 type="button"
                 onClick={() => void resumeSale(p)}
-                className="rounded-full border px-3 py-1 hover:border-foreground"
+                className="min-h-10 border px-3 py-1 hover:border-foreground"
               >
                 {p.label} · {p.cart.length} قطعة
               </button>
@@ -685,11 +686,13 @@ export function Cashier({
           </div>
         )}
 
-        <div className="rounded-lg border">
+        <div className="overflow-x-auto border">
           {cart.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">السلة فاضية — امسح أول قطعة.</p>
+            <p className="p-8 text-center text-sm text-muted-foreground">
+              السلة فاضية — امسح باركود أول قطعة، أو فتّش عنها بالاسم فوق.
+            </p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b text-right text-muted-foreground">
                   <th className="p-3 font-normal">القطعة</th>
@@ -716,13 +719,21 @@ export function Cashier({
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2" dir="ltr">
-                        <Button size="sm" variant="outline" onClick={() => setQty(l.variantId, l.quantity - 1)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-10 p-0 md:h-8 md:w-8"
+                          aria-label="نقّص وحدة"
+                          onClick={() => setQty(l.variantId, l.quantity - 1)}
+                        >
                           −
                         </Button>
                         <span className="w-6 text-center font-mono">{l.quantity}</span>
                         <Button
                           size="sm"
                           variant="outline"
+                          className="h-10 w-10 p-0 md:h-8 md:w-8"
+                          aria-label="زيد وحدة"
                           disabled={l.quantity >= l.available}
                           onClick={() => setQty(l.variantId, l.quantity + 1)}
                         >
@@ -754,7 +765,13 @@ export function Cashier({
                       )}
                     </td>
                     <td className="p-3">
-                      <Button size="sm" variant="ghost" onClick={() => setQty(l.variantId, 0)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 w-10 p-0 md:h-8 md:w-8"
+                        aria-label="شيل القطعة من السلة"
+                        onClick={() => setQty(l.variantId, 0)}
+                      >
                         ✕
                       </Button>
                     </td>
@@ -765,14 +782,14 @@ export function Cashier({
           )}
         </div>
         {cart.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => void parkSale()}>
+          <Button variant="outline" className="h-10" onClick={() => void parkSale()}>
             <Pause className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden /> اركن البيع لبعدين
           </Button>
         )}
       </section>
 
       {/* Totals + payment */}
-      <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4 lg:self-start">
+      <aside className="space-y-4 border p-4 lg:sticky lg:top-4 lg:self-start">
         <div className="flex items-center justify-between border-b pb-2 text-sm">
           <span className="flex items-center gap-1.5 text-muted-foreground">الكاشير: <span className="text-foreground">{acting.name}</span>
             <HintDot
@@ -785,11 +802,11 @@ export function Cashier({
             />
           </span>
           <Button size="sm" variant="ghost" onClick={() => void openSwitcher()}>
-            تبديل
+            بدّل الكاشير
           </Button>
         </div>
         {switching && (
-          <div className="space-y-2 rounded-md border p-3 text-sm">
+          <div className="space-y-2 border p-3 text-sm">
             {pinFor ? (
               <div className="space-y-2">
                 <p>رمز {pinFor.name}:</p>
@@ -805,7 +822,7 @@ export function Cashier({
                 {pinError && <p className="text-xs text-destructive">{pinError}</p>}
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1" disabled={pin.length < 4} onClick={() => void confirmPin()}>
-                    تأكيد
+                    بدّل عحسابو
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => { setPinFor(null); setPin(""); setPinError(""); }}>
                     رجوع
@@ -820,7 +837,7 @@ export function Cashier({
                     type="button"
                     disabled={!c.has_pin}
                     onClick={() => setPinFor({ id: c.profile_id, name: c.full_name, role: c.role })}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted disabled:opacity-40"
+                    className="flex min-h-10 w-full items-center justify-between px-2 py-1.5 hover:bg-muted disabled:opacity-40"
                   >
                     <span>{c.full_name}</span>
                     <span className="text-xs text-muted-foreground">{c.has_pin ? "" : "ما عندو رمز"}</span>
@@ -842,7 +859,7 @@ export function Cashier({
                   <span className="block text-xs text-muted-foreground" dir="ltr">{customer.phone}</span>
                 )}
               </span>
-              <Button size="sm" variant="ghost" onClick={detachCustomer}>✕</Button>
+              <Button size="sm" variant="ghost" className="h-10 w-10 p-0 md:h-8 md:w-8" aria-label="شيل الزبون عن البيع" onClick={detachCustomer}>✕</Button>
             </div>
           ) : (
             <div className="relative">
@@ -853,15 +870,16 @@ export function Cashier({
                   void searchCustomers(e.target.value);
                 }}
                 placeholder="زبون؟ رقم التلفون أو الاسم…"
-                className="h-9"
+                aria-label="فتّش عن زبون"
+                className="h-10"
               />
               {custResults.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+                <div className="absolute inset-x-0 top-full z-10 mt-1 border bg-background">
                   {custResults.map((c) => (
                     <button
                       key={c.id}
                       type="button"
-                      className="flex w-full items-center justify-between px-3 py-2 text-right text-sm hover:bg-muted"
+                      className="flex min-h-10 w-full items-center justify-between px-3 py-2 text-right text-sm hover:bg-muted"
                       onClick={() => void attachCustomer(c)}
                     >
                       <span>{c.full_name ?? "—"}</span>
@@ -876,10 +894,10 @@ export function Cashier({
                     value={newCustName}
                     onChange={(e) => setNewCustName(e.target.value)}
                     placeholder="اسم الزبون الجديد"
-                    className="h-9"
+                    className="h-10"
                   />
-                  <Button size="sm" disabled={!newCustName.trim()} onClick={() => void quickCreateCustomer()}>
-                    ضيفه
+                  <Button className="h-10" disabled={!newCustName.trim()} onClick={() => void quickCreateCustomer()}>
+                    ضيف الزبون
                   </Button>
                 </div>
               )}
@@ -897,7 +915,7 @@ export function Cashier({
             </Button>
           )}
           {bdayApplied && bday && (
-            <p className="flex items-center justify-between text-xs text-green-600 dark:text-green-400">
+            <p className="flex items-center justify-between text-xs">
               <span><Cake className="me-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />خصم عيد الميلاد {bday.percent}% مُطبّق</span>
               <Button size="sm" variant="ghost" onClick={() => setBdayApplied(false)}>تراجع</Button>
             </p>
@@ -929,7 +947,7 @@ export function Cashier({
           {discountNeedsManager && <p className="text-xs text-destructive">{DISCOUNT_NEEDS_MANAGER_MSG}</p>}
           {discount > 0 && <Row label="قيمة الخصم" value={`- ${usd(discount)}`} />}
           {tva.enabled && <Row label={tva.pricesIncludeTva ? "منها TVA" : "TVA"} value={usd(tvaCents)} />}
-          <div className="flex justify-between border-t pt-2 text-lg font-bold">
+          <div className="flex justify-between border-t pt-2 text-lg font-medium">
             <span>الإجمالي</span>
             <span className="font-mono">{usd(total)}</span>
           </div>
@@ -946,7 +964,7 @@ export function Cashier({
               id="paid-usd"
               value={paidUsd}
               onChange={(e) => setPaidUsd(e.target.value)}
-              className="text-left font-mono"
+              className="h-11 text-left font-mono"
               inputMode="decimal"
               placeholder="0.00"
             />
@@ -967,7 +985,7 @@ export function Cashier({
               id="paid-lbp"
               value={paidLbpStr}
               onChange={(e) => setPaidLbpStr(e.target.value)}
-              className="text-left font-mono"
+              className="h-11 text-left font-mono"
               inputMode="numeric"
               placeholder="0"
             />
@@ -978,7 +996,7 @@ export function Cashier({
             </p>
           )}
           {changeLbp > 0 && (
-            <p className="text-sm font-medium text-green-600 dark:text-green-400">الباقي للزبون: {lbp(changeLbp)}</p>
+            <p className="text-sm font-medium">الباقي للزبون: {lbp(changeLbp)}</p>
           )}
           {changeKeptLbp > 0 && (
             <p className="text-xs text-muted-foreground">

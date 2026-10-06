@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { LoyaltySettings } from "../../components/loyalty-settings";
 import { Marketing } from "../../components/marketing";
@@ -19,12 +20,10 @@ export default async function MarketingPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">التسويق</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            الموسم، الحملات، أكواد الخصم، البوب-أب وبرنامج النقاط — كلو من هون.
-          </p>
-        </div>
+        <PageHeader
+          title="الحملات والعروض"
+          description="الموسم، الحملات، أكواد الخصم، البوب-أب، برنامج النقاط والنشرة البريدية — كلو من هون."
+        />
         {allowed ? (
           <>
             <Marketing />
@@ -32,7 +31,9 @@ export default async function MarketingPage() {
             <NewsletterCard />
           </>
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة التسويق.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بإدارة التسويق — اطلب من مدير المحل أو مسؤول التسويق.
+          </p>
         )}
       </main>
     </div>

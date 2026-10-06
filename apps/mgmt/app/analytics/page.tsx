@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor } from "@bach/ui/lib/photos";
 
@@ -100,46 +100,47 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <Nav />
       </div>
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-bach.png" alt="BACH" className="mb-2 hidden h-5 w-auto print:block" />
-            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-              تحليلات الموقع
-              <span className="print:hidden">
-                <HintDot
-                  hint={{
-                    title: "تحليلات الموقع",
-                    what: "شو عم يعملوا الزوار عالموقع: مين شاف قطعة، مين حط بالسلة، مين بلّش الدفع ومين طلب — وقديش عم تشتغل الاقتراحات وشريط التوصيل المجاني.",
-                    source:
-                      "أحداث مجهولة الهوية بيبعتها الموقع نفسه — بلا كوكيز وبلا أي معلومة شخصية. الزائر بينحسب ببصمة يومية بتتغيّر كل يوم، فما فينا نلحقه من يوم ليوم. اللي مفعّل «Do Not Track» ما بينحسب. الأرقام تقريبية وأقل شوي من الحقيقة.",
-                    edit: "ما في شي ينعدّل هون — بدّل الفترة من فوق. البيانات الأقدم من 400 يوم بتنمحى.",
-                  }}
-                />
-              </span>
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              آخر {days} يوم (بتوقيت UTC) — هل الاقتراحات وشريط التوصيل المجاني عم يبيعوا؟
-            </p>
-          </div>
-          <div className="flex items-center gap-2 print:hidden">
-            {RANGES.map((d) => (
-              <Link
-                key={d}
-                href={`/analytics?days=${d}`}
-                className={`rounded-full border px-3 py-1 text-sm ${days === d ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {d} يوم
-              </Link>
-            ))}
-            <PrintButton label="طباعة" />
-          </div>
+        {/* the printed copy keeps its own branded title (PageHeader is screen-only) */}
+        <div className="hidden print:block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-bach.png" alt="BACH" className="mb-2 h-5 w-auto" />
+          <h1 className="text-2xl font-normal tracking-tight">تحليلات الموقع</h1>
+          <p className="mt-1 text-sm">آخر {days} يوم (بتوقيت UTC)</p>
         </div>
+        <PageHeader
+          title="تحليلات الموقع"
+          description={`آخر ${days} يوم (بتوقيت UTC) — هل الاقتراحات وشريط التوصيل المجاني عم يبيعوا؟`}
+          hint={{
+            title: "تحليلات الموقع",
+            what: "شو عم يعملوا الزوار عالموقع: مين شاف قطعة، مين حط بالسلة، مين بلّش الدفع ومين طلب — وقديش عم تشتغل الاقتراحات وشريط التوصيل المجاني.",
+            source:
+              "أحداث مجهولة الهوية بيبعتها الموقع نفسه — بلا كوكيز وبلا أي معلومة شخصية. الزائر بينحسب ببصمة يومية بتتغيّر كل يوم، فما فينا نلحقه من يوم ليوم. اللي مفعّل «Do Not Track» ما بينحسب. الأرقام تقريبية وأقل شوي من الحقيقة.",
+            edit: "ما في شي ينعدّل هون — بدّل الفترة من فوق. البيانات الأقدم من 400 يوم بتنمحى.",
+          }}
+          actions={
+            <>
+              {RANGES.map((d) => (
+                <Link
+                  key={d}
+                  href={`/analytics?days=${d}`}
+                  aria-current={days === d ? "page" : undefined}
+                  className={`inline-flex h-9 items-center border px-3 text-sm ${days === d ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {d} يوم
+                </Link>
+              ))}
+              <PrintButton label="اطبع التقرير" />
+            </>
+          }
+        />
 
         {!a ? (
-          <p className="rounded-lg border p-8 text-center text-muted-foreground">
-            ما قدرنا نجيب التحليلات{error ? ` (${error.message})` : ""}.
-          </p>
+          <div className="space-y-2 border p-8 text-center text-sm text-muted-foreground">
+            <p>ما قدرنا نجيب التحليلات{error ? ` (${error.message})` : ""}.</p>
+            <Link href={`/analytics?days=${days}`} className="inline-block text-foreground underline underline-offset-4">
+              جرّب مرة تانية
+            </Link>
+          </div>
         ) : (
           <Report a={a} photos={photos} />
         )}
@@ -199,7 +200,7 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-right text-muted-foreground">
+              <tr className="border-b text-start text-muted-foreground">
                 <th className="py-2 font-normal">المكان</th>
                 <th className="py-2 font-normal">كبسات</th>
                 <th className="py-2 font-normal">إضافة سريعة</th>
@@ -232,7 +233,7 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-right text-muted-foreground">
+                <tr className="border-b text-start text-muted-foreground">
                   <th className="py-2 font-normal">وين</th>
                   <th className="py-2 font-normal">انعرض</th>
                   <th className="py-2 font-normal">تحت الحد</th>
@@ -264,7 +265,7 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-right text-muted-foreground">
+                <tr className="border-b text-start text-muted-foreground">
                   <th className="py-2 font-normal">طول البحث (حروف)</th>
                   <th className="py-2 font-normal">النتايج</th>
                   <th className="py-2 font-normal">مرات</th>
@@ -295,7 +296,7 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-right text-muted-foreground">
+              <tr className="border-b text-start text-muted-foreground">
                 <th className="py-2 font-normal">اليوم</th>
                 <th className="py-2 font-normal">زوار</th>
                 <th className="py-2 font-normal" />
@@ -333,7 +334,7 @@ function ProductTable({ title, rows, photos }: { title: string; rows: ProductRow
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-right text-muted-foreground">
+            <tr className="border-b text-start text-muted-foreground">
               <th className="py-2 font-normal">القطعة</th>
               <th className="py-2 font-normal">مشاهدات</th>
               <th className="py-2 font-normal">إضافات</th>
@@ -363,19 +364,19 @@ function ProductTable({ title, rows, photos }: { title: string; rows: ProductRow
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section className="break-inside-avoid rounded-lg border p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+    <section className="break-inside-avoid border p-4">
+      <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{title}</h2>
       {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
-      <div className="mt-3">{children}</div>
+      <div className="mt-3 overflow-x-auto">{children}</div>
     </section>
   );
 }
 
 function Bar({ value, max }: { value: number; max: number }) {
   return (
-    <div className="h-2 w-full rounded-full bg-muted print:border print:border-black/20">
+    <div className="h-2 w-full bg-muted print:border print:border-black/20">
       <div
-        className="h-2 rounded-full bg-foreground/80 print:bg-black"
+        className="h-2 bg-foreground/80 print:bg-black"
         style={{ width: `${max > 0 ? Math.max((value / max) * 100, value > 0 ? 2 : 0) : 0}%` }}
       />
     </div>
@@ -384,7 +385,7 @@ function Bar({ value, max }: { value: number; max: number }) {
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="border p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-mono text-2xl font-semibold">{value}</p>
       {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
@@ -393,5 +394,5 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 }
 
 function Empty() {
-  return <p className="text-sm text-muted-foreground">ما في بيانات بهالفترة بعد.</p>;
+  return <p className="text-sm text-muted-foreground">ما في بيانات بهالفترة بعد — جرّب فترة أطول من فوق.</p>;
 }

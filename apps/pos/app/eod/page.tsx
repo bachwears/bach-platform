@@ -1,7 +1,10 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { PageHeader } from "@bach/ui/components/page-header";
+
 import { Eod } from "../../components/eod";
 import { PosNav } from "../../components/pos-nav";
+import { PrintButton } from "../../components/print-button";
 
 const EOD_ROLES = new Set(["super_admin", "store_manager", "cashier"]);
 
@@ -22,12 +25,20 @@ export default async function EodPage() {
   return (
     <div className="min-h-dvh bg-background">
       <PosNav branchName={branch?.name} />
-      <main className="mx-auto max-w-3xl p-4 py-6 print:max-w-none print:p-0">
-          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">تسكير آخر النهار</h1>
+      <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
+        <PageHeader
+          title="تسكير آخر النهار"
+          description="شوف مبيعات اليوم وشو لازم يكون بالدرج، عدّ المصاري، وسكّر اليوم — بعدين اطبع التقرير ووقّعو."
+          actions={allowed && branch ? <PrintButton label="اطبع التقرير" /> : undefined}
+        />
         {!allowed ? (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بتسكير اليوم.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بتسكير اليوم — الكاشير أو مدير المحل بيسكّر.
+          </p>
         ) : !branch ? (
-          <p className="p-8 text-center text-muted-foreground">ما في فرع مفعّل.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            ما في فرع مفعّل — الإدارة لازم تفعّل فرع من MGMT قبل التسكير.
+          </p>
         ) : (
           <Eod
             branchId={branch.id}

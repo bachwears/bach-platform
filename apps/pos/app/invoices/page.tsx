@@ -1,5 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Invoices } from "../../components/invoices";
 import { PosNav } from "../../components/pos-nav";
@@ -17,17 +17,21 @@ export default async function InvoicesPage() {
   return (
     <div className="min-h-dvh bg-background">
       <PosNav branchName={null} />
-      <main className="mx-auto max-w-3xl p-4 py-6">
-          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">الفواتير وسجل الزبائن <HintDot
-                hint={{
-                  title: "أرشيف الفواتير",
-                  what: "كل فواتير المحل والأونلاين بمطرح واحد — فتّش برقم الفاتورة، أو باسم/تلفون الزبون لتشوف كل تاريخه الشرائي ورصيد محفظته.",
-                  source: "نفس داتا الطلبات الحية — أي بيع بيظهر هون فوراً.",
-                  edit: "للمرتجع: خذ رقم الفاتورة من هون وافتح شاشة مرتجع / تبديل.",
-                }}
-              /></h1>
+      <main className="mx-auto max-w-3xl space-y-6 p-4 py-6 print:max-w-none print:space-y-0 print:p-0">
+        <PageHeader
+          title="الفواتير وسجل الزبائن"
+          description="لاقي أي فاتورة محل أو أونلاين، شوف شو اشترى الزبون ورصيد محفظتو، واطبع الإيصال مرة تانية."
+          hint={{
+            title: "أرشيف الفواتير",
+            what: "كل فواتير المحل والأونلاين بمطرح واحد — فتّش برقم الفاتورة، أو باسم/تلفون الزبون لتشوف كل تاريخه الشرائي ورصيد محفظته.",
+            source: "نفس داتا الطلبات الحية — أي بيع بيظهر هون فوراً.",
+            edit: "للمرتجع: خذ رقم الفاتورة من هون وافتح شاشة مرتجع / تبديل.",
+          }}
+        />
         {!allowed ? (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بعرض الفواتير.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بعرض الفواتير — اطلب من المدير إذا لازمك هالشاشة.
+          </p>
         ) : (
           <Invoices />
         )}

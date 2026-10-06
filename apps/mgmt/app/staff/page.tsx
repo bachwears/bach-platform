@@ -1,4 +1,5 @@
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { Button } from "@bach/ui/components/button";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { StaffManager } from "../../components/staff-manager";
@@ -9,23 +10,21 @@ export default function StaffPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            الموظفين
-            <HintDot
-              hint={{
-                title: "حسابات الموظفين",
-                what: "اعمل حساب دخول لكل موظف، حدّد دورو وفرعو، غيّرلو كلمة السر، أو وقّف حسابو. الدور هو يلي بيحدّد شو بيشوف وشو بيقدر يعدّل بالإدارة والكاشير.",
-                source: "الحسابات بنظام الدخول، والأدوار بجدول profiles.",
-                edit: "من هون بس — للسوبر أدمن.",
-              }}
-            />
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            كل موظف بيفوت بإيميلو وكلمة سر مؤقتة، وأوّل مرّة بيطلب منو البرنامج يغيّرها. الـPIN تبع الكاشير
-            بيحطّو الموظف بنفسو من الكاشير.
-          </p>
-        </div>
+        <PageHeader
+          title="الموظفين"
+          description="اعمل حساب لكل موظف بإيميلو وكلمة سر مؤقتة — أوّل مرّة بيفوت بيطلب منو البرنامج يغيّرها. الـPIN تبع الكاشير بيحطّو الموظف بنفسو من الكاشير."
+          hint={{
+            title: "حسابات الموظفين",
+            what: "اعمل حساب دخول لكل موظف، حدّد دورو وفرعو، غيّرلو كلمة السر، أو وقّف حسابو. الدور هو يلي بيحدّد شو بيشوف وشو بيقدر يعدّل بالإدارة والكاشير.",
+            source: "الحسابات بنظام الدخول، والأدوار بجدول profiles.",
+            edit: "من هون بس — للسوبر أدمن.",
+          }}
+          actions={
+            <Button asChild>
+              <a href="#new-staff">+ حساب موظف جديد</a>
+            </Button>
+          }
+        />
         <StaffManager />
       </main>
     </div>

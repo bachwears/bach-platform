@@ -126,22 +126,22 @@ export function PhotoMove({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-dashed p-3">
+    <div className="space-y-3 border border-dashed p-3">
       <p className="text-sm font-medium">انقل الصورة لمنتج تاني</p>
       {photo.kind === "front" ? (
-        <p className="rounded-md bg-red-500/10 p-2 text-xs text-red-700 dark:text-red-300">
+        <p className="bg-red-500/10 p-2 text-xs text-red-700 dark:text-red-300">
           هيدي الصورة الأساسية لهالمنتج. إذا نقلتها، المنتج بيختفي عن الموقع إلا إذا خلّيت صورة تانية «أساسية».
         </p>
       ) : null}
 
       {target ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-3 rounded-md border p-2">
+          <div className="flex items-center gap-3 border p-2">
             {target.front ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={thumb(target.front)} alt="" className="h-12 w-9 rounded object-cover" />
+              <img src={thumb(target.front)} alt="" className="h-12 w-9 object-cover" />
             ) : (
-              <span className="h-12 w-9 rounded bg-muted" />
+              <span className="h-12 w-9 bg-muted" />
             )}
             <span className="min-w-0 flex-1 truncate text-sm" dir="ltr">
               {target.name_en}
@@ -182,15 +182,15 @@ export function PhotoMove({
         <div className="space-y-2">
           <Input value={q} onChange={(e) => void search(e.target.value)} placeholder="دوّر بالاسم أو الـ SKU…" dir="ltr" autoFocus />
           {hits.length ? (
-            <ul className="max-h-64 divide-y overflow-y-auto rounded-md border">
+            <ul className="max-h-64 divide-y overflow-y-auto border">
               {hits.map((h) => (
                 <li key={h.id}>
                   <button type="button" onClick={() => pick(h)} className="flex w-full items-center gap-3 p-2 text-start hover:bg-muted">
                     {h.front ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb(h.front)} alt="" className="h-12 w-9 rounded object-cover" />
+                      <img src={thumb(h.front)} alt="" className="h-12 w-9 object-cover" />
                     ) : (
-                      <span className="h-12 w-9 rounded bg-muted" />
+                      <span className="h-12 w-9 bg-muted" />
                     )}
                     <span className="min-w-0 flex-1" dir="ltr">
                       <span className="block truncate text-sm">{h.name_en}</span>

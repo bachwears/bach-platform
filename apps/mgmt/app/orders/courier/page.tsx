@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { CourierCash, type WaitingOrder } from "../../../components/courier-cash";
 import { Nav } from "../../../components/nav";
@@ -58,32 +57,32 @@ export default async function CourierCashPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-8 p-4 py-8">
-        <div>
-          <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
-            → الطلبات
-          </Link>
-          <h1 className="mt-2 flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            مصاري الشحن
-            <HintDot
-              hint={{
-                title: "مصاري عند شركة الشحن",
-                what: "طلبات الدفع عند الاستلام يلي وصلت للزبون: الدليفري قبض المصاري، بس بعدها مش عنّا لحتى شركة الشحن تسلّمنا ياها (أحياناً بعد أسبوع). هون منتابعها ومنسجّل كل استلام.",
-                source: "الطلبات يلي حالتها «وصل» والدفع عند الاستلام ولسّا ما انسجّل استلامها.",
-                edit: "علّم الطلبات يلي انقبضت، اكتب المبلغ ووين انحطّ، وسجّل. المدير أو السوبر أدمن.",
-              }}
-            />
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            عند شركة الشحن هلّق: <span className="font-mono text-foreground">{usd(total)}</span> · {orders.length} طلب
-          </p>
-        </div>
+        <PageHeader
+          back={{ href: "/orders", label: "الطلبات" }}
+          title="مصاري الشحن"
+          description={
+            <>
+              مصاري «الدفع عند الاستلام» يلي قبضها الدليفري ولسّا ما سلّمنا ياها — علّم الطلبات يلي انقبضت وسجّل الاستلام. عند شركة الشحن هلّق:{" "}
+              <span className="font-mono text-foreground" dir="ltr">
+                {usd(total)}
+              </span>{" "}
+              · {orders.length} طلب
+            </>
+          }
+          hint={{
+            title: "مصاري عند شركة الشحن",
+            what: "طلبات الدفع عند الاستلام يلي وصلت للزبون: الدليفري قبض المصاري، بس بعدها مش عنّا لحتى شركة الشحن تسلّمنا ياها (أحياناً بعد أسبوع). هون منتابعها ومنسجّل كل استلام.",
+            source: "الطلبات يلي حالتها «وصل» والدفع عند الاستلام ولسّا ما انسجّل استلامها.",
+            edit: "علّم الطلبات يلي انقبضت، اكتب المبلغ ووين انحطّ، وسجّل. المدير أو السوبر أدمن.",
+          }}
+        />
 
-        {error ? <p className="text-sm text-destructive">ما قدرنا نحمّل: {error.message}</p> : <CourierCash orders={orders} canRecord={canRecord} />}
+        {error ? <p role="alert" className="border border-destructive/40 p-4 text-sm text-destructive">ما قدرنا نحمّل الطلبات: {error.message} — حدّث الصفحة، وإذا ضلّت، احكي السوبر أدمن.</p> : <CourierCash orders={orders} canRecord={canRecord} />}
 
         <section className="space-y-3">
           <h2 className="font-medium">تاريخ الاستلام</h2>
           {(history ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">ما انسجّل ولا استلام بعد.</p>
+            <p className="border p-6 text-center text-sm text-muted-foreground">ما انسجّل ولا استلام بعد — كل استلام بتسجّلو فوق بيطلع هون.</p>
           ) : (
             <ul className="divide-y border text-sm">
               {((history ?? []) as unknown as Settlement[]).map((s) => {
@@ -95,7 +94,7 @@ export default async function CourierCashPage() {
                         {s.received_on} · {DEST[s.destination] ?? s.destination}
                         <span className="text-muted-foreground"> · {s.profiles?.full_name ?? "—"}</span>
                       </span>
-                      <span className="font-mono">
+                      <span className="font-mono" dir="ltr">
                         {usd(s.usd_cents)}
                         {s.lbp ? ` + ${s.lbp.toLocaleString("en-US")} ل.ل` : ""}
                       </span>

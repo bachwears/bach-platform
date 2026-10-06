@@ -110,7 +110,7 @@ export function CustomerPoints({
         )}
       </div>
       {msg && (
-        <p className={`text-xs ${msg.bad ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>{msg.text}</p>
+        <p className={`text-xs ${msg.bad ? "text-destructive" : "text-foreground"}`}>{msg.text}</p>
       )}
     </div>
   );

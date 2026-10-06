@@ -1,7 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { SizeExpansion } from "../../components/size-expansion";
 
 const SIZE_ROLES = new Set(["super_admin", "store_manager", "inventory_manager"]);
@@ -20,26 +20,26 @@ export default async function SizesPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">المقاسات
-            <HintDot
-              hint={{
-                title: "توسيع المقاسات",
-                what: "المنتجات المستوردة إجت بمقاس واحد (OS) — هون بتحوّلها لمقاسات حقيقية (S/M/L…) دفعة وحدة.",
-                source: "كل مقاس جديد بياخد SKU وباركود خاص فيه تلقائيًا.",
-                edit: "اختار المنتج، حدد المقاسات الموجودة عندك فعليًا بالمحل، واكبس توسيع.",
-              }}
-            />
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            المنتجات المستوردة بمقاس واحد (OS) — وزّع مخزون كل موديل على مقاساته الحقيقية متل ما هي عالرف.
-            الباركود القديم بيضل شغّال عالكاشير وبيفتح لائحة المقاسات.
+        <PageHeader
+          title="المقاسات"
+          description="القطع يلّي إجت بمقاس واحد (OS) — وزّع مخزون كل موديل على مقاساته الحقيقية متل ما هي عالرف. الباركود القديم بيضل شغّال عالكاشير."
+          hint={{
+            title: "توسيع المقاسات",
+            what: "المنتجات المستوردة إجت بمقاس واحد (OS) — هون بتحوّلها لمقاسات حقيقية (S/M/L…) دفعة وحدة.",
+            source: "كل مقاس جديد بياخد SKU وباركود خاص فيه تلقائيًا.",
+            edit: "اختار المنتج، حدد المقاسات الموجودة عندك فعليًا بالمحل، واكبس توسيع.",
+          }}
+        />
+        {!SIZE_ROLES.has(profile?.role ?? "") ? (
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بإدارة المقاسات — اطلب من مدير المحل أو مسؤول المخزون.
           </p>
-        </div>
-        {SIZE_ROLES.has(profile?.role ?? "") && branch ? (
-          <SizeExpansion branchId={branch.id} />
+        ) : !branch ? (
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            ما في فرع فعّال — لازم يكون في فرع واحد عالأقل قبل توزيع المخزون.
+          </p>
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة المقاسات.</p>
+          <SizeExpansion branchId={branch.id} />
         )}
       </main>
     </div>

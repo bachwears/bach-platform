@@ -18,7 +18,7 @@ export const ITEMS: PortalNavItem[] = [
   },
   {
     label: "الزبائن",
-    links: [{ href: "/customers", label: "العملاء والمحفظة" }],
+    links: [{ href: "/customers", label: "الزبائن والمحفظة" }],
   },
   {
     label: "الكتالوج",

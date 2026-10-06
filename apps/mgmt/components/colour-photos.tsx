@@ -84,7 +84,7 @@ export function ColourPhotos({
   return (
     <div className="space-y-4">
       {!front ? (
-        <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
           ما في صورة أساسية — المنتج مخفي عن الموقع. زيد صورة «قدّام» لأي لون، أو اختار صورة موجودة واكبس «خليها الأساسية».
         </p>
       ) : null}
@@ -214,7 +214,7 @@ function ColourCard({
   const missing = !!colour && !orphan && !shown.length && !(isHero && all.some((m) => m.kind === "front"));
 
   return (
-    <section className={`space-y-3 rounded-lg border p-4 ${isHero ? "border-foreground/30" : ""}`}>
+    <section className={`space-y-3 border p-4 ${isHero ? "border-foreground/30" : ""}`}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h3 className="text-sm font-medium" dir="ltr">
           {colour ? colour.en : "بلا لون"}
@@ -246,30 +246,30 @@ function ColourCard({
                   type="button"
                   onClick={() => setSelected(selected === m.id ? null : m.id)}
                   aria-pressed={selected === m.id}
-                  className={`relative block aspect-[2/3] w-full overflow-hidden rounded-md bg-muted outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring ${
+                  className={`relative block aspect-[2/3] w-full overflow-hidden bg-muted outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring ${
                     selected === m.id ? "ring-2 ring-foreground" : ""
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={thumb(m.storage_path)} alt="" loading="lazy" className={`h-full w-full object-cover ${live ? "" : "opacity-40"}`} />
                   <span className="absolute inset-x-1 top-1 flex flex-wrap gap-1">
-                    <span className="rounded bg-background/85 px-1.5 py-0.5 text-[10px] leading-none">
+                    <span className="bg-background/85 px-1.5 py-0.5 text-[10px] leading-none">
                       {VIEW_LABEL[photoView(m).view] ?? photoView(m).view}
                       {photoView(m).n > 1 ? ` ${photoView(m).n}` : ""}
                     </span>
-                    {r ? <span className="rounded bg-foreground px-1.5 py-0.5 text-[10px] leading-none text-background">{r}</span> : null}
+                    {r ? <span className="bg-foreground px-1.5 py-0.5 text-[10px] leading-none text-background">{r}</span> : null}
                   </span>
-                  {!live ? <span className="absolute inset-x-1 bottom-1 rounded bg-background/85 px-1.5 py-0.5 text-center text-[10px]">مخفية</span> : null}
+                  {!live ? <span className="absolute inset-x-1 bottom-1 bg-background/85 px-1.5 py-0.5 text-center text-[10px]">مخفية</span> : null}
                   {otherColourSlot ? (
-                    <span className="absolute inset-x-1 bottom-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-center text-[10px] text-black">مع اللون الأساسي</span>
+                    <span className="absolute inset-x-1 bottom-1 bg-amber-500/90 px-1.5 py-0.5 text-center text-[10px] text-black">مع اللون الأساسي</span>
                   ) : null}
                 </button>
                 {canSwap(m, -1) || canSwap(m, 1) ? (
                   <span className="flex gap-1">
-                    <button type="button" disabled={busy || !canSwap(m, -1)} onClick={() => void move(m, -1)} className="h-7 flex-1 rounded border text-xs disabled:opacity-30" aria-label="قبل">
+                    <button type="button" disabled={busy || !canSwap(m, -1)} onClick={() => void move(m, -1)} className="h-7 flex-1 border text-xs disabled:opacity-30" aria-label="قبل">
                       →
                     </button>
-                    <button type="button" disabled={busy || !canSwap(m, 1)} onClick={() => void move(m, 1)} className="h-7 flex-1 rounded border text-xs disabled:opacity-30" aria-label="بعد">
+                    <button type="button" disabled={busy || !canSwap(m, 1)} onClick={() => void move(m, 1)} className="h-7 flex-1 border text-xs disabled:opacity-30" aria-label="بعد">
                       ←
                     </button>
                   </span>
@@ -279,7 +279,7 @@ function ColourCard({
           })}
         </ul>
       ) : (
-        <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">ما في صور لهاللون بعد.</p>
+        <p className="border border-dashed p-4 text-center text-xs text-muted-foreground">ما في صور لهاللون بعد.</p>
       )}
 
       {sel ? (
@@ -304,7 +304,7 @@ function ColourCard({
 
       {canAdd ? (
         <div
-          className={`flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2 ${over ? "bg-muted" : ""}`}
+          className={`flex flex-wrap items-center gap-2 border border-dashed p-2 ${over ? "bg-muted" : ""}`}
           onDragOver={(e) => {
             e.preventDefault();
             setOver(true);
@@ -495,10 +495,10 @@ function PhotoEditor({
         : "مخفية عن الموقع.";
 
   return (
-    <div className="grid gap-4 rounded-lg border bg-muted/20 p-3 sm:grid-cols-[10rem_1fr]">
+    <div className="grid gap-4 border bg-muted/20 p-3 sm:grid-cols-[10rem_1fr]">
       <a href={photo.storage_path} target="_blank" rel="noreferrer" className="block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb(photo.storage_path).replace(/-400\.webp$/, "-800.webp")} alt="" className="aspect-[2/3] w-full rounded-md bg-muted object-cover" />
+        <img src={thumb(photo.storage_path).replace(/-400\.webp$/, "-800.webp")} alt="" className="aspect-[2/3] w-full bg-muted object-cover" />
       </a>
       <div className="min-w-0 space-y-3">
         <div className="flex items-start justify-between gap-2">

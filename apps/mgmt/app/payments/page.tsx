@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { PaymentsConfig } from "../../components/payments-config";
@@ -15,16 +16,16 @@ export default async function PaymentsPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">إعدادات الدفع</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            طرق الدفع المقبولة بالمحل والموقع — التفعيل والإطفاء من هون.
-          </p>
-        </div>
+        <PageHeader
+          title="إعدادات الدفع"
+          description="طرق الدفع المقبولة بالمحل والموقع — التفعيل والإطفاء من هون."
+        />
         {allowed ? (
           <PaymentsConfig />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">بس السوبر أدمن بيقدر يعدّل طرق الدفع.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            بس السوبر أدمن بيقدر يعدّل طرق الدفع — احكيه إذا بدّك تغيير.
+          </p>
         )}
       </main>
     </div>

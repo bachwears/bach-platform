@@ -1,7 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { Nav } from "../../components/nav";
-import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Reports } from "../../components/reports";
 
 const REPORT_ROLES = new Set(["super_admin", "store_manager"]);
@@ -18,25 +18,22 @@ export default async function ReportsPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">التقارير
-            <HintDot
-              hint={{
-                title: "التقارير",
-                what: "مبيعات وأرباح ومخزون بفترة بتختارها — مع تصدير CSV وطباعة A4 بهوية BACH.",
-                source: "الأرقام من نفس داتا الطلبات والمخزون الحية — مش نسخة.",
-                edit: "غيّر الفترة والفرع من الفلاتر فوق؛ زر الطباعة بيجهّز نسخة مرتبة للورق.",
-              }}
-            />
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            صدّر بياناتك CSV/Excel — للمحاسبة، للتحليل، أو للأرشيف.
-          </p>
-        </div>
+        <PageHeader
+          title="التقارير"
+          description="صدّر بياناتك CSV/Excel — للمحاسبة، للتحليل، أو للأرشيف."
+          hint={{
+            title: "التقارير",
+            what: "ملفات CSV (بتنفتح بـExcel) لفترة بتختارها: الطلبات، القطع المباعة، دفتر اليومية (مبيعات، مرتجع، كاش) والمخزون.",
+            source: "الأرقام من نفس داتا الطلبات والمخزون الحية — مش نسخة.",
+            edit: "اختار الفترة فوق وكبوس التقرير يلي بدّك ياه. للطباعة بهوية BACH استعمل «اطبع التقرير» بالرئيسية أو التحليلات.",
+          }}
+        />
         {allowed ? (
           <Reports />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بالتقارير.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            التقارير للسوبر أدمن ومدير المحل بس — اطلب منهن النسخة يلّي بدّك ياها.
+          </p>
         )}
       </main>
     </div>

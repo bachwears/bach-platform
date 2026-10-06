@@ -5,8 +5,10 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Select } from "@bach/ui/components/select";
-import { NOT_SAVED } from "../lib/access";
 import { Textarea } from "@bach/ui/components/textarea";
+
+import { NOT_SAVED } from "../lib/access";
+import { fmt } from "../lib/time";
 
 const STATUS_AR: Record<string, string> = {
   open: "جديدة",
@@ -106,7 +108,7 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 text-sm">
+      <div role="group" aria-label="فلترة الشكاوى" className="flex flex-wrap gap-x-5 gap-y-2 border-b text-sm">
         {[
           ["active", "المفتوحة"],
           ["escalated", "المصعّدة"],
@@ -116,35 +118,49 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
           <button
             key={k}
             type="button"
+            aria-pressed={filter === k}
             onClick={() => setFilter(k!)}
-            className={`rounded-full border px-3 py-1 ${filter === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+            className={`-mb-px border-b pb-2 ${filter === k ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {items.length === 0 ? (
-        <p className="p-10 text-center text-muted-foreground">ما في شكاوى هون.</p>
+        <div className="space-y-3 border p-10 text-center text-sm text-muted-foreground">
+          <p>
+            {filter === "active"
+              ? "ما في شكاوى مفتوحة — كل تذكرة جديدة من الموقع بتطلع هون."
+              : filter === "all"
+                ? "ما في شكاوى بعد — أول تذكرة بيفتحها زبون من الموقع بتطلع هون."
+                : "ما في شكاوى بهالحالة."}
+          </p>
+          {filter !== "all" ? (
+            <button type="button" className="underline underline-offset-4 hover:text-foreground" onClick={() => setFilter("all")}>
+              اعرض كل الشكاوى
+            </button>
+          ) : null}
+        </div>
       ) : (
         items.map((c) => (
-          <div key={c.id} className="rounded-lg border p-4">
-            <button type="button" className="w-full text-right" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
+          <div key={c.id} className="border p-4">
+            <button type="button" aria-expanded={openId === c.id} className="w-full text-start" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono font-semibold">#{c.number}</span>
+                  <span className="font-mono font-medium" dir="ltr">#{c.number}</span>
                   <Badge variant={["resolved", "closed"].includes(c.status) ? "secondary" : "default"}>
                     {STATUS_AR[c.status] ?? c.status}
                   </Badge>
                   <span className="text-sm">{c.subject}</span>
                 </div>
                 <span className="text-xs text-muted-foreground" dir="ltr">
-                  {new Date(c.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                  {fmt(c.created_at, { dateStyle: "short", timeStyle: "short" })}
                 </span>
               </div>
-              <p className="mt-1 text-right text-xs text-muted-foreground">
+              <p className="mt-1 text-start text-xs text-muted-foreground">
                 {c.name} · <span dir="ltr">{c.phone}</span>
                 {c.order_number ? ` · طلب #${c.order_number}` : ""}
                 {c.profiles?.full_name ? ` · معيّنة لـ${c.profiles.full_name}` : " · بلا تعيين"}
@@ -153,7 +169,7 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
 
             {openId === c.id && (
               <div className="mt-4 space-y-4 border-t pt-4">
-                <p className="whitespace-pre-line rounded-md bg-muted/50 p-3 text-sm">{c.body}</p>
+                <p className="whitespace-pre-line bg-muted/50 p-3 text-sm">{c.body}</p>
 
                 {c.complaint_events.length > 0 && (
                   <ul className="space-y-2 text-sm">
@@ -165,10 +181,10 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
                           <div>
                             <p className="whitespace-pre-line">
                               {e.kind === "status" ? `حالة: ${e.body}` : e.kind === "assign" ? `تعيين: ${e.body}` : e.body}
-                              {e.is_public && <span className="mr-2 text-xs text-green-600 dark:text-green-400">(ظاهر للزبون)</span>}
+                              {e.is_public && <span className="ms-2 text-xs text-green-600 dark:text-green-400">(ظاهر للزبون)</span>}
                             </p>
                             <p className="text-xs text-muted-foreground" dir="ltr">
-                              {new Date(e.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                              {fmt(e.created_at, { dateStyle: "short", timeStyle: "short" })}
                             </p>
                           </div>
                         </li>
@@ -177,14 +193,18 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
                 )}
 
                 <div className="space-y-2">
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="ملاحظة داخلية أو ردّ للزبون…" />
+                  <label htmlFor={`note-${c.id}`} className="block text-sm">
+                    ملاحظة أو ردّ
+                  </label>
+                  <Textarea id={`note-${c.id}`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="ملاحظة داخلية أو ردّ للزبون…" />
+                  <p className="text-xs text-muted-foreground">بلا «ظاهر للزبون» بتضل ملاحظة داخلية للفريق بس.</p>
                   <div className="flex flex-wrap items-center gap-3">
                     <label className="flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground">
                       <input type="checkbox" checked={notePublic} onChange={(e) => setNotePublic(e.target.checked)} />
                       ظاهر للزبون
                     </label>
                     <Button size="sm" disabled={busy || !note.trim()} onClick={() => void addNote(c.id)}>
-                      {notePublic ? "إرسال الرد" : "حفظ الملاحظة"}
+                      {notePublic ? "ابعت الرد للزبون" : "احفظ الملاحظة"}
                     </Button>
                     {c.assigned_to !== myId && (
                       <Button size="sm" variant="outline" disabled={busy} onClick={() => void assignToMe(c.id)}>
@@ -195,6 +215,7 @@ export function ComplaintsQueue({ myId }: { myId: string }) {
                       <Select
                         value=""
                         onChange={(e) => e.target.value && void setStatus(c.id, e.target.value)}
+                        aria-label="غيّر حالة الشكوى"
                         className="h-8 w-44"
                       >
                         <option value="">غيّر الحالة…</option>

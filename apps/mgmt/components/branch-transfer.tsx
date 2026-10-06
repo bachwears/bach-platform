@@ -140,7 +140,7 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border p-4">
+    <div className="space-y-4 border p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="tr-from">من فرع</Label>
@@ -177,7 +177,7 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
           autoComplete="off"
         />
         {results.length > 0 ? (
-          <ul className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-auto rounded-md border bg-background shadow-sm">
+          <ul className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-auto border bg-background">
             {results.map((f) => {
               const a = availFrom(f);
               return (
@@ -205,7 +205,8 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
       </div>
 
       {lines.length > 0 ? (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="border-b text-muted-foreground">
               <th className="p-2 text-start font-normal">القطعة</th>
@@ -255,8 +256,9 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
             })}
           </tbody>
         </table>
+        </div>
       ) : (
-        <p className="text-sm text-muted-foreground">لسّا ما زدت قطع — دوّر فوق وزيد.</p>
+        <p className="text-sm text-muted-foreground">لسّا ما زدت قطع — دوّر بالخانة فوق واكبس على القطعة لتزيدها.</p>
       )}
 
       <div className="space-y-1">
@@ -307,7 +309,7 @@ export function AddBranch() {
   }
 
   return (
-    <details className="rounded-lg border p-4">
+    <details className="border p-4">
       <summary className="cursor-pointer text-sm font-medium">زيد فرع جديد (سوبر أدمن)</summary>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="space-y-1">

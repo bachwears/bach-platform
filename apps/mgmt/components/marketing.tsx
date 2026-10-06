@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
 import { Input } from "@bach/ui/components/input";
+import { Label } from "@bach/ui/components/label";
 import { NOT_SAVED } from "../lib/access";
 import { Select } from "@bach/ui/components/select";
 
@@ -211,11 +212,11 @@ export function Marketing() {
 
   return (
     <div className="space-y-8">
-      {msg && <p className="rounded-md bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {msg && <p className="bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
+      {error && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {/* Season flip */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">موسم المتجر</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           كبسة وحدة وبيتقدّم الموسم المختار بواجهة المتجر.
@@ -230,47 +231,67 @@ export function Marketing() {
       </section>
 
       {/* Campaigns */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">الحملات</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           "20% على كل الشتوي" = اختار الهدف والنسبة، انشر — الأسعار بتتنزّل فوراً وبترجع لما تنهيها.
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-5">
-          <Input value={cName} onChange={(e) => setCName(e.target.value)} placeholder="اسم الحملة" className="sm:col-span-2" />
-          <Input value={cPct} onChange={(e) => setCPct(e.target.value)} placeholder="%" inputMode="numeric" className="text-left font-mono" />
-          <Select value={cKind} onChange={(e) => setCKind(e.target.value)}>
-            <option value="season">حسب الموسم</option>
-            <option value="category">حسب الفئة</option>
-            <option value="all">كل المنتجات</option>
-          </Select>
+        <div className="mt-3 grid items-end gap-3 sm:grid-cols-5">
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="mk-c-name">اسم الحملة</Label>
+            <Input id="mk-c-name" value={cName} onChange={(e) => setCName(e.target.value)} placeholder="مثلاً: تنزيلات الشتوي" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="mk-c-pct">الخصم %</Label>
+            <Input id="mk-c-pct" value={cPct} onChange={(e) => setCPct(e.target.value)} placeholder="20" inputMode="numeric" className="text-left font-mono" dir="ltr" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="mk-c-kind">على شو</Label>
+            <Select id="mk-c-kind" value={cKind} onChange={(e) => setCKind(e.target.value)}>
+              <option value="season">حسب الموسم</option>
+              <option value="category">حسب الفئة</option>
+              <option value="all">كل المنتجات</option>
+            </Select>
+          </div>
           {cKind === "season" ? (
-            <Select value={cSeason} onChange={(e) => setCSeason(e.target.value)}>
-              {SEASONS.map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
-              ))}
-            </Select>
+            <div className="space-y-1">
+              <Label htmlFor="mk-c-target">الموسم</Label>
+              <Select id="mk-c-target" value={cSeason} onChange={(e) => setCSeason(e.target.value)}>
+                {SEASONS.map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </Select>
+            </div>
           ) : cKind === "category" ? (
-            <Select value={cCategory} onChange={(e) => setCCategory(e.target.value)}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name_ar}</option>
-              ))}
-            </Select>
+            <div className="space-y-1">
+              <Label htmlFor="mk-c-target">الفئة</Label>
+              <Select id="mk-c-target" value={cCategory} onChange={(e) => setCCategory(e.target.value)}>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name_ar}</option>
+                ))}
+              </Select>
+            </div>
           ) : (
             <div />
           )}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-muted-foreground">تاريخ الانتهاء (اختياري)</label>
-          <Input type="date" value={cEnds} onChange={(e) => setCEnds(e.target.value)} className="w-40" dir="ltr" />
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="mk-c-ends">تاريخ الانتهاء (اختياري)</Label>
+            <Input id="mk-c-ends" type="date" value={cEnds} onChange={(e) => setCEnds(e.target.value)} className="w-40" dir="ltr" />
+          </div>
           <Button size="sm" disabled={busy || !cName.trim()} onClick={() => void createCampaign()}>
-            حفظ كمسودة
+            احفظ كمسودة
           </Button>
         </div>
 
-        {campaigns.length > 0 && (
-          <table className="mt-4 w-full text-sm">
+        {campaigns.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">ما في حملات بعد — عبّي الخانات فوق واحفظها كمسودة، وبعدين انشرها.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
-              <tr className="border-b text-right text-muted-foreground">
+              <tr className="border-b text-start text-muted-foreground">
                 <th className="py-2 font-normal">الحملة</th>
                 <th className="py-2 font-normal">الخصم</th>
                 <th className="py-2 font-normal">الهدف</th>
@@ -291,38 +312,65 @@ export function Marketing() {
                       {c.status === "live" ? `شغّالة (${c.affected_products.length})` : c.status === "draft" ? "مسودة" : "منتهية"}
                     </Badge>
                   </td>
-                  <td className="py-2 text-left">
+                  <td className="py-2 text-end">
                     {c.status === "draft" && (
-                      <Button size="sm" disabled={busy} onClick={() => void publish(c.id)}>انشر</Button>
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => {
+                          if (window.confirm(`تنشر «${c.name_ar}»؟ الأسعار بتنزل ${c.percent_off}% فوراً عالموقع والكاشير.`)) void publish(c.id);
+                        }}
+                      >
+                        انشر الحملة
+                      </Button>
                     )}
                     {c.status === "live" && (
-                      <Button size="sm" variant="outline" disabled={busy} onClick={() => void endCampaign(c.id)}>أنهِها</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          if (window.confirm(`تنهي «${c.name_ar}»؟ الأسعار بترجع لأصلها فوراً، والحملة ما بترجع تنشغل.`)) void endCampaign(c.id);
+                        }}
+                      >
+                        أنهي الحملة
+                      </Button>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 
       {/* Promocodes */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">أكواد الخصم</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Input value={pCode} onChange={(e) => setPCode(e.target.value)} placeholder="CODE" dir="ltr" className="w-40 font-mono uppercase" />
-          <Input value={pValue} onChange={(e) => setPValue(e.target.value)} placeholder="%" inputMode="numeric" className="w-20 text-left font-mono" />
-          <Button size="sm" disabled={busy || !pCode.trim()} onClick={() => void createPromo()}>ضيف كود</Button>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="mk-p-code">الكود</Label>
+            <Input id="mk-p-code" value={pCode} onChange={(e) => setPCode(e.target.value)} placeholder="CODE" dir="ltr" className="w-40 font-mono uppercase" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="mk-p-value">الخصم %</Label>
+            <Input id="mk-p-value" value={pValue} onChange={(e) => setPValue(e.target.value)} placeholder="10" inputMode="numeric" className="w-20 text-left font-mono" dir="ltr" />
+          </div>
+          <Button size="sm" disabled={busy || !pCode.trim()} onClick={() => void createPromo()}>زيد الكود</Button>
         </div>
+        {promos.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">ما في أكواد خصم بعد — اكتب الكود والنسبة فوق واكبس «زيد الكود».</p>
+        ) : null}
         <ul className="mt-4 space-y-2 text-sm">
           {promos.map((p) => (
-            <li key={p.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 border px-3 py-2">
               <span className="font-mono uppercase" dir="ltr">{p.code}</span>
               <span className="flex items-center gap-3">
                 <span className="font-mono text-muted-foreground">{p.kind === "percent" ? `${p.value}%` : `$${(p.value / 100).toFixed(2)}`}</span>
                 {p.is_birthday && <Badge variant="secondary">عيد ميلاد</Badge>}
                 <Button size="sm" variant={p.is_enabled ? "outline" : "default"} onClick={() => void togglePromo(p)}>
-                  {p.is_enabled ? "عطّل" : "فعّل"}
+                  {p.is_enabled ? "عطّل الكود" : "فعّل الكود"}
                 </Button>
               </span>
             </li>
@@ -331,18 +379,28 @@ export function Marketing() {
       </section>
 
       {/* Popups */}
-      <section className="rounded-lg border p-4">
+      <section className="border p-4">
         <h2 className="font-medium">بوب-أب المتجر</h2>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <Input value={puTitle} onChange={(e) => setPuTitle(e.target.value)} placeholder="العنوان (EN)" dir="ltr" />
-          <Input value={puBody} onChange={(e) => setPuBody(e.target.value)} placeholder="النص (EN)" dir="ltr" className="sm:col-span-2" />
+        <p className="mt-1 text-sm text-muted-foreground">رسالة قصيرة بتطلع للزبون لمّا يفوت عالموقع — بالإنكليزي لأنو الموقع إنكليزي.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="mk-pu-title">العنوان (EN)</Label>
+            <Input id="mk-pu-title" value={puTitle} onChange={(e) => setPuTitle(e.target.value)} placeholder="Winter edit" dir="ltr" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="mk-pu-body">النص (EN)</Label>
+            <Input id="mk-pu-body" value={puBody} onChange={(e) => setPuBody(e.target.value)} placeholder="20% off all winter pieces this week." dir="ltr" />
+          </div>
         </div>
-        <Button size="sm" className="mt-2" disabled={busy || !puTitle.trim() || !puBody.trim()} onClick={() => void createPopup()}>
-          انشر بوب-أب
+        <Button size="sm" className="mt-3" disabled={busy || !puTitle.trim() || !puBody.trim()} onClick={() => void createPopup()}>
+          انشر البوب-أب
         </Button>
+        {popups.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">ما في بوب-أب بعد — اكتب العنوان والنص فوق وانشرو.</p>
+        ) : null}
         <ul className="mt-4 space-y-2 text-sm">
           {popups.map((p) => (
-            <li key={p.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 border px-3 py-2">
               <span dir="ltr">{p.title_en} — <span className="text-muted-foreground">{p.body_en.slice(0, 60)}</span></span>
               <Button size="sm" variant={p.is_active ? "outline" : "default"} onClick={() => void togglePopup(p)}>
                 {p.is_active ? "خبّيه" : "فعّله"}

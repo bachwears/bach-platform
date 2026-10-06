@@ -133,7 +133,7 @@ export function ColourPicker({ value, onChange }: { value: Colour | null; onChan
         )}
       </button>
       {open && (
-        <div className="absolute z-30 mt-1 w-full min-w-72 border bg-background shadow-lg">
+        <div className="absolute z-30 mt-1 w-full min-w-72 border bg-background">
           <div className="border-b p-2">
             <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="دوّر: Navy، كحلي، NAV…" />
           </div>

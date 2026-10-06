@@ -217,14 +217,14 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
 
   if (summary) {
     return (
-      <div className="mx-auto max-w-md space-y-4 rounded-lg border p-8 text-center">
-        <p className="text-4xl">✓</p>
-        <h2 className="text-xl font-semibold">انطبّق الجرد</h2>
+      <div className="mx-auto max-w-md space-y-4 border p-8 text-center">
+        <p className="text-4xl font-light">✓</p>
+        <h2 className="text-xl font-normal">انطبّق الجرد</h2>
         <p className="text-muted-foreground">
           تعدّل {summary.adjusted} صنف · صافي الفرق{" "}
           <span dir="ltr" className="font-mono">{summary.total_delta > 0 ? `+${summary.total_delta}` : summary.total_delta}</span> قطعة
         </p>
-        <Button onClick={() => window.location.reload()}>جرد جديد</Button>
+        <Button className="h-11" onClick={() => window.location.reload()}>بلّش جرد جديد</Button>
       </div>
     );
   }
@@ -238,12 +238,12 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
         <div className="flex gap-2">
           {canApply && (
             <>
-              <Button size="sm" disabled={!counts.length || busy} onClick={() => void apply()}>
-                طبّق الجرد
+              <Button className="h-10" disabled={!counts.length || busy} onClick={() => void apply()}>
+                طبّق الجرد عالمخزون
               </Button>
               <Button
-                size="sm"
                 variant="ghost"
+                className="h-10"
                 onClick={async () => {
                   if (takeId && window.confirm("إلغاء جلسة الجرد؟ العدّات بتنحذف.")) {
                     const { error: err } = await supabase.rpc("stocktake_cancel", { p_stocktake_id: takeId });
@@ -259,7 +259,7 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                   }
                 }}
               >
-                إلغاء
+                ألغِ الجلسة
               </Button>
             </>
           )}
@@ -271,6 +271,7 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
           ref={scanRef}
           value={query}
           placeholder="امسح الباركود — كل مسحة بتزيد العدّ ١…"
+          aria-label="امسح القطعة لتنعدّ"
           className="h-12 text-lg"
           onChange={(e) => {
             setQuery(e.target.value);
@@ -285,12 +286,12 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
           }}
         />
         {results.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+          <div className="absolute inset-x-0 top-full z-10 mt-1 max-h-[60vh] overflow-y-auto border bg-background">
             {results.map((v) => (
               <button
                 key={v.id}
                 type="button"
-                className="flex w-full items-center justify-between px-4 py-2 text-right hover:bg-muted"
+                className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-right hover:bg-muted"
                 onClick={() => {
                   setQuery("");
                   setResults([]);
@@ -298,7 +299,7 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                   scanRef.current?.focus();
                 }}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex min-w-0 items-center gap-3">
                   <Thumb src={photoOf(v.id)} size="sm" />
                   {v.products.name_en} — {v.size} {v.color_en}
                 </span>
@@ -309,11 +310,17 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
         )}
       </div>
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
+
+      {takeId && counts.length === 0 && (
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          لسّا ما انعدّت ولا قطعة — امسح باركود أول قطعة عالرف، وكل مسحة بتزيد عدّها واحد.
+        </p>
+      )}
 
       {counts.length > 0 && (
-        <div className="rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto border">
+          <table className="w-full min-w-[30rem] text-sm">
             <thead>
               <tr className="border-b text-right text-muted-foreground">
                 <th className="p-3 font-normal">الصنف</th>
@@ -350,7 +357,7 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
                           const n = Math.max(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0, 0);
                           void saveCount(r.variant_id, n);
                         }}
-                        className="h-8 w-16 text-left font-mono"
+                        className="h-10 w-16 text-left font-mono md:h-8"
                         inputMode="numeric"
                       />
                     </td>
@@ -372,14 +379,14 @@ export function Stocktake({ branchId, canApply }: { branchId: string; canApply: 
       )}
 
       {uncounted.length > 0 && (
-        <details className="rounded-lg border p-4">
+        <details className="border p-4">
           <summary className="cursor-pointer text-sm font-medium">
             بعد ما انعدّوا ({uncounted.length}) — بيضلّوا عالمخزون الحالي إذا ما انعدّوا
           </summary>
           <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto text-sm">
             {uncounted.map((u) => (
-              <li key={u.variant_id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted">
-                <span className="flex items-center gap-3">
+              <li key={u.variant_id} className="flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 hover:bg-muted">
+                <span className="flex min-w-0 items-center gap-3">
                   <Thumb src={photoOf(u.variant_id)} size="sm" />
                   <span>
                     {u.name} — {u.size} {u.color}

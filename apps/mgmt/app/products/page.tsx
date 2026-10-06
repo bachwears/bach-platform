@@ -3,6 +3,7 @@ import { Printer } from "lucide-react";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { Button } from "@bach/ui/components/button";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { MissingPhotosAlert } from "../../components/missing-photos-alert";
 import { Nav } from "../../components/nav";
@@ -91,12 +92,21 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">المنتجات</h1>
-          <Button asChild>
-            <Link href="/products/new">+ منتج جديد</Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="المنتجات"
+          description="كل قطع الكاتالوغ — دوّر بالاسم أو الـ SKU، وافتح أي قطعة لتعدّل صورها وأسعارها ومقاساتها."
+          hint={{
+            title: "المنتجات",
+            what: "لائحة كل القطع: الصورة الأمامية، الفئة، السعر، المخزون المتوفّر بكل الفروع، وحالة النشر.",
+            source: "جدول المنتجات والفاريانتس، والمخزون من كل الفروع (الكمية ناقص المحجوز).",
+            edit: "اكبس على اسم القطعة لتفتح صفحتها، أو «+ منتج جديد» لتزيد قطعة.",
+          }}
+          actions={
+            <Button asChild>
+              <Link href="/products/new">+ منتج جديد</Link>
+            </Button>
+          }
+        />
 
         <MissingPhotosAlert />
 
@@ -108,7 +118,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             defaultValue={q}
             placeholder="دوّر بالاسم أو الـ SKU…"
             aria-label="دوّر بالاسم أو الـ SKU"
-            className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:max-w-sm"
+            className="h-10 min-w-0 flex-1 border bg-background px-3 text-sm sm:max-w-sm"
           />
           <Button type="submit" variant="outline">
             دوّر
@@ -129,7 +139,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 (filter === x.key
                   ? "bg-foreground text-background "
                   : "text-muted-foreground hover:text-foreground ") +
-                "rounded-full border px-4 py-1.5 text-sm transition-colors"
+                "border px-4 py-1.5 text-sm transition-colors"
               }
             >
               {x.label}
@@ -145,12 +155,24 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         ) : null}
 
         {!products.length ? (
-          <p className="rounded-md border p-8 text-center text-muted-foreground">
-            {q ? "ما في منتج بهالاسم أو الـ SKU." : "ما في منتجات بعد — ابدأ بإضافة أول منتج."}
-          </p>
+          <div className="space-y-2 border p-8 text-center text-sm text-muted-foreground">
+            <p>
+              {q
+                ? "ما في قطعة بهالاسم أو الـ SKU — جرّب كلمة أقصر أو امسح البحث."
+                : filter !== "all"
+                  ? "ما في قطع بهالفلتر."
+                  : "ما في منتجات بعد — ابدأ بإضافة أول قطعة."}
+            </p>
+            <Link
+              href={q || filter !== "all" ? "/products" : "/products/new"}
+              className="inline-block text-foreground underline underline-offset-4"
+            >
+              {q || filter !== "all" ? "اعرض كل المنتجات" : "+ منتج جديد"}
+            </Link>
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-start">
                   <th className="w-14 p-3" aria-label="صورة" />
@@ -177,10 +199,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                               src={p.front}
                               alt=""
                               loading="lazy"
-                              className="h-14 w-11 rounded-sm bg-muted object-cover"
+                              className="h-14 w-11 bg-muted object-cover"
                             />
                           ) : (
-                            <span className="grid h-14 w-11 place-items-center rounded-sm border border-dashed border-red-500/50 text-[10px] text-red-600 dark:text-red-400">
+                            <span className="grid h-14 w-11 place-items-center border border-dashed border-red-500/50 text-[10px] text-red-600 dark:text-red-400">
                               بلا صورة
                             </span>
                           )}
@@ -234,7 +256,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           href={`/labels?product=${p.id}`}
                           title="اطبع ليبلات هالمنتج"
                           aria-label={`اطبع ليبلات ${p.name_en}`}
-                          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          className="grid h-9 w-9 place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                           <Printer className="h-4 w-4" aria-hidden />
                         </Link>

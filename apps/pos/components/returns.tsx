@@ -337,7 +337,7 @@ export function Returns({
   if (slip) {
     return (
       <div className="mx-auto max-w-md space-y-4 p-6 print:p-0">
-        <div className="rounded-lg border p-6 print:border-0" dir="ltr">
+        <div className="border p-6 print:border-0" dir="ltr">
           <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-bach.png" alt="BACH" className="mx-auto h-5 w-auto dark:invert print:invert-0" />
@@ -364,11 +364,11 @@ export function Returns({
           <p className="mt-4 text-center text-xs text-muted-foreground">Thank you for shopping with us.</p>
         </div>
         <div className="flex gap-3 print:hidden">
-          <Button className="flex-1" onClick={() => window.print()}>
-            طباعة
+          <Button className="h-11 flex-1" onClick={() => window.print()}>
+            اطبع الوصل
           </Button>
-          <Button className="flex-1" variant="outline" onClick={() => setSlip(null)}>
-            عملية جديدة
+          <Button className="h-11 flex-1" variant="outline" onClick={() => setSlip(null)}>
+            بلّش عملية جديدة
           </Button>
         </div>
       </div>
@@ -388,19 +388,30 @@ export function Returns({
             }
           }}
           placeholder="رقم الفاتورة…"
+          aria-label="رقم الفاتورة"
           className="h-11 text-lg"
           inputMode="numeric"
         />
         <Button className="h-11" disabled={searching} onClick={() => void loadOrder()}>
-          {searching ? "عم نفتّش…" : "فتّش"}
+          {searching ? "عم نفتّش…" : "افتح الفاتورة"}
         </Button>
       </div>
 
-      {error && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+      {!order && !error && (
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          اكتب رقم الفاتورة من إيصال الزبون واكبس «افتح الفاتورة». ما معو الإيصال؟ لاقيها باسمو أو تلفونو من{" "}
+          <a href="/invoices" className="text-foreground underline underline-offset-4">
+            الفواتير
+          </a>
+          .
+        </p>
+      )}
+
+      {error && <p className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{error}</p>}
 
       {order && (
         <>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>
               فاتورة <span className="font-mono">#{order.number}</span> —{" "}
               {new Date(order.created_at).toLocaleDateString("en-GB")}
@@ -408,8 +419,8 @@ export function Returns({
             <span className="font-mono">{usd(order.total_usd_cents)}</span>
           </div>
 
-          <div className="rounded-lg border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border">
+            <table className="w-full min-w-[30rem] text-sm">
               <thead>
                 <tr className="border-b text-right text-muted-foreground">
                   <th className="p-3 font-normal">القطعة</th>
@@ -439,11 +450,11 @@ export function Returns({
                       <td className="p-3 font-mono">{i.returned}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2" dir="ltr">
-                          <Button size="sm" variant="outline" disabled={q <= 0} onClick={() => setRetQty({ ...retQty, [i.id]: q - 1 })}>
+                          <Button size="sm" variant="outline" className="h-10 w-10 p-0 md:h-8 md:w-8" aria-label="نقّص وحدة" disabled={q <= 0} onClick={() => setRetQty({ ...retQty, [i.id]: q - 1 })}>
                             −
                           </Button>
                           <span className="w-6 text-center font-mono">{q}</span>
-                          <Button size="sm" variant="outline" disabled={q >= max} onClick={() => setRetQty({ ...retQty, [i.id]: q + 1 })}>
+                          <Button size="sm" variant="outline" className="h-10 w-10 p-0 md:h-8 md:w-8" aria-label="زيد وحدة" disabled={q >= max} onClick={() => setRetQty({ ...retQty, [i.id]: q + 1 })}>
                             +
                           </Button>
                         </div>
@@ -462,6 +473,7 @@ export function Returns({
               role="radio"
               aria-checked={mode === "return"}
               variant={mode === "return" ? "default" : "outline"}
+              className="h-10"
               onClick={() => setMode("return")}
             >
               {mode === "return" ? "✓ " : ""}إرجاع واسترداد
@@ -469,12 +481,14 @@ export function Returns({
             <Button
               role="radio"
               aria-checked={mode === "exchange"}
-              variant={mode === "exchange" ? "default" : "outline"} onClick={() => setMode("exchange")}>
+              variant={mode === "exchange" ? "default" : "outline"}
+              className="h-10"
+              onClick={() => setMode("exchange")}>
               {mode === "exchange" ? "✓ " : ""}تبديل بقطع تانية
             </Button>
           </div>
 
-          <div className={`space-y-1 rounded-lg border p-3 text-sm ${windowPassed ? "border-destructive/60" : ""}`}>
+          <div className={`space-y-1 border p-3 text-sm ${windowPassed ? "border-destructive/60" : ""}`}>
             <p>
               {order.channel === "online" ? "وصل للزبون" : "اشترى بالمحل"}: <span dir="ltr">{dateAr(receivedAt ? new Date(receivedAt) : null)}</span>
               {" · "}الإرجاع لغاية <span dir="ltr">{dateAr(returnUntil)}</span>
@@ -502,7 +516,7 @@ export function Returns({
           </div>
 
           {order.customer_id ? (
-            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+            <label className="flex items-center gap-2 border p-3 text-sm">
               <input type="checkbox" className="h-5 w-5 shrink-0 cursor-pointer accent-foreground" checked={toWallet} onChange={(e) => setToWallet(e.target.checked)} />
               <span>
                 رجّع المبلغ <span className="font-medium">رصيد على محفظة الزبون</span>
@@ -513,7 +527,7 @@ export function Returns({
           ) : null}
 
           {mode === "exchange" && (
-            <div className="space-y-3 rounded-lg border p-4">
+            <div className="space-y-3 border p-4">
               <p className="text-sm font-medium">القطع الجديدة</p>
               <div className="relative">
                 <Input
@@ -523,15 +537,17 @@ export function Returns({
                     void search(e.target.value);
                   }}
                   placeholder="امسح الباركود أو SKU…"
+                  aria-label="امسح القطعة الجديدة"
+                  className="h-11"
                 />
                 {results.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+                  <div className="absolute inset-x-0 top-full z-10 mt-1 max-h-[60vh] overflow-y-auto border bg-background">
                     {results.map((r) => (
                       <button
                         key={r.variantId}
                         type="button"
                         disabled={r.available <= 0}
-                        className="flex w-full items-center justify-between px-4 py-2 text-right hover:bg-muted disabled:opacity-40"
+                        className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2 text-right hover:bg-muted disabled:opacity-40"
                         onClick={() => {
                           setNewCart((prev) => {
                             const ex = prev.find((l) => l.variantId === r.variantId);
@@ -547,7 +563,7 @@ export function Returns({
                           setResults([]);
                         }}
                       >
-                        <span className="flex items-center gap-3">
+                        <span className="flex min-w-0 items-center gap-3">
                           <Thumb src={photoOf(r.variantId)} size="sm" />
                           {r.nameEn} — {r.size} {r.colorEn}
                         </span>
@@ -558,8 +574,8 @@ export function Returns({
                 )}
               </div>
               {newCart.map((l) => (
-                <div key={l.variantId} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-3">
+                <div key={l.variantId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-3">
                     <Thumb src={photoOf(l.variantId)} size="sm" />
                     {l.nameEn} — {l.size} {l.colorEn} × {l.quantity}
                   </span>
@@ -568,6 +584,8 @@ export function Returns({
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="h-10 w-10 p-0 md:h-8 md:w-8"
+                      aria-label="شيل القطعة"
                       onClick={() => setNewCart(newCart.filter((x) => x.variantId !== l.variantId))}
                     >
                       ✕
@@ -578,7 +596,7 @@ export function Returns({
             </div>
           )}
 
-          <div className="space-y-2 rounded-lg border p-4 text-sm">
+          <div className="space-y-2 border p-4 text-sm">
             {fee > 0 ? (
               <>
                 <Row label="قيمة القطع المرجوعة" value={usd(itemsCredit)} />
@@ -589,7 +607,7 @@ export function Returns({
             {mode === "exchange" && (
               <Row label={tva.enabled && !tva.pricesIncludeTva ? "قيمة القطع الجديدة (مع TVA)" : "قيمة القطع الجديدة"} value={usd(newTotal)} />
             )}
-            <div className="flex justify-between border-t pt-2 font-semibold">
+            <div className="flex flex-wrap justify-between gap-x-3 border-t pt-2 font-medium">
               <span>{net > 5 ? "الزبون بيدفع" : net < -5 ? "منرجّع للزبون" : "متعادل"}</span>
               <span className="font-mono">
                 {usd(Math.abs(net))} / {lbp((Math.abs(net) / 100) * rate)}
@@ -601,17 +619,17 @@ export function Returns({
                   <label className="text-xs text-muted-foreground" htmlFor="ret-usd">
                     {net > 5 ? "المدفوع" : "المرجّع"} دولار ($)
                   </label>
-                  <Input id="ret-usd" value={payUsd} onChange={(e) => setPayUsd(e.target.value)} className="text-left font-mono" inputMode="decimal" placeholder="0.00" />
+                  <Input id="ret-usd" value={payUsd} onChange={(e) => setPayUsd(e.target.value)} className="h-11 text-left font-mono" inputMode="decimal" placeholder="0.00" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground" htmlFor="ret-lbp">
                     {net > 5 ? "المدفوع" : "المرجّع"} ليرة (ل.ل)
                   </label>
-                  <Input id="ret-lbp" value={payLbp} onChange={(e) => setPayLbp(e.target.value)} className="text-left font-mono" inputMode="numeric" placeholder="0" />
+                  <Input id="ret-lbp" value={payLbp} onChange={(e) => setPayLbp(e.target.value)} className="h-11 text-left font-mono" inputMode="numeric" placeholder="0" />
                 </div>
               </div>
             )}
-            <Button className="mt-2 h-11 w-full" disabled={!canSubmit} onClick={() => void submit()}>
+            <Button className="mt-2 h-12 w-full" disabled={!canSubmit} onClick={() => void submit()}>
               {busy ? "عم نسجّل…" : mode === "return" ? "تسجيل المرتجع" : "تسجيل التبديل"}
             </Button>
             {/* Say why the button is off instead of leaving the cashier guessing. */}

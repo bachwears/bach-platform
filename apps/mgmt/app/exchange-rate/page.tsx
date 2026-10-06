@@ -1,6 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { RateForm } from "../../components/rate-form";
@@ -35,14 +36,12 @@ export default async function ExchangeRatePage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">سعر الصرف</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            سعر الليرة مقابل الدولار المعتمد بكل المنصة — الكاشير، المتجر، والتقارير.
-          </p>
-        </div>
+        <PageHeader
+          title="سعر الصرف"
+          description="سعر الليرة مقابل الدولار المعتمد بكل المنصة — الكاشير، المتجر، والتقارير."
+        />
 
-        <div className="rounded-lg border p-6">
+        <div className="border p-6">
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             السعر الحالي
             {hint && (
@@ -69,20 +68,20 @@ export default async function ExchangeRatePage() {
         {canSet ? (
           <RateForm currentRate={current} />
         ) : (
-          <p className="rounded-lg border p-4 text-sm text-muted-foreground">
-            بس السوبر أدمن ومدير المحل بيقدروا يغيّروا سعر الصرف.
+          <p className="border p-4 text-sm text-muted-foreground">
+            بس السوبر أدمن ومدير المحل بيقدروا يغيّروا سعر الصرف — احكي حدا منهن إذا تغيّر السعر.
           </p>
         )}
 
         {rates.length > 1 && (
-          <div className="rounded-lg border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
-                <tr className="border-b text-right text-muted-foreground">
-                  <th className="p-3 font-normal">السعر</th>
-                  <th className="p-3 font-normal">التغيير</th>
-                  <th className="p-3 font-normal">من تاريخ</th>
-                  <th className="p-3 font-normal">حدّده</th>
+                <tr className="border-b text-start text-muted-foreground">
+                  <th className="p-3 text-start font-normal">السعر</th>
+                  <th className="p-3 text-start font-normal">التغيير</th>
+                  <th className="p-3 text-start font-normal">من تاريخ</th>
+                  <th className="p-3 text-start font-normal">حدّده</th>
                 </tr>
               </thead>
               <tbody>

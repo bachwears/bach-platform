@@ -18,11 +18,11 @@ export async function MissingPhotosAlert({ className = "" }: { className?: strin
   return (
     <div
       role="alert"
-      className={`flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm ${className}`}
+      className={`flex flex-wrap items-center gap-x-4 gap-y-3 border border-red-500/40 bg-red-500/10 p-4 text-sm ${className}`}
     >
       <ImageOff className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-red-700 dark:text-red-300">
+        <p className="font-medium text-red-700 dark:text-red-300">
           {hidden} منتج منشور مخفي عن الموقع لأنو ما إلن صور
         </p>
         <p className="mt-0.5 text-muted-foreground">
@@ -32,11 +32,11 @@ export async function MissingPhotosAlert({ className = "" }: { className?: strin
       <div className="flex shrink-0 gap-2">
         <Link
           href="/products?f=no-photos"
-          className="rounded-md bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
+          className="bg-foreground px-4 py-2 font-medium text-background hover:bg-foreground/85"
         >
-          شوف اللائحة
+          شوف القطع المخفية
         </Link>
-        <Link href="/media-import" className="rounded-md border px-4 py-2 font-medium hover:bg-muted">
+        <Link href="/media-import" className="border px-4 py-2 font-medium hover:bg-muted">
           نزّل صور
         </Link>
       </div>

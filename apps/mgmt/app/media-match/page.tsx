@@ -1,4 +1,5 @@
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { MediaMatch } from "../../components/media-match";
@@ -17,17 +18,16 @@ export default async function MediaMatchPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">مطابقة الصور</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            الصور اللي ما انربطت تلقائيًا بمنتج — اختار الصورة، دوّر عالمنتج، حدد نوع اللقطة واربط.
-            وفيك كمان تعدّل خانات صور أي منتج موجود.
-          </p>
-        </div>
+        <PageHeader
+          title="مطابقة الصور"
+          description="الصور يلّي ما انربطت تلقائياً بقطعة — اختار الصورة، دوّر عالقطعة، حدّد نوع اللقطة واربط. وفيك تعدّل خانات صور أي قطعة."
+        />
         {canEdit ? (
           <MediaMatch />
         ) : (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بإدارة الصور.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بإدارة الصور — اطلب من مدير المحل أو مسؤول المخزون أو التسويق.
+          </p>
         )}
       </main>
     </div>

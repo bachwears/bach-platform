@@ -261,19 +261,19 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
             }}
           />
         </h2>
-        {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
+        {err && <p role="alert" className="border border-destructive/40 px-4 py-2 text-sm text-destructive">{err}</p>}
         {pending.length === 0 ? (
-          <p className="rounded-md border p-6 text-center text-sm text-muted-foreground">ما في طلبات معلقة — كله متأكد.</p>
+          <p className="border p-6 text-center text-sm text-muted-foreground">ما في تعبئات معلّقة — أي تعبئة جديدة من Whish بتطلع هون.</p>
         ) : (
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="p-3 text-start font-medium">الزبون</th>
                   <th className="p-3 text-start font-medium">المبلغ</th>
                   <th className="p-3 text-start font-medium">رقم الإيصال</th>
                   <th className="p-3 text-start font-medium">من قديش</th>
-                  <th className="p-3 text-start font-medium"></th>
+                  <th className="p-3 text-start font-medium"><span className="sr-only">القرار</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -296,11 +296,20 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                       <td className="p-3">
                         {canDecide ? (
                           <div className="flex gap-2">
-                            <Button size="sm" disabled={busy === tp.id} onClick={() => void decide(tp.id, true)}>تأكيد</Button>
-                            <Button size="sm" variant="ghost" disabled={busy === tp.id} onClick={() => void decide(tp.id, false)}>رفض</Button>
+                            <Button size="sm" disabled={busy === tp.id} onClick={() => void decide(tp.id, true)}>أكّد التعبئة</Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy === tp.id}
+                              onClick={() => {
+                                if (window.confirm(`نرفض تعبئة ${usd(tp.amount_usd_cents)} لـ${tp.customers?.full_name ?? "الزبون"}؟ ما رح ينزل شي بالمحفظة.`)) void decide(tp.id, false);
+                              }}
+                            >
+                              ارفض
+                            </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">بحاجة صلاحية مدير</span>
+                          <span className="text-xs text-muted-foreground">بدها مدير المحل أو السوبر أدمن</span>
                         )}
                       </td>
                     </tr>
@@ -313,11 +322,18 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">العملاء — بحث وسجل الطلبات</h2>
+        <h2 className="text-lg font-medium">الزبائن — بحث وسجل الطلبات</h2>
         <Input value={q} placeholder="فتّش بالاسم أو التلفون أو الإيميل…" onChange={(e) => void search(e.target.value)} />
         <p className="text-xs text-muted-foreground">
-          {q.trim().length >= 2 ? `${rows.length} نتيجة` : `آخر ${rows.length} عميل — فتّش لتلاقي غيرن`}
+          {q.trim().length >= 2 ? `${rows.length} نتيجة` : `آخر ${rows.length} زبون — فتّش لتلاقي غيرن`}
         </p>
+        {rows.length === 0 ? (
+          <p className="border p-6 text-center text-sm text-muted-foreground">
+            {q.trim().length >= 2
+              ? "ما لقينا زبون بهالبحث — جرّب جزء من الاسم، آخر أرقام التلفون، أو الإيميل."
+              : "ما في زبائن بعد — أول ما حدا يعمل حساب عالموقع أو ينسجّل بالكاشير بيطلع هون."}
+          </p>
+        ) : null}
         {rows.map((c) => {
           const live = (c.orders ?? []).filter((o) => !DEAD.has(o.status));
           const spent = live.reduce((n, o) => n + o.total_usd_cents, 0);
@@ -327,7 +343,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
             c.size_shoe ? `حذاء ${c.size_shoe}` : "",
           ].filter(Boolean);
           return (
-          <div key={c.id} className="rounded-md border">
+          <div key={c.id} className="border">
             <button
               type="button"
               aria-expanded={open === c.id}
@@ -363,7 +379,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
               <div className="space-y-4 border-t p-4">
               <dl className="grid gap-3 text-sm sm:grid-cols-4">
                 <div>
-                  <dt className="text-xs text-muted-foreground">عميل من</dt>
+                  <dt className="text-xs text-muted-foreground">زبون من</dt>
                   <dd>{day(c.created_at)}</dd>
                 </div>
                 <div>
@@ -383,7 +399,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                 <div>
                   <p className="mb-2 text-sm font-medium">سجل الطلبات ({orders.length})</p>
                   {orders.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">ما في طلبات.</p>
+                    <p className="text-sm text-muted-foreground">ما عندو طلبات بعد.</p>
                   ) : (
                     <ul className="space-y-1 text-sm">
                       {orders.map((o) => (
@@ -401,7 +417,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                 <div>
                   <p className="mb-2 text-sm font-medium">حركات المحفظة</p>
                   {tx.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">ما في حركات.</p>
+                    <p className="text-sm text-muted-foreground">ما في حركات بالمحفظة بعد.</p>
                   ) : (
                     <ul className="space-y-1 text-sm">
                       {tx.map((w) => (
@@ -441,7 +457,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                         </Button>
                       )}
                       {pts.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">ما في حركات نقاط.</p>
+                        <p className="text-sm text-muted-foreground">ما في حركات نقاط بعد.</p>
                       ) : (
                         <ul className="space-y-1 text-sm">
                           {pts.map((m) => (
@@ -459,7 +475,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                         </ul>
                       )}
                       {canAdjust && (
-                        <div className="space-y-2 rounded-md border p-3">
+                        <div className="space-y-2 border p-3">
                           <p className="text-xs font-medium">تعديل يدوي للنقاط</p>
                           <div className="flex flex-wrap gap-2">
                             <Input
@@ -479,7 +495,7 @@ export function CustomersManager({ canDecide, canAdjust, canRedeem }: { canDecid
                               className="h-9 min-w-40 flex-1"
                             />
                             <Button size="sm" disabled={ptsBusy || !adjDelta.trim() || !adjNote.trim()} onClick={() => void adjust(c)}>
-                              سجّل
+                              سجّل التعديل
                             </Button>
                           </div>
                         </div>

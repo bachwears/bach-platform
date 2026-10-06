@@ -1,5 +1,7 @@
 import { supabaseServer } from "@bach/supabase/server";
 
+import { PageHeader } from "@bach/ui/components/page-header";
+
 import { Stocktake } from "../../components/stocktake";
 import { PosNav } from "../../components/pos-nav";
 
@@ -19,12 +21,25 @@ export default async function StocktakePage() {
   return (
     <div className="min-h-dvh bg-background">
       <PosNav branchName={branch?.name} />
-      <main className="mx-auto max-w-4xl p-4 py-6">
-          <h1 className="flex items-center gap-2 text-lg font-medium print:hidden">الجرد</h1>
+      <main className="mx-auto max-w-4xl space-y-6 p-4 py-6">
+        <PageHeader
+          title="الجرد"
+          description="عدّ القطع يلي عالرفوف بالمسح، قارن مع المخزون بالنظام، وبعدين المدير بيطبّق الفرق."
+          hint={{
+            title: "كيف بيمشي الجرد",
+            what: "كل مسحة بتزيد عدّ القطعة واحد. «بالنظام» هو المخزون المسجّل، و«الفرق» هو المعدود ناقص يلي بالنظام.",
+            source: "المخزون الحالي للفرع. العدّ بينحفظ أول بأول، فيك تكمّل من أي جهاز.",
+            edit: "الكاشير بيعدّ بس؛ «طبّق الجرد عالمخزون» لمدير المحل أو مسؤول المخزون. القطع يلي ما انعدّت بتضلّ متل ما هي.",
+          }}
+        />
         {!COUNT_ROLES.has(profile?.role ?? "") ? (
-          <p className="p-8 text-center text-muted-foreground">دورك ما بيسمح بالجرد.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            دورك ما بيسمح بالجرد — اطلب من مسؤول المخزون أو المدير.
+          </p>
         ) : !branch ? (
-          <p className="p-8 text-center text-muted-foreground">ما في فرع مفعّل.</p>
+          <p className="border p-8 text-center text-sm text-muted-foreground">
+            ما في فرع مفعّل — الإدارة لازم تفعّل فرع من MGMT قبل الجرد.
+          </p>
         ) : (
           <Stocktake branchId={branch.id} canApply={APPLY_ROLES.has(profile?.role ?? "")} />
         )}

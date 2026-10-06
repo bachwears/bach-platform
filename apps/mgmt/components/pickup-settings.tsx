@@ -71,7 +71,7 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
   const live = v.enabled && v.address.trim() !== "";
 
   return (
-    <details className="rounded-lg border p-4" open={loaded && v.enabled && !v.address.trim()}>
+    <details className="border p-4" open={loaded && v.enabled && !v.address.trim()}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <span className="flex items-center gap-2 font-medium">
           الاستلام من المحل
@@ -80,7 +80,7 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
               title: "الاستلام من المحل (مجاناً)",
               what: "الزبون بيختار عالموقع «Pick up from the shop» بدل التوصيل: بلا رسوم توصيل، وبيدفع بالمحل كاش أو Whish.",
               source: "من جدول site_content (مفتاح pickup).",
-              edit: "عبّي عنوان المحل واكبس حفظ. طول ما العنوان فاضي، الخيار مخفي عالموقع.",
+              edit: "عبّي عنوان المحل واكبس «احفظ». طول ما العنوان فاضي، الخيار مخفي عالموقع.",
             }}
           />
         </span>
@@ -152,12 +152,12 @@ export function PickupSettings({ canEdit }: { canEdit: boolean }) {
         {canEdit ? (
           <div className="flex items-center gap-3">
             <Button size="sm" disabled={busy || !loaded} onClick={() => void save()}>
-              {busy ? "عم نحفظ…" : "حفظ"}
+              {busy ? "عم نحفظ…" : "احفظ"}
             </Button>
-            {msg ? <span className={`text-xs ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span> : null}
+            {msg ? <span role="status" className={`text-xs ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}>{msg.text}</span> : null}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">التعديل للمدير أو الإدارة بس.</p>
+          <p className="text-xs text-muted-foreground">التعديل للسوبر أدمن، مدير المحل أو مسؤول التسويق.</p>
         )}
       </div>
     </details>

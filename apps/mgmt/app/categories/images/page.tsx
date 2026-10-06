@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { CategoryImages, type CategoryImageRow } from "../../../components/category-images";
 import { Nav } from "../../../components/nav";
@@ -38,22 +38,22 @@ export default async function CategoryImagesPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-5xl space-y-6 p-4 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">صور الفئات</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              الصورة العريضة فوق كل صفحة فئة بالموقع — وحدة للكمبيوتر (21:9) ووحدة للموبايل (4:5). الفئة الفرعية بلا صورة بتاخد صورة الفئة الأم.
-            </p>
-          </div>
-          <Link href="/categories" className="text-sm underline underline-offset-4">
-            → الفئات
-          </Link>
-        </div>
+        <PageHeader
+          title="صور الفئات"
+          description="الصورة العريضة فوق كل صفحة فئة بالموقع — وحدة للكمبيوتر (21:9) ووحدة للموبايل (4:5)."
+          hint={{
+            title: "صور الفئات",
+            what: "البانر يلّي بيطلع فوق صفحة كل فئة عالموقع. الفئة الفرعية بلا صورة بتاخد صورة الفئة الأم.",
+            source: "عمودَي banner_url و banner_mobile_url بجدول الفئات؛ الملفات بتنحفظ بـ product-media.",
+            edit: "من هون: ارفع أو بدّل الصورتين لكل فئة. بيبيّن عالموقع خلال دقيقة أو دقيقتين.",
+          }}
+          back={{ href: "/categories", label: "الفئات" }}
+        />
         {EDITORS.has(profile?.role ?? "") ? (
           <CategoryImages categories={rows} />
         ) : (
-          <p className="rounded-md border p-6 text-sm text-muted-foreground">
-            تعديل صور الفئات للسوبر أدمن، مدير المحل، ومسؤول التسويق بس.
+          <p className="border p-6 text-sm text-muted-foreground">
+            تعديل صور الفئات للسوبر أدمن، مدير المحل، ومسؤول التسويق بس — اطلب من حدا منهن يغيّر الصورة.
           </p>
         )}
       </main>

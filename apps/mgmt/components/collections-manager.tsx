@@ -122,7 +122,7 @@ export function CollectionsManager() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border p-5">
+      <div className="flex flex-wrap items-end gap-3 border p-5">
         <div className="grid flex-1 gap-1.5">
           <label htmlFor="cname" className="flex items-center gap-2 text-sm font-medium">
             كولكشن جديد (الاسم بالإنكليزي)
@@ -138,15 +138,15 @@ export function CollectionsManager() {
           <Input id="cname" dir="ltr" value={newName} placeholder="Winter Essentials…" onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
         </div>
         <Button onClick={() => void create()} disabled={busy || !newName.trim()}>
-          إنشاء
+          أنشئ الكولكشن
         </Button>
       </div>
 
-      {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
+      {err && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
 
       {collections.length === 0 ? (
-        <p className="rounded-md border p-8 text-center text-muted-foreground">
-          ما في كولكشنات بعد — أنشئ أول واحد (مثلاً Winter Essentials).
+        <p className="border p-8 text-center text-sm text-muted-foreground">
+          ما في كولكشنات بعد — اكتب اسم فوق (مثلاً Winter Essentials) واكبس «أنشئ الكولكشن».
         </p>
       ) : (
         <div className="space-y-3">
@@ -154,7 +154,7 @@ export function CollectionsManager() {
             const count = c.product_collections?.[0]?.count ?? 0;
             const isOpen = open === c.id;
             return (
-              <div key={c.id} className="rounded-lg border">
+              <div key={c.id} className="border">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-3 p-4 text-start"
@@ -179,7 +179,7 @@ export function CollectionsManager() {
                         onChange={(e) => void search(e.target.value)}
                       />
                       {results.length > 0 && (
-                        <div className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg">
+                        <div className="absolute z-10 mt-1 w-full border bg-background">
                           {results.map((r) => (
                             <button
                               key={r.id}
@@ -198,7 +198,7 @@ export function CollectionsManager() {
                       )}
                     </div>
                     {members.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">فاضي — ضيف منتجات بالبحث فوق.</p>
+                      <p className="text-sm text-muted-foreground">الكولكشن فاضي — دوّر على قطعة بالخانة فوق واكبس عليها لتزيدها.</p>
                     ) : (
                       <ul className="divide-y">
                         {members.map((m) => (
@@ -212,7 +212,7 @@ export function CollectionsManager() {
                               className="text-muted-foreground hover:text-destructive"
                               onClick={() => void remove(c.id, m.product_id)}
                             >
-                              إزالة
+                              شيل من الكولكشن
                             </button>
                           </li>
                         ))}

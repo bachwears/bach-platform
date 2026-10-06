@@ -40,8 +40,8 @@ export function ProductSection({
   }, [id]);
 
   return (
-    <details ref={ref} id={id} open={defaultOpen} className="group scroll-mt-48 rounded-xl border bg-card">
-      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl p-4 hover:bg-muted/40 sm:p-5 [&::-webkit-details-marker]:hidden">
+    <details ref={ref} id={id} open={defaultOpen} className="group scroll-mt-48 border bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 hover:bg-muted/40 sm:p-5 [&::-webkit-details-marker]:hidden">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-medium tabular-nums text-muted-foreground">
           {step}
         </span>

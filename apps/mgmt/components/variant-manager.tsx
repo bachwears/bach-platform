@@ -102,7 +102,7 @@ export function VariantManager({
             const head = list[0]!;
             const stock = list.reduce((n, v) => n + (v.stock ?? 0), 0);
             return (
-              <div key={head.color_code} className="overflow-hidden rounded-lg border">
+              <div key={head.color_code} className="overflow-hidden border">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/40 px-3 py-2 text-sm">
                   <Swatch c={colours.find((c) => c.name_en.toLowerCase() === head.color_en.toLowerCase()) ?? null} className="h-4 w-4" />
                   <span className="font-medium" dir="ltr">
@@ -163,10 +163,10 @@ export function VariantManager({
           </p>
         </div>
       ) : (
-        <p className="rounded-md border p-4 text-sm text-muted-foreground">ما في فاريانتس بعد — ضيف أول لون ومقاساتو، والـ SKU بينعمل لحاله.</p>
+        <p className="border p-4 text-sm text-muted-foreground">ما في فاريانتس بعد — ضيف أول لون ومقاساتو، والـ SKU بينعمل لحاله.</p>
       )}
 
-      <form onSubmit={addVariant} className="space-y-3 rounded-lg border p-4">
+      <form onSubmit={addVariant} className="space-y-3 border p-4">
         <p className="text-sm font-medium">زيد لون أو مقاسات</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">

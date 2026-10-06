@@ -364,7 +364,7 @@ export function BasicsFields() {
             <option value="archived">مؤرشف</option>
           </Select>
         </Field>
-        <label className="flex items-start gap-3 rounded-lg border p-3 sm:mt-6">
+        <label className="flex items-start gap-3 border p-3 sm:mt-6">
           <input type="checkbox" className="mt-0.5 h-4 w-4" checked={values.hero} onChange={(e) => set("hero", e.target.checked)} />
           <span className="space-y-1">
             <span className="flex items-center gap-2 text-sm font-medium">
@@ -423,7 +423,7 @@ export function DetailsFields() {
             return (
               <label
                 key={key}
-                className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                className={`flex cursor-pointer items-center gap-2 border px-3 py-1.5 text-sm transition-colors ${
                   on ? "border-foreground bg-foreground text-background" : "hover:bg-muted"
                 }`}
               >
@@ -466,7 +466,7 @@ export function SeoFields() {
           {values.meta_description_en.length} / 160
         </p>
       </div>
-      <div className="rounded-md border bg-muted/30 p-3" dir="ltr">
+      <div className="border bg-muted/30 p-3" dir="ltr">
         <p className="truncate text-sm text-blue-700 dark:text-blue-400">{values.meta_title_en || `${values.name_en || "Product"} | BACH Wears`}</p>
         <p className="truncate text-xs text-emerald-700 dark:text-emerald-400">bachwears.com/products/{values.slug || "…"}</p>
         <p className="line-clamp-2 text-xs text-muted-foreground">{values.meta_description_en || values.description_en || "—"}</p>
@@ -571,11 +571,11 @@ function NewProductForm({
       }}
       className="space-y-8"
     >
-      <section className="space-y-4 rounded-lg border p-5">
+      <section className="space-y-4 border p-5">
         <h2 className="font-medium">الأساسيات</h2>
         <BasicsFields />
       </section>
-      <section className="space-y-4 rounded-lg border p-5">
+      <section className="space-y-4 border p-5">
         <h2 className="font-medium">الألوان والمقاسات</h2>
         <div className="space-y-2">
           <Label>الألوان</Label>
@@ -610,11 +610,11 @@ function NewProductForm({
             : "اختياري هون — فيك تزيدهن بعدين من صفحة المنتج."}
         </p>
       </section>
-      <section className="space-y-4 rounded-lg border p-5">
+      <section className="space-y-4 border p-5">
         <h2 className="font-medium">التفاصيل</h2>
         <DetailsFields />
       </section>
-      <section className="space-y-4 rounded-lg border p-5">
+      <section className="space-y-4 border p-5">
         <h2 className="font-medium">Google (SEO)</h2>
         <SeoFields />
       </section>

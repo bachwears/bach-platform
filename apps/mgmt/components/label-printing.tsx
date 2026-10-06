@@ -239,7 +239,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
               className="h-10"
             />
             {results.length > 0 && (
-              <div className="absolute z-10 mt-1 max-h-96 w-full overflow-y-auto rounded-md border bg-background shadow-lg">
+              <div className="absolute z-10 mt-1 max-h-96 w-full overflow-y-auto border bg-background">
                 <button
                   type="button"
                   className="w-full border-b px-3 py-2 text-right text-sm font-medium hover:bg-muted"
@@ -280,7 +280,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
           <select
             value={stockKey}
             onChange={(e) => setStockKey(e.target.value)}
-            className="h-10 rounded-md border bg-transparent px-2 text-sm"
+            className="h-10 border bg-transparent px-2 text-sm"
             aria-label="قياس الليبل"
           >
             {STOCKS.map((s) => (
@@ -304,7 +304,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
           <select
             value={bulkCat}
             onChange={(e) => setBulkCat(e.target.value)}
-            className="h-9 rounded-md border bg-transparent px-2 text-sm"
+            className="h-9 border bg-transparent px-2 text-sm"
             aria-label="الفئة"
           >
             <option value="all">كل القطع بالمخزون</option>
@@ -323,14 +323,14 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
         </div>
 
         {showPaste && (
-          <div className="space-y-2 rounded-md border p-3">
+          <div className="space-y-2 border p-3">
             <textarea
               value={paste}
               onChange={(e) => setPaste(e.target.value)}
               rows={4}
               dir="ltr"
               placeholder={"BW-SWE-012-BLK-M\n2000000000015\n…"}
-              className="w-full rounded-md border bg-transparent p-2 font-mono text-sm"
+              className="w-full border bg-transparent p-2 font-mono text-sm"
             />
             <div className="flex items-center gap-2">
               <Button size="sm" disabled={busy || !paste.trim()} onClick={() => void addPasted()}>
@@ -368,7 +368,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
           </div>
           <ul className="max-h-[28rem] space-y-2 overflow-y-auto text-sm">
             {queue.map((l) => (
-              <li key={l.v.id} className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
+              <li key={l.v.id} className="flex flex-wrap items-center gap-3 border px-3 py-2">
                 <Thumb src={photo(l.v)} />
                 <span className="flex-1">
                   {l.v.name_en} — {l.v.size} {l.v.color_en}
@@ -400,7 +400,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
       {/* Print sheet: one label per page at the exact stock size. */}
       <style>{`@media print { @page { size: ${stock.w}mm ${stock.h}mm; margin: 0; } }`}</style>
       {labels.length > 0 && labelsCount <= MAX_LABELS && (
-        <div className="print-labels rounded-lg border p-4 print:rounded-none print:border-0 print:p-0">
+        <div className="print-labels border p-4 print:rounded-none print:border-0 print:p-0">
           <p className="mb-3 text-xs text-muted-foreground print:hidden">
             معاينة — {labels.length} ليبل عقياس {stock.label}:
           </p>

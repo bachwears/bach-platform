@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { supabaseServer } from "@bach/supabase/server";
+import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../../components/nav";
 import { ProductForm } from "../../../components/product-form";
@@ -15,10 +17,17 @@ export default async function NewProductPage() {
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">منتج جديد</h1>
+        <PageHeader
+          title="منتج جديد"
+          description="عبّي الأساسيات، اختار الألوان والمقاسات، واحفظ — الصور بتنزاد من صفحة القطعة بعد الحفظ."
+          back={{ href: "/products", label: "المنتجات" }}
+        />
         {!categories?.length ? (
-          <p className="rounded-md border p-6 text-sm text-muted-foreground">
-            ما في فئات بعد — لازم تنضاف الفئات قبل ما تقدر تعمل منتج.
+          <p className="border p-6 text-sm text-muted-foreground">
+            ما في فئات بعد — لازم تنضاف الفئات قبل ما تقدر تعمل منتج.{" "}
+            <Link href="/categories" className="text-foreground underline underline-offset-4">
+              زيد فئة
+            </Link>
           </p>
         ) : (
           <ProductForm categories={categories} />

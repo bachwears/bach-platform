@@ -49,7 +49,7 @@ export function CategoryImages({ categories }: { categories: CategoryImageRow[] 
 
 function CategoryCard({ row, parent }: { row: CategoryImageRow; parent?: CategoryImageRow }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="border p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-medium">
           {row.name_ar}
@@ -225,7 +225,7 @@ function ImageSlot({
         ) : null}
       </p>
       <div
-        className={`relative overflow-hidden rounded-md bg-muted ${slot === "desktop" ? "aspect-[21/9]" : "aspect-[4/5]"}`}
+        className={`relative overflow-hidden bg-muted ${slot === "desktop" ? "aspect-[21/9]" : "aspect-[4/5]"}`}
       >
         {shown ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -237,7 +237,7 @@ function ImageSlot({
           />
         ) : null}
         {fallbackNote && !draft ? (
-          <span className="absolute inset-x-2 bottom-2 rounded bg-background/90 px-2 py-1 text-[11px] text-muted-foreground">
+          <span className="absolute inset-x-2 bottom-2 bg-background/90 px-2 py-1 text-[11px] text-muted-foreground">
             {fallbackNote}
           </span>
         ) : null}
@@ -263,7 +263,7 @@ function ImageSlot({
           ) : null}
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} onClick={() => void save()}>
-              {busy ? "عم نحفظ…" : "احفظ"}
+              {busy ? "عم نحفظ…" : "احفظ الصورة"}
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setDraft(null)}>
               إلغاء
@@ -277,7 +277,7 @@ function ImageSlot({
           </Button>
           {current ? (
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove()}>
-              شيل
+              شيل الصورة
             </Button>
           ) : null}
         </div>

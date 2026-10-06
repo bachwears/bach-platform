@@ -47,7 +47,7 @@ export function ReceiptView({
   return (
     <>
       <style>{`@media print { @page { size: 80mm auto; margin: 0; } .receipt-80 { width: 72mm; margin: 0 auto; font-size: 11px; } }`}</style>
-      <div className="receipt-80 rounded-lg border p-6 print:rounded-none print:border-0 print:p-1" dir="ltr">
+      <div className="receipt-80 border p-6 print:border-0 print:p-1" dir="ltr">
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-bach.png" alt="BACH WEARS" className="mx-auto h-5 w-auto" />

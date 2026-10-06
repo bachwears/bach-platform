@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
+import { PageHeader } from "@bach/ui/components/page-header";
 import { Thumb } from "@bach/ui/components/thumb";
 import { thumbUrl } from "@bach/ui/lib/photos";
 
@@ -50,20 +50,49 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     <div className="min-h-dvh bg-background">
       <Nav />
       <main className="mx-auto max-w-4xl space-y-6 p-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              <span className="font-mono">#{order.number}</span>
-            </h1>
-            <Badge variant={order.status === "completed" ? "default" : "secondary"}>
-              {statusLabelFor(order.status, (order as { fulfilment?: string }).fulfilment)}
-            </Badge>
-            {isPickup ? <Badge variant="outline">{PICKUP_BADGE}</Badge> : null}
-          </div>
-          <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
-            → رجوع للطلبات
-          </Link>
-        </div>
+        <PageHeader
+          back={{ href: "/orders", label: "الطلبات" }}
+          title={
+            <span className="flex flex-wrap items-center gap-3">
+              <span>
+                طلب{" "}
+                <span className="font-mono" dir="ltr">
+                  #{order.number}
+                </span>
+              </span>
+              <Badge variant={order.status === "completed" ? "default" : "secondary"}>
+                {statusLabelFor(order.status, (order as { fulfilment?: string }).fulfilment)}
+              </Badge>
+              {isPickup ? <Badge variant="outline">{PICKUP_BADGE}</Badge> : null}
+            </span>
+          }
+          description={
+            order.channel === "online"
+              ? "طلب أونلاين — حرّكو خطوة خطوة من «حالة الطلب» تحت."
+              : "بيعة بالمحل — انسكّرت عالكاشير. الإرجاع أو التبديل بيتسجّل من شاشة المرتجعات بالكاشير."
+          }
+          hint={{
+            title: "تفاصيل الطلب",
+            what: "كل شي عن الطلب: الزبون، التوصيل، القطع، الحساب والدفعات.",
+            source: "بيعات الكاشير من الـPOS، وطلبات الموقع من الشيك-آوت.",
+            edit: "الحالة من «حالة الطلب» (للسوبر أدمن، مدير المحل وخدمة الزبائن). القطع والأسعار ما بتتعدّل بعد البيع.",
+          }}
+        />
+
+        {canManage && (
+          <section className="space-y-3 border p-4 text-sm">
+            <h2 className="font-medium">حالة الطلب</h2>
+            <OrderStatusControl
+              orderId={order.id}
+              currentStatus={order.status}
+              channel={order.channel}
+              paymentMethod={order.payment_method}
+              totalUsdCents={order.total_usd_cents}
+              lbpPerUsd={todayRate}
+              fulfilment={(order as { fulfilment?: string }).fulfilment}
+            />
+          </section>
+        )}
 
         <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <Info label="الوقت" value={fmt(order.created_at)} ltr />
@@ -76,7 +105,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {order.channel === "online" || order.ship_address ? (
-          <div className="grid gap-4 rounded-lg border p-4 text-sm sm:grid-cols-2">
+          <div className="grid gap-4 border p-4 text-sm sm:grid-cols-2">
             <div className="space-y-1">
               <h2 className="font-medium">{isPickup ? PICKUP_BADGE : "التوصيل"}</h2>
               <p>{order.ship_name ?? "—"}</p>
@@ -111,15 +140,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
         ) : null}
 
-        <div className="rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto border">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
-              <tr className="border-b text-right text-muted-foreground">
-                <th className="p-3 font-normal">القطعة</th>
-                <th className="p-3 font-normal">SKU</th>
-                <th className="p-3 font-normal">الكمية</th>
-                <th className="p-3 font-normal">السعر</th>
-                <th className="p-3 font-normal">المجموع</th>
+              <tr className="border-b text-muted-foreground">
+                <th className="p-3 text-start font-normal">القطعة</th>
+                <th className="p-3 text-start font-normal">SKU</th>
+                <th className="p-3 text-start font-normal">الكمية</th>
+                <th className="p-3 text-start font-normal">السعر</th>
+                <th className="p-3 text-start font-normal">المجموع</th>
               </tr>
             </thead>
             <tbody>
@@ -161,7 +190,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 rounded-lg border p-4 text-sm">
+          <div className="space-y-2 border p-4 text-sm">
             <h2 className="font-medium">الحساب</h2>
             <Row label="المجموع" value={usd(order.subtotal_usd_cents)} />
             {order.discount_usd_cents > 0 && <Row label="الخصم" value={`- ${usd(order.discount_usd_cents)}`} />}
@@ -169,16 +198,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {(order as { delivery_usd_cents?: number }).delivery_usd_cents ? (
               <Row label="التوصيل" value={usd((order as { delivery_usd_cents?: number }).delivery_usd_cents!)} />
             ) : null}
-            <div className="flex justify-between border-t pt-2 font-semibold">
+            <div className="flex justify-between gap-3 border-t pt-2 font-medium">
               <span>الإجمالي</span>
-              <span className="font-mono">
+              <span className="font-mono" dir="ltr">
                 {usd(order.total_usd_cents)} / {Math.round((order.total_usd_cents / 100) * rate).toLocaleString("en-US")} ل.ل
               </span>
             </div>
             <p className="text-xs text-muted-foreground">سعر الصرف وقت البيع: {rate.toLocaleString("en-US")} ل.ل / $</p>
           </div>
 
-          <div className="space-y-2 rounded-lg border p-4 text-sm">
+          <div className="space-y-2 border p-4 text-sm">
             <h2 className="font-medium">الدفعات</h2>
             {(order.order_payments ?? []).length === 0 ? (
               <p className="text-muted-foreground">
@@ -200,23 +229,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 }
               />
             ))}
-            {canManage && (
-              <div className="border-t pt-3">
-                <OrderStatusControl
-                  orderId={order.id}
-                  currentStatus={order.status}
-                  channel={order.channel}
-                  paymentMethod={order.payment_method}
-                  totalUsdCents={order.total_usd_cents}
-                  lbpPerUsd={todayRate}
-                  fulfilment={(order as { fulfilment?: string }).fulfilment}
-                />
-              </div>
-            )}
           </div>
         </div>
 
-        {order.note && <p className="rounded-lg border p-4 text-sm text-muted-foreground">ملاحظة: {order.note}</p>}
+        {order.note && <p className="border p-4 text-sm text-muted-foreground">ملاحظة: {order.note}</p>}
       </main>
     </div>
   );
@@ -224,7 +240,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
 function Info({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
   return (
-    <div className="rounded-lg border p-3">
+    <div className="border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5" dir={ltr ? "ltr" : undefined}>
         {value}

@@ -68,7 +68,7 @@ export function NotificationSettings() {
   }
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="border p-4">
       <h2 className="flex items-center gap-2 font-medium">
         تنبيهات الإدارة بالإيميل
         <HintDot
@@ -109,10 +109,10 @@ export function NotificationSettings() {
               ))}
             </ul>
           </div>
-          {err && <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
-          {msg && <p className="rounded-md bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
+          {err && <p className="bg-destructive/10 px-4 py-2 text-sm text-destructive">{err}</p>}
+          {msg && <p className="bg-green-500/10 px-4 py-2 text-sm text-green-600 dark:text-green-400">{msg}</p>}
           <Button size="sm" disabled={busy} onClick={() => void save()}>
-            {busy ? "عم نحفظ…" : "حفظ إيميل الإدارة"}
+            {busy ? "عم نحفظ…" : "احفظ إيميل الإدارة"}
           </Button>
         </div>
       )}

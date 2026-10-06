@@ -66,6 +66,7 @@ export function OrderStatusControl({
 
   async function apply() {
     if (!next) return;
+    if (next === "cancelled" && !window.confirm("نلغي هالطلب؟ القطع المحجوزة بترجع للمخزون، وما في رجعة عن الإلغاء.")) return;
     setBusy(true);
     setError("");
     // The RPC checks the step and moves stock (packed = sale, cancelled = release).
@@ -85,9 +86,11 @@ export function OrderStatusControl({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">تغيير الحالة</p>
-      <div className="flex gap-2">
-        <Select value={next} onChange={(e) => setNext(e.target.value)} className="h-9 flex-1">
+      <label htmlFor={`next-status-${orderId}`} className="block text-xs text-muted-foreground">
+        الحالة الجديدة
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Select id={`next-status-${orderId}`} value={next} onChange={(e) => setNext(e.target.value)} className="h-9 min-w-0 flex-1">
           <option value="">اختار الحالة الجديدة…</option>
           {options.map((s) => (
             <option key={s} value={s}>
@@ -96,11 +99,11 @@ export function OrderStatusControl({
           ))}
         </Select>
         <Button size="sm" disabled={!next || busy || (collecting && shortBy > 5)} onClick={() => void apply()}>
-          {busy ? "عم نحدّث…" : "تحديث"}
+          {busy ? "عم نحدّث…" : next ? `غيّر لـ«${statusLabelFor(next, fulfilment)}»` : "غيّر الحالة"}
         </Button>
       </div>
       {collecting ? (
-        <div className="space-y-2 rounded-md border p-3">
+        <div className="space-y-2 border p-3">
           <p className="text-xs font-medium">{isPickup ? "شو انقبض بالمحل؟" : "شو قبض المندوب؟"}</p>
           <div className="grid grid-cols-3 gap-2">
             <label className="space-y-1 text-xs text-muted-foreground">
@@ -110,7 +113,7 @@ export function OrderStatusControl({
                 inputMode="decimal"
                 value={paidUsd}
                 onChange={(e) => setPaidUsd(e.target.value)}
-                className="h-9 w-full rounded-md border bg-background px-2 font-mono text-sm text-foreground"
+                className="h-9 w-full border bg-background px-2 font-mono text-sm text-foreground"
               />
             </label>
             <label className="space-y-1 text-xs text-muted-foreground">
@@ -121,7 +124,7 @@ export function OrderStatusControl({
                 value={paidLbp}
                 onChange={(e) => setPaidLbp(e.target.value)}
                 placeholder="0"
-                className="h-9 w-full rounded-md border bg-background px-2 font-mono text-sm text-foreground"
+                className="h-9 w-full border bg-background px-2 font-mono text-sm text-foreground"
               />
             </label>
             <label className="space-y-1 text-xs text-muted-foreground">
@@ -132,14 +135,14 @@ export function OrderStatusControl({
                 value={paidWhish}
                 onChange={(e) => setPaidWhish(e.target.value)}
                 placeholder="0"
-                className="h-9 w-full rounded-md border bg-background px-2 font-mono text-sm text-foreground"
+                className="h-9 w-full border bg-background px-2 font-mono text-sm text-foreground"
               />
             </label>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <button
               type="button"
-              className="rounded-md border px-2 py-1 hover:bg-muted"
+              className="border px-2 py-1 hover:bg-muted"
               onClick={() => {
                 setPaidUsd((totalUsdCents / 100).toFixed(2));
                 setPaidLbp("");
@@ -150,7 +153,7 @@ export function OrderStatusControl({
             </button>
             <button
               type="button"
-              className="rounded-md border px-2 py-1 hover:bg-muted"
+              className="border px-2 py-1 hover:bg-muted"
               onClick={() => {
                 setPaidUsd("");
                 setPaidLbp("");
@@ -174,7 +177,7 @@ export function OrderStatusControl({
       ) : next === "cancelled" ? (
         <p className="text-xs text-muted-foreground">الإلغاء بيرجّع القطع المحجوزة للمخزون.</p>
       ) : null}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
