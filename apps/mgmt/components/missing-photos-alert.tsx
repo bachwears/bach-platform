@@ -16,28 +16,32 @@ export async function MissingPhotosAlert({ className = "" }: { className?: strin
   ).length;
   if (!hidden) return null;
 
+  // Phones: the message takes the full width and the two buttons sit under it
+  // (side by side they squeezed the text into a one-word column).
   return (
     <div
       role="alert"
-      className={`flex flex-wrap items-center gap-x-4 gap-y-3 border border-red-500/40 bg-red-500/10 p-4 text-sm ${className}`}
+      className={`flex flex-col gap-3 border border-red-500/40 bg-red-500/10 p-4 text-sm sm:flex-row sm:items-center sm:gap-4 ${className}`}
     >
-      <ImageOff className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-red-700 dark:text-red-300">
-          {hidden} منتج منشور مخفي عن الموقع لأنو ما إلن صور
-        </p>
-        <p className="mt-0.5 text-muted-foreground">
-          الزبون ما بيشوفن بالشوب ولا بالبحث ولا بالصفحة الرئيسية. بس تنزّل الصورة الأمامية لأي منتج، بيطلع عالموقع لحالو.
-        </p>
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <ImageOff className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
+        <div className="min-w-0">
+          <p className="font-medium text-red-700 dark:text-red-300">
+            {hidden} منتج منشور مخفي عن الموقع لأنو ما إلن صور
+          </p>
+          <p className="mt-0.5 text-muted-foreground">
+            الزبون ما بيشوفن بالشوب ولا بالبحث ولا بالصفحة الرئيسية. بس تنزّل الصورة الأمامية لأي منتج، بيطلع عالموقع لحالو.
+          </p>
+        </div>
       </div>
-      <div className="flex shrink-0 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
         <Link
           href="/products?f=no-photos"
-          className="bg-foreground px-4 py-2 font-medium text-background hover:bg-foreground/85"
+          className="inline-flex items-center justify-center bg-foreground px-4 py-2.5 text-center font-medium text-background hover:bg-foreground/85"
         >
           شوف القطع المخفية
         </Link>
-        <Link href="/media-import" className="inline-flex items-center gap-2 border px-4 py-2 font-medium hover:bg-muted">
+        <Link href="/media-import" className="inline-flex items-center justify-center gap-2 border px-4 py-2.5 font-medium hover:bg-muted">
           <Icon name="upload" size={16} />
           ارفع صور
         </Link>
