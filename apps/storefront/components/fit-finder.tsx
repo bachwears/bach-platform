@@ -30,6 +30,8 @@ interface Answers {
  */
 /** Fired with { size } when the shopper takes the recommendation; the buy box selects it. */
 export const FIT_PICK_EVENT = "bach-fit-pick";
+/** the size sheet's "Find your size" opens the finder */
+export const FIT_OPEN_EVENT = "bach-fit-open";
 
 export function FitFinder({
   guide,
@@ -43,6 +45,11 @@ export function FitFinder({
   const locale = useLocale();
   const kind = fitKind(categoryCodes, sizes);
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(FIT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(FIT_OPEN_EVENT, onOpen);
+  }, []);
   const [answers, setAnswers] = useState<Answers>({ height: "", weight: "", fit: "regular", shoe: "" });
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [result, setResult] = useState<FitResult | null>(null);

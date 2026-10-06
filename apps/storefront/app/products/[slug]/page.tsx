@@ -20,6 +20,8 @@ import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
 import { FitFinder } from "../../../components/fit-finder";
 import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
+import { getShopCatalog } from "../../../lib/cached";
+import { PdpStrip, PdpSwipe, type PdpNavItem } from "../../../components/pdp-nav";
 
 interface VariantRow {
   id: string;
@@ -164,6 +166,26 @@ export default async function ProductPage({
     n = (catTree ?? []).find((c) => c.id === n!.parent_id);
   }
   const cardSelect = `id, category_id, ${CARD_COLUMNS}`;
+
+  // The category's pieces in shop order (cached catalogue): the phone strip at the
+  // bottom and the sideways swipe to the next / previous piece.
+  const { data: catalog } = await getShopCatalog();
+  type NavRow = { slug: string; name_en: string; categories: { code: string } | null; media_assets: Array<{ kind: string; storage_path: string }> | null };
+  const navItems: PdpNavItem[] = category
+    ? ((catalog ?? []) as unknown as NavRow[])
+        .filter((p) => p.categories?.code === category.code)
+        .map((p) => ({ p, front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null }))
+        .filter(({ front }) => front)
+        .map(({ p, front }) => ({
+          slug: p.slug,
+          href: lhref(locale, `/products/${p.slug}`),
+          name: p.name_en,
+          img: front!.replace(/-1600\.webp$/, "-400.webp"),
+        }))
+    : [];
+  const navAt = navItems.findIndex((i) => i.slug === product.slug);
+  const prevHref = navAt > 0 ? navItems[navAt - 1]!.href : null;
+  const nextHref = navAt >= 0 && navAt < navItems.length - 1 ? navItems[navAt + 1]!.href : null;
 
   // "You may also like": same category, newest first.
   const relatedQ = product.category_id
@@ -338,6 +360,7 @@ export default async function ProductPage({
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <PdpTopBar productId={product.id} name={displayName} />
+      <PdpStrip items={navItems} current={product.slug} />
       <ProductViewTracker productId={product.id} slug={product.slug} />
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">
@@ -347,8 +370,10 @@ export default async function ProductPage({
               <div className="hidden lg:block">
                 <PdpColourGallery hero={gallery} galleries={colorGalleries} name={displayName} />
               </div>
-              {/* phones: the first (worn) photo, then the buy box; the rest follow further down */}
+              {/* phones: the first (worn) photo whole, then the buy box; the rest follow further down.
+                  A sideways swipe on it flips to the next / previous piece of the category. */}
               <div className="lg:hidden">
+                <PdpSwipe prev={prevHref} next={nextHref}>
                 <PdpColourGallery
                   hero={gallery}
                   galleries={colorGalleries}
@@ -358,6 +383,7 @@ export default async function ProductPage({
                   // shoes: the worn shots are legs-and-feet, so the crop keeps the bottom
                   focus={lineage.includes("SHO") ? "bottom" : "top"}
                 />
+                </PdpSwipe>
               </div>
             </>
           ) : (
@@ -408,6 +434,7 @@ export default async function ProductPage({
             name={displayName}
             priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
+            fit={product.fit}
             variants={variants.map((v) => ({
               id: v.id,
               size: v.size,

@@ -85,7 +85,7 @@ export function PdpGallery({
               key={m.url}
               type="button"
               onClick={() => setOpen(i)}
-              className="block w-full cursor-zoom-in bg-secondary"
+              className={layout === "lead" ? "block w-full cursor-zoom-in px-4 pt-2" : "block w-full cursor-zoom-in bg-secondary"}
               aria-label={`${name} — ${viewLabel(m)}`}
             >
               <RetryImg
@@ -102,7 +102,9 @@ export function PdpGallery({
                 decoding="async"
                 className={
                   layout === "lead"
-                    ? `aspect-[3/4] max-h-[60dvh] w-full object-cover ${focus === "bottom" ? "object-[center_85%]" : "object-[center_20%]"}`
+                    ? // the whole photo, never cropped (Zara-style): as wide as the screen allows,
+                      // short enough that name, price and ADD still fit on the first screen
+                      "mx-auto h-auto max-h-[calc(100dvh-20rem)] w-auto max-w-full object-contain"
                     : "aspect-[3/4] w-full object-cover"
                 }
               />

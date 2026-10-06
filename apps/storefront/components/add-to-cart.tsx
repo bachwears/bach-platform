@@ -15,6 +15,13 @@ import { WISHLIST_EVENT } from "./pdp-topbar";
 import { lhref, useLocale } from "../lib/locale-client";
 import { availableFirst } from "../lib/sizes";
 import { DeliveryProgress, useBagGoods } from "./delivery-progress";
+import { FIT_OPEN_EVENT } from "./fit-finder";
+
+/** "Regular fit" → "This product has a regular fit." */
+function fitSentence(fit: string) {
+  const f = fit.trim().replace(/\s*fit$/i, "").toLowerCase();
+  return `This product has ${/^[aeiou]/.test(f) ? "an" : "a"} ${f} fit.`;
+}
 
 /** The bag's way to free delivery, right after an add (reads the whole bag). */
 function BagProgress() {
@@ -60,6 +67,7 @@ export function AddToCart({
   name,
   priceLabel,
   sizeGuide,
+  fit,
   shownColor = null,
   photoColors = [],
   initialColorCode = null,
@@ -80,6 +88,8 @@ export function AddToCart({
   name: string;
   priceLabel: string;
   sizeGuide?: React.ReactNode;
+  /** the product's fit (Regular fit, Oversized…), said at the top of the size list */
+  fit?: string | null;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -145,7 +155,12 @@ export function AddToCart({
   useEffect(() => {
     const onPick = (e: Event) => {
       const size = (e as CustomEvent<{ size?: string }>).detail?.size;
-      if (size) setPickedSize(size);
+      if (size) {
+        setPickedSize(size);
+        setAdded(null);
+        setAlertFor(null);
+        setSheet(true);
+      }
     };
     window.addEventListener("bach-fit-pick", onPick);
     return () => window.removeEventListener("bach-fit-pick", onPick);
@@ -234,8 +249,8 @@ export function AddToCart({
     setAdded(null);
     setAlertFor(null);
     setNotifyState("idle");
-    // A single size needs no choice; a size picked on the page goes straight in.
-    const ready = sizes.length === 1 && sizes[0]!.available > 0 ? sizes[0]! : picked;
+    // A single size needs no choice; every other piece shows its sizes first (Zara-style).
+    const ready = sizes.length === 1 && sizes[0]!.available > 0 ? sizes[0]! : null;
     if (ready) {
       addToCart(ready.id);
       trackAdd();
@@ -330,57 +345,6 @@ export function AddToCart({
         <p className="type-meta text-muted-foreground">
           {t(locale, "sf.pdp.size")} — <span className="text-foreground">{sizes[0]!.size}</span>
         </p>
-      )}
-      {sizes.length > 1 && (
-        <div>
-          <p className="type-meta text-muted-foreground">
-            {t(locale, "sf.pdp.size")}
-            {picked ? (
-              <>
-                {" — "}
-                <span className="text-foreground">{picked.size}</span>
-                {picked.available <= 3 ? ` · ${t(locale, "sf.pdp.fewLeft")}` : ""}
-              </>
-            ) : null}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t(locale, "sf.pdp.size")}>
-            {sizes.map((v) => {
-              const out = v.available <= 0;
-              const on = picked?.id === v.id;
-              return (
-                <button
-                  key={v.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  disabled={v.missing}
-                  aria-label={out ? `${v.size} — ${t(locale, "sf.shop.outOfStock")}` : v.size}
-                  title={out ? (v.missing ? t(locale, "sf.shop.outOfStock") : t(locale, "sf.pdp.notifyShort")) : undefined}
-                  onClick={() => {
-                    if (out) {
-                      // a sold-out size offers the back-in-stock alert
-                      setAdded(null);
-                      setNotifyState("idle");
-                      setAlertFor(v);
-                      setSheet(true);
-                      return;
-                    }
-                    setPickedSize(v.size);
-                  }}
-                  className={`type-meta h-10 min-w-12 border px-3 transition-colors disabled:cursor-not-allowed ${
-                    on
-                      ? "border-foreground"
-                      : out
-                        ? "border-border text-muted-foreground line-through"
-                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                  }`}
-                >
-                  {v.size}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       )}
       {pickedSize == null && savedSize && sizes.length > 0 && (!mine || mine.available <= 0) && (
         <p className="type-meta text-muted-foreground">{t(locale, "sf.pdp.yourSizeOut", { s: savedSize })}</p>
@@ -497,10 +461,11 @@ export function AddToCart({
               </div>
             ) : (
               <>
+                {fit ? <p className="mt-1 text-sm">{fitSentence(fit)}</p> : null}
                 <ul className="mt-1 divide-y">
                   {sizes.map((v) => {
                     const out = v.available <= 0;
-                    const isMine = mine?.id === v.id;
+                    const isMine = pickedSize != null ? v.size === pickedSize : mine?.id === v.id;
                     return (
                       <li key={v.id}>
                         <button
@@ -534,7 +499,21 @@ export function AddToCart({
                     );
                   })}
                 </ul>
-                {sizeGuide ? <div className="mt-3">{sizeGuide}</div> : null}
+                <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+                  {sizeGuide}
+                  {sizes.length > 1 ? (
+                    <button
+                      type="button"
+                      className="type-meta underline underline-offset-4 hover:opacity-60"
+                      onClick={() => {
+                        closeSheet();
+                        window.dispatchEvent(new Event(FIT_OPEN_EVENT));
+                      }}
+                    >
+                      {t(locale, "sf.fit.open")}
+                    </button>
+                  ) : null}
+                </div>
               </>
             )}
           </div>
