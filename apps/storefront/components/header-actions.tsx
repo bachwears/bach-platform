@@ -208,7 +208,7 @@ export function HeaderActions({
           <nav
             id="site-menu"
             aria-label={t(locale, "sf.nav.menu")}
-            className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e lg:w-[640px] xl:w-[720px]"
+            className="absolute inset-y-0 start-0 flex w-full flex-col overflow-y-auto overscroll-contain bg-background sm:w-[440px] sm:border-e lg:w-[min(60vw,880px)]"
           >
             {/* Close X on every screen — on phones the MENU tab also toggles, but it
                 sits at the bottom where nobody looks for a way out. */}
@@ -296,19 +296,13 @@ export function HeaderActions({
                     </ul>
                   </li>
                 ))}
-                {/* SPECIAL PRICES (ticked pieces + everything on sale): the last row, the one in colour */}
+                {/* SPECIAL PRICES (ticked pieces + everything on sale): last, in the links column, the one in colour */}
                 {(hasSpecial || hasSale) && (
                   <li className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-x-4">
-                    <span className="type-meta text-special pt-2">
-                      <span className="tabular-nums">|{two(groups.length + 2)}|</span> {t(locale, "sf.nav.special")}
-                    </span>
-                    <ul>
-                      <li>
-                        <Link href={lhref(locale, "/shop?special=1")} className="type-label text-special block py-2 transition-opacity hover:opacity-60" onClick={close}>
-                          {t(locale, "sf.nav.viewAll")}
-                        </Link>
-                      </li>
-                    </ul>
+                    <span aria-hidden />
+                    <Link href={lhref(locale, "/shop?special=1")} className="type-label text-special block py-2 transition-opacity hover:opacity-60" onClick={close}>
+                      {t(locale, "sf.nav.special")}
+                    </Link>
                   </li>
                 )}
               </ol>
