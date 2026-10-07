@@ -16,8 +16,6 @@ import json
 import pathlib
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 
 URL = "https://hrosyuaehkhzhnvefhts.supabase.co"
 BUCKET = "product-media"
@@ -33,23 +31,28 @@ def main() -> None:
     key = subprocess.check_output(["security", "find-generic-password", "-s", "BACH service role", "-w"]).decode().strip()
     moved = gone = failed = 0
     for name in files:
-        body = json.dumps({"bucketId": BUCKET, "sourceKey": f"unmatched/{name}", "destinationKey": f"ignored/{name}"}).encode()
-        req = urllib.request.Request(
-            f"{URL}/storage/v1/object/move",
-            data=body,
-            method="POST",
-            headers={"Authorization": f"Bearer {key}", "apikey": key, "Content-Type": "application/json"},
+        body = json.dumps({"bucketId": BUCKET, "sourceKey": f"unmatched/{name}", "destinationKey": f"ignored/{name}"})
+        # the system curl (macOS certificates); headers go in on stdin so the key never shows in `ps`
+        config = (
+            f'url = "{URL}/storage/v1/object/move"\n'
+            f'header = "Authorization: Bearer {key}"\n'
+            f'header = "apikey: {key}"\n'
+            'header = "Content-Type: application/json"\n'
         )
-        try:
-            urllib.request.urlopen(req, timeout=30).read()
+        out = subprocess.run(
+            ["curl", "-s", "-o", "-", "-w", "\n%{http_code}", "-X", "POST", "--data-binary", body, "--config", "-"],
+            input=config,
+            capture_output=True,
+            text=True,
+        )
+        text, _, code = out.stdout.rpartition("\n")
+        if code == "200":
             moved += 1
-        except urllib.error.HTTPError as e:
-            msg = e.read().decode(errors="replace")
-            if e.code in (400, 404) and "not found" in msg.lower():
-                gone += 1  # already linked or moved since the list was made
-            else:
-                failed += 1
-                print(f"  ! {name}: {e.code} {msg[:120]}")
+        elif code in ("400", "404") and "not found" in text.lower():
+            gone += 1  # already linked or moved since the list was made
+        else:
+            failed += 1
+            print(f"  ! {name}: {code} {text[:120]}")
     print(f"moved {moved} · already gone {gone} · failed {failed}")
 
 
