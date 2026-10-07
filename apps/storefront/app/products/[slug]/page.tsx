@@ -20,7 +20,7 @@ import { SizeGuide, type SizeGuideData } from "../../../components/size-guide";
 import { FitFinder } from "../../../components/fit-finder";
 import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
-import { getShopCatalog } from "../../../lib/cached";
+import { getShopCatalog, getSiteContent } from "../../../lib/cached";
 import { PdpStrip, PdpSwipe, type PdpNavItem } from "../../../components/pdp-nav";
 
 interface VariantRow {
@@ -169,11 +169,14 @@ export default async function ProductPage({
 
   // The category's pieces in shop order (cached catalogue): the phone strip at the
   // bottom and the sideways swipe to the next / previous piece.
-  const [{ data: catalog }, { data: colourRows }] = await Promise.all([
+  const [{ data: catalog }, { data: colourRows }, site] = await Promise.all([
     getShopCatalog(),
     // the MGMT colour list: each colour choice is shown as its swatch, never a word
     supabase.from("colours").select("name_en, hex, hex2"),
+    getSiteContent(),
   ]);
+  // MGMT can switch off the strip of the category's pieces (site_content shop.pdp_strip)
+  const showStrip = (site.shop as { pdp_strip?: boolean } | undefined)?.pdp_strip !== false;
   const colourFills: Record<string, string> = {};
   for (const c of (colourRows ?? []) as Array<{ name_en: string; hex: string | null; hex2: string | null }>) {
     if (!c.hex) continue;
@@ -375,7 +378,7 @@ export default async function ProductPage({
       />
       <PdpColourProvider initial={linkedColor?.color_en ?? null}>
       <PdpTopBar productId={product.id} name={displayName} />
-      <PdpStrip items={navItems} current={product.slug} currentPhotos={stripPhotos} />
+      {showStrip ? <PdpStrip items={navItems} current={product.slug} currentPhotos={stripPhotos} /> : null}
       <ProductViewTracker productId={product.id} slug={product.slug} />
       <main className="mx-auto grid max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:px-8 lg:pt-6">
         <div id="pdp-gallery" className="scroll-mt-16">

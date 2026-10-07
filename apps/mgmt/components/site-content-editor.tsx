@@ -81,6 +81,8 @@ export function SiteContentEditor() {
   // collections on/off and the share image save on their own (one click, no Save button)
   const [colsVisible, setColsVisible] = useState(true);
   const [colourCards, setColourCards] = useState(false);
+  // the strip of the category's pieces at the bottom of a product page (phones)
+  const [pdpStrip, setPdpStrip] = useState(true);
   const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -102,7 +104,10 @@ export function SiteContentEditor() {
           if (row.key === "page_privacy") setPrivacy({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
           if (row.key === "page_terms") setTerms({ ...EMPTY_LEGAL, ...(v as Partial<LegalDoc>) });
           if (row.key === "collections") setColsVisible((v as { visible?: boolean }).visible !== false);
-          if (row.key === "shop") setColourCards((v as { colour_cards?: boolean }).colour_cards === true);
+          if (row.key === "shop") {
+            setColourCards((v as { colour_cards?: boolean }).colour_cards === true);
+            setPdpStrip((v as { pdp_strip?: boolean }).pdp_strip !== false);
+          }
           if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
       });
@@ -317,7 +322,7 @@ export function SiteContentEditor() {
             onChange={async (e) => {
               const v = e.target.checked;
               setColourCards(v);
-              const problem = await saveKey("shop", { colour_cards: v });
+              const problem = await saveKey("shop", { colour_cards: v, pdp_strip: pdpStrip });
               if (problem) {
                 setColourCards(!v);
                 setErr(problem);
@@ -325,6 +330,38 @@ export function SiteContentEditor() {
             }}
           />
           {colourCards ? "شغّالة: كل لون بكرت لحالو، مخلوطين" : "مطفية: كل منتج بكرت واحد"}
+        </label>
+      </div>
+
+      <div className="space-y-3 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="products" size={18} className="text-muted-foreground" />
+          شريط القطع بصفحة المنتج
+          <HintDot
+            hint={{
+              title: "شريط القطع تحت",
+              what: "عالموبايل، صفحة المنتج بتفرجي شريط صور صغيرة لقطع نفس الفئة فوق زر ADD، للتنقّل السريع. من هون بتخبّيه أو بترجّعه.",
+              source: "جدول site_content (مفتاح shop، الخانة pdp_strip).",
+              edit: "من هون. بيبيّن عالموقع خلال دقيقة.",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-foreground"
+            checked={pdpStrip}
+            onChange={async (e) => {
+              const v = e.target.checked;
+              setPdpStrip(v);
+              const problem = await saveKey("shop", { colour_cards: colourCards, pdp_strip: v });
+              if (problem) {
+                setPdpStrip(!v);
+                setErr(problem);
+              } else setMsg(v ? "رجع شريط القطع لصفحة المنتج — خلال دقيقة." : "انخبّى شريط القطع من صفحة المنتج — خلال دقيقة.");
+            }}
+          />
+          {pdpStrip ? "ظاهر" : "مخفي"}
         </label>
       </div>
 
