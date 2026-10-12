@@ -13,6 +13,15 @@ export default async function CategoriesPage() {
     .order("sort")
     .order("code");
 
+  const all = data ?? [];
+  const own = (c: (typeof all)[number]) => (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0;
+  // a category's count includes everything underneath it (Shoes = Boots + Trainers + …)
+  const total = (id: string, seen = new Set<string>()): number => {
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const self = all.find((x) => x.id === id);
+    return (self ? own(self) : 0) + all.filter((x) => x.parent_id === id).reduce((n, x) => n + total(x.id, seen), 0);
+  };
   const categories: CategoryRow[] = (data ?? []).map((c) => ({
     id: c.id,
     code: c.code,
@@ -20,7 +29,7 @@ export default async function CategoriesPage() {
     name_ar: c.name_ar,
     is_active: c.is_active,
     parent_id: c.parent_id,
-    productCount: (c.products as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
+    productCount: total(c.id),
   }));
 
   return (

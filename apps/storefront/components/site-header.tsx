@@ -43,8 +43,10 @@ export async function SiteHeader() {
         code: parent.code,
         label: pick(locale, parent.name_en, parent.name_ar),
         items,
-        // a group of sub-groups (Shoes, Accessories) lists just those — each opens its own tabs
-        viewAll: !children.some((c) => all.some((k) => k.parent_id === c.id)),
+        // a group made only of sub-groups (Shoes, Accessories) lists just those — each
+        // opens its own tabs; a group with plain categories too (Bottoms: Jeans + Joggers)
+        // keeps its View all
+        viewAll: !children.every((c) => all.some((k) => k.parent_id === c.id)),
       });
     }
   }

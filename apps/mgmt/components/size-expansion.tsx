@@ -14,9 +14,11 @@ const SHOE_SIZES = ["40", "41", "42", "43", "44", "45"];
 const BOTTOM_CATS = new Set(["PNT", "JNS", "JOG", "SHR", "TR"]);
 const SHOE_CATS = new Set(["SHO"]);
 
-function defaultSizes(cat: string | null): string[] {
-  if (cat && SHOE_CATS.has(cat)) return SHOE_SIZES;
-  if (cat && BOTTOM_CATS.has(cat)) return PANT_SIZES;
+/** The size run a category starts with — decided by the category or any parent of it
+ *  (Boots sits under Shoes, Slim under Jeans), so new sub-categories get the right run. */
+function defaultSizes(lineage: string[]): string[] {
+  if (lineage.some((c) => SHOE_CATS.has(c))) return SHOE_SIZES;
+  if (lineage.some((c) => BOTTOM_CATS.has(c))) return PANT_SIZES;
   return LETTER_SIZES;
 }
 
@@ -49,6 +51,21 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
   useEffect(() => {
     void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
   }, []);
+
+  const [tree, setTree] = useState<Array<{ id: string; code: string; parent_id: string | null }>>([]);
+  useEffect(() => {
+    void supabase
+      .from("categories")
+      .select("id, code, parent_id")
+      .then(({ data }) => setTree((data ?? []) as Array<{ id: string; code: string; parent_id: string | null }>));
+  }, [supabase]);
+  // a category code and every category above it
+  const lineageOf = (code: string | null) => {
+    const out: string[] = [];
+    for (let n = tree.find((c) => c.code === code); n && !out.includes(n.code); n = tree.find((c) => c.id === n!.parent_id))
+      out.push(n.code);
+    return out.length ? out : code ? [code] : [];
+  };
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -85,7 +102,7 @@ export function SizeExpansion({ branchId }: { branchId: string }) {
 
   function openProduct(p: OneSizeProduct) {
     setOpenId(p.id);
-    setSizes(defaultSizes(p.cat));
+    setSizes(defaultSizes(lineageOf(p.cat)));
     setCustomSize("");
     setError("");
   }

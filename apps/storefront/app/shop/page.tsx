@@ -8,7 +8,7 @@ import { t } from "@bach/i18n";
 
 import { FilterDrawer, type FilterSection } from "../../components/filter-drawer";
 import { ProductCard, type CardProduct } from "../../components/product-card";
-import { toCardProduct } from "../../lib/card";
+import { inStock, isSellable, toCardProduct } from "../../lib/card";
 import { getShopCatalog, getSiteContent } from "../../lib/cached";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
@@ -71,7 +71,14 @@ interface ShopProduct {
   categories: { code: string; name_en: string; name_ar: string } | null;
   media_assets: Array<{ kind: string; storage_path: string }>;
   product_seasons: Array<{ season: string }>;
-  product_variants: Array<{ id: string; size: string; color_en: string; color_ar: string | null; is_active: boolean }>;
+  product_variants: Array<{
+    id: string;
+    size: string;
+    color_en: string;
+    color_ar: string | null;
+    is_active: boolean;
+    inventory_levels?: Array<{ quantity: number; reserved: number }> | null;
+  }>;
   product_collections: Array<{ collections: { slug: string; name_en: string } | null }>;
 }
 
@@ -118,17 +125,26 @@ function unit(s: string): number {
  * piece's colours together. With a colour filter, each piece shows once, in it.
  */
 function listColours(cards: CardProduct[], on: boolean, colourFilter: string, scatter: boolean): Listed[] {
-  if (!on) return cards.map((card) => ({ card, colour: null }));
-  const own = (card: CardProduct) =>
-    Object.keys(card.photos ?? {}).filter((c) => c && card.photos![c]!.length && (card.colors ?? []).includes(c));
-  if (colourFilter) return cards.map((card) => ({ card, colour: own(card).includes(colourFilter) ? colourFilter : null }));
-  if (!scatter) return cards.flatMap((card) => [{ card, colour: null }, ...own(card).map((colour) => ({ card, colour }))]);
+  // a colour that can still be bought (sold-out colours get no card of their own)
+  const buyable = (card: CardProduct, c: string) => (card.variants ?? []).some((v) => v.color === c && !v.soldOut);
+  // other colours with their own photos and stock
+  const others = (card: CardProduct) =>
+    Object.keys(card.photos ?? {}).filter((c) => c && card.photos![c]!.length && (card.colors ?? []).includes(c) && buyable(card, c));
+  // the piece's main card opens on the photographed colour — or, when that one is
+  // sold out, on a photographed colour that isn't
+  const lead = (card: CardProduct): string | null =>
+    !card.heroColor || buyable(card, card.heroColor) || !(card.variants ?? []).length ? null : others(card)[0] ?? null;
+  const own = (card: CardProduct) => others(card).filter((c) => c !== lead(card));
+  if (!on) return cards.map((card) => ({ card, colour: lead(card) }));
+  if (colourFilter)
+    return cards.map((card) => ({ card, colour: others(card).includes(colourFilter) ? colourFilter : lead(card) }));
+  if (!scatter) return cards.flatMap((card) => [{ card, colour: lead(card) }, ...own(card).map((colour) => ({ card, colour }))]);
 
   const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Beirut" });
   const n = cards.length;
   const keep = Math.min(4, n);
   const keyed = cards.flatMap((card, i) => [
-    { e: { card, colour: null } as Listed, k: i },
+    { e: { card, colour: lead(card) } as Listed, k: i },
     ...own(card).map((colour) => ({ e: { card, colour } as Listed, k: keep + unit(`${day}|${card.slug}|${colour}`) * (n - keep) })),
   ]);
   const out = keyed.sort((a, b) => a.k - b.k).map((x) => x.e);
@@ -193,9 +209,10 @@ export default async function ShopPage({
   const [{ data, merch, catTree }, site] = await Promise.all([getShopCatalog(), getSiteContent()]);
   const colourCards = (site.shop as { colour_cards?: boolean } | undefined)?.colour_cards === true;
   // Pieces without a front photo stay off the storefront until they are shot
-  // (MGMT flags them under Product Data Health).
-  const all = ((data ?? []) as unknown as ShopProduct[]).filter((p) =>
-    (p.media_assets ?? []).some((m) => m.kind === "front"),
+  // (MGMT flags them under Product Data Health), and sold-out pieces leave the
+  // listing until stock comes back (their own page stays up with "Notify me").
+  const all = ((data ?? []) as unknown as ShopProduct[]).filter(
+    (p) => (p.media_assets ?? []).some((m) => m.kind === "front") && isSellable(p),
   );
   const tree = catTree ?? [];
   // A category code matches everything underneath it, at any depth
@@ -226,13 +243,13 @@ export default async function ShopPage({
   };
   // Facets come from live data so filters only ever offer values that exist.
   const sizeFacets = [
-    ...new Set(all.flatMap((p) => p.product_variants.filter((v) => v.is_active).map((v) => v.size))),
+    ...new Set(all.flatMap((p) => p.product_variants.filter(inStock).map((v) => v.size))),
   ].sort((a, b) => sizeRank(a) - sizeRank(b));
   // Value stays color_en (stable URLs); label localizes via color_ar.
   const colorFacets = [
     ...new Map(
       all
-        .flatMap((p) => p.product_variants.filter((v) => v.is_active))
+        .flatMap((p) => p.product_variants.filter(inStock))
         .map((v) => [v.color_en, pick(locale, v.color_en, v.color_ar)] as const),
     ).entries(),
   ]
@@ -253,8 +270,9 @@ export default async function ShopPage({
     if (q && !p.name_en.toLowerCase().includes(q) && !(p.name_ar ?? "").includes((params.q ?? "").trim())) return false;
     if (f.cat && !(f.cat === cat ? catMatch : catCodes(f.cat)).has(p.categories?.code ?? "")) return false;
     if (f.col && !p.product_collections.some((pc) => pc.collections?.slug === f.col)) return false;
-    if (f.size && !p.product_variants.some((v) => v.is_active && v.size === f.size)) return false;
-    if (f.color && !p.product_variants.some((v) => v.is_active && v.color_en === f.color)) return false;
+    // a size or colour filter means "I can buy it in this" — sold-out ones don't count
+    if (f.size && !p.product_variants.some((v) => inStock(v) && v.size === f.size)) return false;
+    if (f.color && !p.product_variants.some((v) => inStock(v) && v.color_en === f.color)) return false;
     if (f.sale && p.sale_price_usd_cents == null) return false;
     // Special Prices = pieces ticked in MGMT + everything on sale
     if (f.special && !(p.tags ?? []).includes("special") && !(p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents))

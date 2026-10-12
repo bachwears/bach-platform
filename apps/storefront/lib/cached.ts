@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+
+import { isSellable } from "./card";
 import { supabasePublic } from "@bach/supabase/public";
 
 /**
@@ -13,7 +15,7 @@ const MINUTE = 60;
 export const getNavData = unstable_cache(
   async () => {
     const supabase = supabasePublic();
-    const [{ data: cats }, { data: cols }, { count: saleCount }, { data: newest }, { data: fronts }, { count: specialCount }] = await Promise.all([
+    const [{ data: cats }, { data: cols }, { data: newest }, { data: listed }] = await Promise.all([
       supabase
         .from("categories")
         // "*" brings the banner columns (banner_mobile_url may be missing on older schemas)
@@ -29,31 +31,36 @@ export const getNavData = unstable_cache(
         .order("name_en"),
       supabase
         .from("products")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "published")
-        .not("sale_price_usd_cents", "is", null),
-      supabase
-        .from("products")
         .select("media_assets(kind, storage_path)")
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(20),
-      // the shop only lists photographed pieces, so the menu counts those
-      supabase
-        .from("media_assets")
-        .select("products!inner(category_id, status)")
-        .eq("kind", "front")
-        .eq("products.status", "published"),
-      // SPECIAL PRICES menu link shows once at least one piece is ticked in MGMT
+      // the shop lists photographed pieces that can still be bought, so the menu
+      // counts those (one row per product; well under the 1,000-row cap)
       supabase
         .from("products")
-        .select("id", { count: "exact", head: true })
+        .select(
+          "category_id, price_usd_cents, sale_price_usd_cents, tags, media_assets!inner(kind), product_variants(is_active, inventory_levels(quantity, reserved))",
+        )
         .eq("status", "published")
-        .contains("tags", ["special"]),
+        .eq("media_assets.kind", "front"),
     ]);
+    type Listed = {
+      category_id: string | null;
+      price_usd_cents: number;
+      sale_price_usd_cents: number | null;
+      tags: string[] | null;
+      product_variants: Array<{ is_active: boolean; inventory_levels: Array<{ quantity: number; reserved: number }> | null }> | null;
+    };
+    const live = ((listed ?? []) as unknown as Listed[]).filter(isSellable);
+    const fronts = live.map((p) => ({ products: { category_id: p.category_id } }));
+    const onSale = (p: Listed) => p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents;
+    const saleCount = live.filter(onSale).length;
+    // SPECIAL PRICES = pieces ticked in MGMT + everything on sale
+    const specialCount = live.filter((p) => onSale(p) || (p.tags ?? []).includes("special")).length;
     return { cats, cols, saleCount, newest, fronts, specialCount };
   },
-  ["nav-data-v2"],
+  ["nav-data-v3"],
   { revalidate: 2 * MINUTE, tags: ["catalog"] },
 );
 

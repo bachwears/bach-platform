@@ -12,7 +12,7 @@ import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-col
 import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
-import { CARD_COLUMNS, toCardProduct, type CardRow } from "../../../lib/card";
+import { CARD_COLUMNS, isSellable, toCardProduct, type CardRow } from "../../../lib/card";
 import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
@@ -158,11 +158,14 @@ export default async function ProductPage({
   // The category and every category above it (Boots → Shoes → Shoes & Accessories):
   // a size guide or one-size rule set on a parent covers the labels under it.
   const { data: catTree } = category
-    ? await supabase.from("categories").select("id, code, parent_id")
-    : { data: [] as Array<{ id: string; code: string; parent_id: string | null }> };
+    ? await supabase.from("categories").select("id, code, parent_id, name_en, name_ar")
+    : { data: [] as Array<{ id: string; code: string; parent_id: string | null; name_en: string; name_ar: string }> };
   const lineage: string[] = [];
+  // the same chain, top first, for the breadcrumb (Shoes & Accessories / Shoes / Boots)
+  const crumbs: Array<{ code: string; name_en: string; name_ar: string }> = [];
   for (let n = (catTree ?? []).find((c) => c.code === category?.code); n && !lineage.includes(n.code); ) {
     lineage.push(n.code);
+    crumbs.unshift({ code: n.code, name_en: n.name_en, name_ar: n.name_ar });
     n = (catTree ?? []).find((c) => c.id === n!.parent_id);
   }
   const cardSelect = `id, category_id, ${CARD_COLUMNS}`;
@@ -182,10 +185,17 @@ export default async function ProductPage({
     if (!c.hex) continue;
     colourFills[c.name_en.toLowerCase()] = c.hex2 ? `linear-gradient(135deg, ${c.hex} 50%, ${c.hex2} 50%)` : c.hex;
   }
-  type NavRow = { slug: string; name_en: string; categories: { code: string } | null; media_assets: Array<{ kind: string; storage_path: string }> | null };
+  type NavRow = {
+    slug: string;
+    name_en: string;
+    categories: { code: string } | null;
+    media_assets: Array<{ kind: string; storage_path: string }> | null;
+    product_variants: Array<{ is_active: boolean; inventory_levels: Array<{ quantity: number; reserved: number }> | null }> | null;
+  };
   const navItems: PdpNavItem[] = category
     ? ((catalog ?? []) as unknown as NavRow[])
-        .filter((p) => p.categories?.code === category.code)
+        // sold-out pieces leave the strip (this one stays, so the strip still marks it)
+        .filter((p) => p.categories?.code === category.code && (p.slug === product.slug || isSellable(p)))
         .map((p) => ({ p, front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null }))
         .filter(({ front }) => front)
         .map(({ p, front }) => ({
@@ -254,17 +264,19 @@ export default async function ProductPage({
     : { data: [] };
 
   const toCard = (p: CardRow) => toCardProduct(p);
-  // photographed pieces first, then keep four
+  // a card worth showing: photographed, and something in it can still be bought
+  const showable = (c: CardProduct) => Boolean(c.front) && (!(c.variants ?? []).length || (c.variants ?? []).some((v) => !v.soldOut));
+  // photographed, in-stock pieces, then keep four
   const firstFour = (rows: unknown) =>
     ((rows ?? []) as Parameters<typeof toCard>[0][])
       .map(toCard)
-      .filter((c) => c.front)
+      .filter(showable)
       .slice(0, 4);
   // "Wear with": staff picks, photographed and published, in the order they were set.
   const wearWith = ((pairRaw ?? []) as Parameters<typeof toCard>[0][])
     .sort((a, b) => pairIds.indexOf((a as unknown as { id: string }).id) - pairIds.indexOf((b as unknown as { id: string }).id))
     .map(toCard)
-    .filter((c) => c.front)
+    .filter(showable)
     .slice(0, 4);
 
   // "Similar items": same category, a similar price, in stock — and when sizes are
@@ -325,19 +337,15 @@ export default async function ProductPage({
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://bachwears.com/" },
       { "@type": "ListItem", position: 2, name: "Shop", item: "https://bachwears.com/shop" },
-      ...(category
-        ? [
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: category.name_en,
-              item: `https://bachwears.com/shop?cat=${category.code}`,
-            },
-          ]
-        : []),
+      ...crumbs.map((c, i) => ({
+        "@type": "ListItem",
+        position: 3 + i,
+        name: c.name_en,
+        item: `https://bachwears.com/shop?cat=${c.code}`,
+      })),
       {
         "@type": "ListItem",
-        position: category ? 4 : 3,
+        position: 3 + crumbs.length,
         name: product.name_en,
         item: `https://bachwears.com/products/${product.slug}`,
       },
@@ -416,14 +424,14 @@ export default async function ProductPage({
             <Link href={lhref(locale, "/shop")} className="hover:text-foreground">
               {t(locale, "sf.nav.shop")}
             </Link>
-            {category && (
-              <>
+            {crumbs.map((c) => (
+              <span key={c.code}>
                 {" / "}
-                <Link href={lhref(locale, `/shop?cat=${category.code}`)} className="hover:text-foreground">
-                  {categoryName}
+                <Link href={lhref(locale, `/shop?cat=${c.code}`)} className="hover:text-foreground">
+                  {pick(locale, c.name_en, c.name_ar)}
                 </Link>
-              </>
-            )}
+              </span>
+            ))}
           </nav>
 
           {/* phones: name, price, colours and ADD share the first screen with the photo; the description follows */}

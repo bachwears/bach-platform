@@ -26,28 +26,49 @@ const TARGET: Record<Slot, { w: number; h: number; column: "banner_url" | "banne
   mobile: { w: 1080, h: 1350, column: "banner_mobile_url", label: "الموبايل", ratio: "4:5" },
 };
 
-/** Every category's header image, with its parent's as the visible fallback. */
+/**
+ * Every category's header image, at any depth (Shoes & Accessories → Shoes →
+ * Boots), with the nearest ancestor's image as the visible fallback — the same
+ * one the website shows while a category has none of its own.
+ */
 export function CategoryImages({ categories }: { categories: CategoryImageRow[] }) {
-  const parents = categories.filter((c) => !c.parent_id);
-  return (
-    <div className="space-y-10">
-      {parents.map((p) => (
-        <section key={p.id} className="space-y-3">
-          <CategoryCard row={p} />
-          <div className="space-y-3 border-s-2 ps-4">
-            {categories
-              .filter((c) => c.parent_id === p.id)
-              .map((c) => (
-                <CategoryCard key={c.id} row={c} parent={p} />
-              ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const children = (id: string | null) => categories.filter((c) => c.parent_id === id);
+  // the nearest ancestor that has the image (desktop, or mobile falling back to its desktop)
+  const inherited = (row: CategoryImageRow, slot: "desktop" | "mobile") => {
+    let up = row.parent_id ? byId.get(row.parent_id) : undefined;
+    for (let i = 0; up && i < 10; i++) {
+      const url = slot === "desktop" ? up.banner_url : up.banner_mobile_url ?? up.banner_url;
+      if (url) return url;
+      up = up.parent_id ? byId.get(up.parent_id) : undefined;
+    }
+    return null;
+  };
+  const branch = (row: CategoryImageRow, depth: number): React.ReactNode => {
+    const kids = children(row.id);
+    return (
+      <section key={row.id} className="space-y-3">
+        <CategoryCard row={row} inheritedDesktop={inherited(row, "desktop")} inheritedMobile={inherited(row, "mobile")} isChild={depth > 0} />
+        {kids.length ? <div className="space-y-3 border-s-2 ps-4">{kids.map((k) => branch(k, depth + 1))}</div> : null}
+      </section>
+    );
+  };
+  // top level, plus any category whose parent is missing (so nothing is ever left out)
+  const roots = categories.filter((c) => !c.parent_id || !byId.has(c.parent_id));
+  return <div className="space-y-10">{roots.map((r) => branch(r, 0))}</div>;
 }
 
-function CategoryCard({ row, parent }: { row: CategoryImageRow; parent?: CategoryImageRow }) {
+function CategoryCard({
+  row,
+  inheritedDesktop,
+  inheritedMobile,
+  isChild,
+}: {
+  row: CategoryImageRow;
+  inheritedDesktop: string | null;
+  inheritedMobile: string | null;
+  isChild: boolean;
+}) {
   return (
     <div className="border p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -70,13 +91,8 @@ function CategoryCard({ row, parent }: { row: CategoryImageRow; parent?: Categor
         </span>
       </div>
       <div className="grid gap-4 sm:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)]">
-        <ImageSlot row={row} slot="desktop" inherited={parent?.banner_url ?? null} />
-        <ImageSlot
-          row={row}
-          slot="mobile"
-          inherited={parent ? (parent.banner_mobile_url ?? parent.banner_url) : null}
-          ownDesktop={row.banner_url}
-        />
+        <ImageSlot row={row} slot="desktop" inherited={isChild ? inheritedDesktop : null} />
+        <ImageSlot row={row} slot="mobile" inherited={isChild ? inheritedMobile : null} ownDesktop={row.banner_url} />
       </div>
     </div>
   );

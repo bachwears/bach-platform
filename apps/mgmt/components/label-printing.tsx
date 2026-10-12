@@ -81,21 +81,33 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   // bulk: a whole category (or everything) in stock
-  const [cats, setCats] = useState<Array<{ id: string; name_ar: string }>>([]);
+  // the category tree, top first, with each category's depth (for the indented list)
+  const [cats, setCats] = useState<Array<{ id: string; name_ar: string; parent_id: string | null; depth: number }>>([]);
   const [bulkCat, setBulkCat] = useState("all");
   const [paste, setPaste] = useState("");
   const [showPaste, setShowPaste] = useState(false);
 
   useEffect(() => {
     void loadFrontPhotos(supabase).then(setPhotos);
-    // only categories that hold published products
-    void supabase
-      .from("categories")
-      .select("id, name_ar, products!inner(id)")
-      .eq("is_active", true)
-      .eq("products.status", "published")
-      .order("sort")
-      .then(({ data }) => setCats(((data ?? []) as Array<{ id: string; name_ar: string }>).map((c) => ({ id: c.id, name_ar: c.name_ar }))));
+    // every level (Shoes & Accessories › Shoes › Boots) that holds published products
+    // itself or anywhere underneath
+    void Promise.all([
+      supabase.from("categories").select("id, name_ar, parent_id").eq("is_active", true).order("sort").order("name_ar"),
+      supabase.from("products").select("category_id").neq("status", "archived"),
+    ]).then(([{ data: tree }, { data: prods }]) => {
+      const all = (tree ?? []) as Array<{ id: string; name_ar: string; parent_id: string | null }>;
+      const used = new Set(((prods ?? []) as Array<{ category_id: string | null }>).map((p) => p.category_id));
+      const holds = (id: string, d = 0): boolean => used.has(id) || (d < 6 && all.some((c) => c.parent_id === id && holds(c.id, d + 1)));
+      const out: Array<{ id: string; name_ar: string; parent_id: string | null; depth: number }> = [];
+      const walk = (parent: string | null, depth: number) => {
+        for (const c of all.filter((x) => x.parent_id === parent && holds(x.id))) {
+          out.push({ ...c, depth });
+          if (depth < 6) walk(c.id, depth + 1);
+        }
+      };
+      walk(null, 0);
+      setCats(out);
+    });
   }, [supabase]);
 
   const addMany = useCallback((vs: LabelVariant[], copies: (v: LabelVariant) => number = () => 1) => {
@@ -193,6 +205,8 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
   }
 
   // Everything in stock, or one category: one label per unit on hand.
+  const subtree = (id: string): string[] => [id, ...cats.filter((c) => c.parent_id === id).flatMap((c) => subtree(c.id))];
+
   async function addBulk() {
     setBusy(true);
     setMsg(null);
@@ -201,8 +215,9 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
         .from("product_variants")
         .select(SELECT)
         .eq("is_active", true)
-        .eq("products.status", "published");
-      if (bulkCat !== "all") q = q.eq("products.category_id", bulkCat);
+        .neq("products.status", "archived"); // drafts are sold in the shop too
+      // a category prints everything underneath it too (Shoes → Boots, Trainers…)
+      if (bulkCat !== "all") q = q.in("products.category_id", subtree(bulkCat));
       return q.order("id").range(a, b);
     });
     setBusy(false);
@@ -310,6 +325,7 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
             <option value="all">كل القطع بالمخزون</option>
             {cats.map((c) => (
               <option key={c.id} value={c.id}>
+                {"— ".repeat(c.depth)}
                 {c.name_ar}
               </option>
             ))}

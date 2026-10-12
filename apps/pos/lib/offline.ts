@@ -69,6 +69,8 @@ export function variantPhotos(): (variantId: string | null | undefined) => strin
 export async function refreshCatalog(supabase: SupabaseClient, branchId: string): Promise<CatalogBlob | null> {
   // Over 1,000 sellable variants: read every page, or the rest silently vanish
   // from the till and their barcodes come back "not found".
+  // Drafts sell too: «مسودة» only keeps a piece off the website — a new piece is
+  // labelled and sold in the shop before it's photographed. Archived ones don't.
   const [{ data, error }, { data: aliasRows }, photos] = await Promise.all([
     fetchAllPages((from, to) =>
       supabase
@@ -77,7 +79,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
           "id, product_id, sku, barcode, size, color_en, color_ar, price_usd_cents_override, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status), inventory_levels(branch_id, quantity, reserved)",
         )
         .eq("is_active", true)
-        .eq("products.status", "published")
+        .neq("products.status", "archived")
         .order("id")
         .range(from, to),
     ),
@@ -87,7 +89,7 @@ export async function refreshCatalog(supabase: SupabaseClient, branchId: string)
         .select("barcode, product_id, products!inner(status)")
         .eq("is_active", false)
         .eq("size", "OS")
-        .eq("products.status", "published")
+        .neq("products.status", "archived")
         .not("barcode", "is", null)
         .order("id")
         .range(from, to),

@@ -8,7 +8,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
-import { CARD_COLUMNS, toCardProduct } from "../../lib/card";
+import { CARD_COLUMNS, isSellable, toCardProduct } from "../../lib/card";
 import { DeliveryProgress } from "../../components/delivery-progress";
 import { PointsEarn } from "../../components/points-earn";
 import { onCartChange, readCart, setQuantity } from "../../lib/cart";
@@ -200,7 +200,7 @@ export default function CartPage() {
       .then(({ data }) =>
         setSuggested(
           ((data ?? []) as unknown as CardRow[])
-            .filter((p) => p.media_assets.some((m) => m.kind === "front"))
+            .filter((p) => p.media_assets.some((m) => m.kind === "front") && isSellable(p))
             .slice(0, 12)
             .map(toCard),
         ),
@@ -218,7 +218,7 @@ export default function CartPage() {
     const inBag = new Set(bagSlugs.split(","));
     const sb = supabaseBrowser();
     const pick = (rows: unknown) =>
-      ((rows ?? []) as CardRow[]).filter((p) => !inBag.has(p.slug) && p.media_assets.some((m) => m.kind === "front"));
+      ((rows ?? []) as CardRow[]).filter((p) => !inBag.has(p.slug) && p.media_assets.some((m) => m.kind === "front") && isSellable(p));
     void Promise.all([
       gap > 4000
         ? sb

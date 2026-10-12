@@ -48,7 +48,13 @@ export function RecentlyViewed({ currentSlug }: { currentSlug: string }) {
           }),
         );
         // Keep the visit order, newest first.
-        setItems(previous.map((s) => bySlug.get(s)).filter((c): c is CardProduct => !!c?.front).slice(0, 4));
+        // photographed and still buyable (a sold-out piece leaves the row until restocked)
+        setItems(
+          previous
+            .map((s) => bySlug.get(s))
+            .filter((c): c is CardProduct => !!c?.front && (!(c.variants ?? []).length || (c.variants ?? []).some((v) => !v.soldOut)))
+            .slice(0, 4),
+        );
       });
   }, [currentSlug]);
 

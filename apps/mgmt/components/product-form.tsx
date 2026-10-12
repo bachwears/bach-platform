@@ -18,6 +18,25 @@ export interface Category {
   id: string;
   name_ar: string;
   code: string;
+  parent_id?: string | null;
+}
+
+/** Categories in tree order, each labelled with its full path
+ *  («أحذية وإكسسوارات › أحذية › بوت»), so two "Slim"s can't be confused. */
+function categoryOptions(list: Category[]): Array<{ id: string; label: string }> {
+  const byId = new Map(list.map((c) => [c.id, c]));
+  const out: Array<{ id: string; label: string }> = [];
+  const walk = (parent: string | null, path: string[], depth: number) => {
+    for (const c of list.filter((x) => (x.parent_id ?? null) === parent)) {
+      const here = [...path, c.name_ar];
+      out.push({ id: c.id, label: `${here.join(" › ")} (${c.code})` });
+      if (depth < 6) walk(c.id, here, depth + 1);
+    }
+  };
+  walk(null, [], 0);
+  // anything whose parent is inactive or missing still shows, on its own
+  for (const c of list) if (!out.some((o) => o.id === c.id) && (!c.parent_id || !byId.has(c.parent_id))) out.push({ id: c.id, label: `${c.name_ar} (${c.code})` });
+  return out;
 }
 
 export interface ProductValues {
@@ -335,9 +354,9 @@ export function BasicsFields() {
         <Field id="category" icon="categories" label="الفئة">
           <Select id="category" required value={values.category_id} onChange={(e) => set("category_id", e.target.value)}>
             <option value="">اختار فئة…</option>
-            {categories.map((c) => (
+            {categoryOptions(categories).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name_ar} ({c.code})
+                {c.label}
               </option>
             ))}
           </Select>

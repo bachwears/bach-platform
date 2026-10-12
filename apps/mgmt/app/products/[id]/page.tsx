@@ -31,7 +31,7 @@ export default async function EditProductPage({
 
   const [{ data: product }, { data: categories }, { data: variantRows }, { data: media }, { data: pairs }] = await Promise.all([
     supabase.from("products").select("*, product_seasons(season)").eq("id", id).single(),
-    supabase.from("categories").select("id, name_ar, code").eq("is_active", true).order("sort"),
+    supabase.from("categories").select("id, name_ar, code, parent_id").eq("is_active", true).order("sort"),
     supabase
       .from("product_variants")
       .select("id, size, color_code, color_en, color_ar, sku, barcode, is_active, inventory_levels(quantity, reserved)")

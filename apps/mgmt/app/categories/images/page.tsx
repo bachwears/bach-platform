@@ -22,14 +22,21 @@ export default async function CategoryImagesPage() {
   ]);
 
   const own = (c: { products: unknown }) => (c.products as Array<{ count: number }>)?.[0]?.count ?? 0;
+  const all = data ?? [];
+  // a category's page lists everything underneath it, at any depth
+  const total = (id: string, seen = new Set<string>()): number => {
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const self = all.find((x) => x.id === id);
+    return (self ? own(self) : 0) + all.filter((x) => x.parent_id === id).reduce((n, x) => n + total(x.id, seen), 0);
+  };
   const rows: CategoryImageRow[] = (data ?? []).map((c) => ({
     id: c.id,
     code: c.code,
     name_ar: c.name_ar,
     name_en: c.name_en,
     parent_id: c.parent_id,
-    // a parent's page lists its children's products too
-    productCount: own(c) + (data ?? []).filter((x) => x.parent_id === c.id).reduce((n, x) => n + own(x), 0),
+    productCount: total(c.id),
     banner_url: c.banner_url,
     banner_mobile_url: (c as { banner_mobile_url?: string | null }).banner_mobile_url ?? null,
   }));

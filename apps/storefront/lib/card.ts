@@ -44,6 +44,22 @@ export interface CardRow {
   }> | null;
 }
 
+type StockVariant = {
+  is_active?: boolean;
+  inventory_levels?: Array<{ quantity: number; reserved: number }> | null;
+};
+
+/** Can this variant be bought? Same sum the product page uses; a row without stock data counts as buyable. */
+export const inStock = (v: StockVariant) =>
+  v.is_active !== false && (!v.inventory_levels || v.inventory_levels.reduce((n, l) => n + l.quantity - l.reserved, 0) > 0);
+
+/**
+ * Listings (shop, search, rows of cards, menu counts) show a piece only while at
+ * least one of its variants can be bought. A sold-out piece's own page stays up —
+ * it says sold out and offers "Notify me".
+ */
+export const isSellable = (p: { product_variants?: StockVariant[] | null }) => (p.product_variants ?? []).some(inStock);
+
 /** Columns a card needs from `products` (embed-ready). */
 export const CARD_COLUMNS =
   "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, inventory_levels(quantity, reserved))";

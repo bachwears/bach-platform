@@ -5,7 +5,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { SearchTracker } from "../../components/track-events";
-import { toCardProduct } from "../../lib/card";
+import { isSellable, toCardProduct } from "../../lib/card";
 import { SearchField } from "../../components/search-field";
 import { getLocale, lhref } from "../../lib/locale";
 
@@ -98,8 +98,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase.from("categories").select("id, code, name_en, sort, parent_id").eq("is_active", true).order("sort"),
   ]);
   const hasPhoto = (p: Row) => p.media_assets.some((m) => m.kind === "front");
-  // unphotographed pieces stay hidden until they are shot
-  const all = ((data ?? []) as unknown as Row[]).filter(hasPhoto);
+  // unphotographed pieces stay hidden until they are shot; sold-out ones until restocked
+  const all = ((data ?? []) as unknown as Row[]).filter((p) => hasPhoto(p) && isSellable(p));
+  // a piece is found by its category's parents too: "shoes" finds boots, "accessories" finds caps
+  const catById = new Map((cats ?? []).map((c) => [c.id, c]));
+  const lineageNames = (id: string | null) => {
+    const names: string[] = [];
+    for (let c = id ? catById.get(id) : undefined, i = 0; c && i < 6; c = c.parent_id ? catById.get(c.parent_id) : undefined, i++)
+      names.push(c.name_en);
+    return names;
+  };
   // top-level categories that have something to show (themselves or a child)
   const shownCats = new Set(all.map((p) => p.category_id));
   const hasShown = (id: string, depth = 0): boolean =>
@@ -118,6 +126,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         const hay = [
           p.name_en,
           p.categories?.name_en ?? "",
+          ...lineageNames(p.category_id),
           ...p.product_collections.map((c) => c.collections?.name_en ?? ""),
           ...active.flatMap((v) => [v.color_en, v.sku ?? ""]),
         ]
@@ -125,7 +134,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           .toLowerCase();
         const tokens = [
           ...new Set(
-            [p.name_en, p.categories?.name_en ?? "", ...active.map((v) => v.color_en)]
+            [p.name_en, p.categories?.name_en ?? "", ...lineageNames(p.category_id), ...active.map((v) => v.color_en)]
               .join(" ")
               .toLowerCase()
               .split(/[^\p{L}\p{N}]+/u)
