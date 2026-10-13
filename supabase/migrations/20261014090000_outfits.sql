@@ -154,3 +154,132 @@ begin
 end $$;
 create trigger outfits_exclusive_guard after update of sell_mode on public.outfits
   for each row when (new.sell_mode = 'exclusive') execute function public.outfits_exclusive_guard();
+
+-- 4 ── price_cart: the one pricing function (website and POS) ─────────────────
+-- p_lines: [{key, variant_id, quantity, unit, outfit_id?, outfit_group?}] — unit is
+-- the line's current price, read from the database by the caller (never the browser).
+-- p_promo_kind: null · 'percent_bp' (value in basis points) · 'fixed' (value in cents).
+-- Per outfit group: complete (every piece once, published look) → pay the lower of
+-- the current sum and the look's price on full prices; the saving is split over the
+-- pieces in proportion to their price. The promo code's base then follows the look's
+-- promo mode (exclude / stack / best). Whole and exclusive looks must be complete;
+-- an exclusive look's pieces can't be bought outside it.
+create or replace function public.price_cart(p_lines jsonb, p_promo_kind text default null, p_promo_value integer default 0)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  g record;
+  o record;
+  l record;
+  v_items integer;
+  v_complete boolean;
+  v_cur integer;
+  v_full integer;
+  v_target integer;
+  v_disc integer;
+  v_left integer;
+  v_code integer;
+  v_lines jsonb;
+  v_promo_base integer;
+  v_outfit_total integer;
+begin
+  if p_promo_kind is not null and p_promo_kind not in ('percent_bp', 'fixed') then
+    raise exception 'invalid promo kind';
+  end if;
+  create temp table if not exists _pc (
+    key text, variant_id uuid, product_id uuid, quantity int, unit int, full_unit int,
+    outfit_id uuid, outfit_group text, outfit_discount int not null default 0, promo_base int not null default 0
+  ) on commit drop;
+  truncate _pc;
+  insert into _pc (key, variant_id, product_id, quantity, unit, full_unit, outfit_id, outfit_group)
+  select x->>'key', pv.id, pv.product_id, (x->>'quantity')::int, (x->>'unit')::int,
+         coalesce(pv.price_usd_cents_override, p.price_usd_cents),
+         nullif(x->>'outfit_id', '')::uuid, nullif(x->>'outfit_group', '')
+  from jsonb_array_elements(coalesce(p_lines, '[]'::jsonb)) x
+  join public.product_variants pv on pv.id = (x->>'variant_id')::uuid
+  join public.products p on p.id = pv.product_id;
+  if (select count(*) from _pc) <> jsonb_array_length(coalesce(p_lines, '[]'::jsonb)) then
+    raise exception 'unknown item in cart';
+  end if;
+  -- a group always names one look
+  if exists (select 1 from _pc where outfit_group is not null group by outfit_group having count(distinct outfit_id) <> 1) then
+    raise exception 'invalid look group';
+  end if;
+
+  update _pc set promo_base = unit * quantity where outfit_group is null;
+
+  for g in select distinct outfit_group, outfit_id from _pc where outfit_group is not null loop
+    select * into o from public.outfits where id = g.outfit_id;
+    if o.id is null then raise exception 'unknown look'; end if;
+    select count(*) into v_items from public.outfit_items where outfit_id = o.id;
+    v_complete := o.status = 'published'
+      and (select count(*) from _pc where outfit_group = g.outfit_group) = v_items
+      and not exists (select 1 from _pc where outfit_group = g.outfit_group and quantity <> 1)
+      and (select count(distinct c.product_id) from _pc c
+           join public.outfit_items oi on oi.outfit_id = o.id and oi.product_id = c.product_id
+           where c.outfit_group = g.outfit_group) = v_items;
+    if not v_complete and o.sell_mode in ('whole', 'exclusive') then
+      raise exception 'look sold complete only';
+    end if;
+    if not v_complete then
+      update _pc set promo_base = unit * quantity where outfit_group = g.outfit_group;
+      continue;
+    end if;
+
+    select sum(unit), sum(full_unit) into v_cur, v_full from _pc where outfit_group = g.outfit_group;
+    v_target := case o.price_kind
+      when 'percent' then round(v_full::numeric * (100 - o.percent_off) / 100)::integer
+      when 'fixed' then o.fixed_usd_cents
+      else v_cur end;
+    v_disc := greatest(v_cur - least(v_cur, v_target), 0);
+
+    -- "best": the code wins if it takes more off these pieces than the look does
+    if v_disc > 0 and p_promo_kind is not null and o.promo_mode = 'best' then
+      v_code := case p_promo_kind
+        when 'percent_bp' then round(v_cur::numeric * p_promo_value / 10000)::integer
+        else least(p_promo_value, v_cur) end;
+      if v_code > v_disc then v_disc := 0; end if;
+    end if;
+
+    -- the saving split over the pieces by price; leftover cents to the priciest
+    update _pc set outfit_discount = floor(v_disc::numeric * unit / greatest(v_cur, 1))::integer
+    where outfit_group = g.outfit_group;
+    v_left := v_disc - (select coalesce(sum(outfit_discount), 0) from _pc where outfit_group = g.outfit_group);
+    for l in select key from _pc where outfit_group = g.outfit_group order by unit desc, key limit greatest(v_left, 0) loop
+      update _pc set outfit_discount = outfit_discount + 1 where outfit_group = g.outfit_group and key = l.key;
+    end loop;
+
+    update _pc set promo_base = case
+        when v_disc = 0 then unit * quantity
+        when o.promo_mode = 'stack' then unit * quantity - outfit_discount
+        else 0 end
+    where outfit_group = g.outfit_group;
+  end loop;
+
+  -- an exclusive look's pieces are sold only inside it
+  if exists (
+    select 1 from _pc c
+    join public.outfit_items oi on oi.product_id = c.product_id
+    join public.outfits ex on ex.id = oi.outfit_id and ex.sell_mode = 'exclusive' and ex.status = 'published'
+    where c.outfit_id is distinct from ex.id
+  ) then
+    raise exception 'piece sold only as part of a look';
+  end if;
+
+  select coalesce(sum(outfit_discount), 0), coalesce(sum(promo_base), 0) into v_outfit_total, v_promo_base from _pc;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'key', key, 'outfit_id', outfit_id, 'outfit_group', outfit_group,
+           'outfit_discount', outfit_discount, 'promo_base', promo_base) order by key), '[]'::jsonb)
+  into v_lines from _pc;
+  return jsonb_build_object(
+    'lines', v_lines,
+    'outfit_discount', v_outfit_total,
+    'promo_base', v_promo_base,
+    'promo_discount', case p_promo_kind
+      when 'percent_bp' then round(v_promo_base::numeric * p_promo_value / 10000)::integer
+      when 'fixed' then least(greatest(p_promo_value, 0), v_promo_base)
+      else 0 end
+  );
+end $$;
+revoke all on function public.price_cart(jsonb, text, integer) from public;
+grant execute on function public.price_cart(jsonb, text, integer) to anon, authenticated;

@@ -51,3 +51,76 @@ begin
   delete from outfit_items where outfit_id in (a, b);
   delete from outfits where id in (a, b);
 end $$;
+
+-- Task 3: price_cart
+do $$
+declare o uuid; v_j uuid; v_h uuid; v_b uuid; r jsonb; lines jsonb;
+begin
+  select id into o from outfits where slug = 'zz-test-look';
+  select pv.id into v_j from product_variants pv join products p on p.id = pv.product_id where p.slug = 'corduroy-jacket-with-fireman-clasps' and pv.is_active limit 1;
+  select pv.id into v_h from product_variants pv join products p on p.id = pv.product_id where p.slug = 'basic-relaxed-fit-hoodie' and pv.is_active limit 1;
+  select pv.id into v_b from product_variants pv join products p on p.id = pv.product_id where p.slug = 'lug-sole-leather-chelsea-boots' and pv.is_active limit 1;
+  lines := jsonb_build_array(
+    jsonb_build_object('key','1','variant_id',v_j,'quantity',1,'unit',12900,'outfit_id',o,'outfit_group','g1'),
+    jsonb_build_object('key','2','variant_id',v_h,'quantity',1,'unit',4500,'outfit_id',o,'outfit_group','g1'),
+    jsonb_build_object('key','3','variant_id',v_b,'quantity',1,'unit',8900,'outfit_id',o,'outfit_group','g1'));
+  -- 15% of the full prices 263.00 = 39.45, split exactly
+  r := price_cart(lines);
+  if (r->>'outfit_discount')::int <> 3945 then raise exception 'TESTFAIL percent: %', r; end if;
+  if (select sum((x->>'outfit_discount')::int) from jsonb_array_elements(r->'lines') x) <> 3945 then raise exception 'TESTFAIL split: %', r; end if;
+  -- a flexible look with a piece left out: no discount
+  r := price_cart(lines - 2);
+  if (r->>'outfit_discount')::int <> 0 then raise exception 'TESTFAIL incomplete discounted: %', r; end if;
+  -- fixed 199.00 → 64.00 off
+  update outfits set price_kind = 'fixed', fixed_usd_cents = 19900 where id = o;
+  if (price_cart(lines)->>'outfit_discount')::int <> 6400 then raise exception 'TESTFAIL fixed: %', price_cart(lines); end if;
+  -- fixed above the sum → nothing off
+  update outfits set fixed_usd_cents = 30000 where id = o;
+  if (price_cart(lines)->>'outfit_discount')::int <> 0 then raise exception 'TESTFAIL fixed above sum'; end if;
+  -- best deal, never stacked: jacket on sale at 109 → current 243 vs 15% off full 223.55 → 19.45 off
+  update outfits set price_kind = 'percent', percent_off = 15 where id = o;
+  lines := jsonb_set(lines, '{0,unit}', '10900');
+  if (price_cart(lines)->>'outfit_discount')::int <> 1945 then raise exception 'TESTFAIL best deal: %', price_cart(lines); end if;
+  lines := jsonb_set(lines, '{0,unit}', '12900');
+  -- promo exclude (default): the discounted look isn't in the code's base
+  r := price_cart(lines, 'percent_bp', 1000);
+  if (r->>'promo_base')::int <> 0 or (r->>'promo_discount')::int <> 0 then raise exception 'TESTFAIL exclude: %', r; end if;
+  -- stack: base 263.00 - 39.45 = 223.55 → 10% = 22.36
+  update outfits set promo_mode = 'stack' where id = o;
+  r := price_cart(lines, 'percent_bp', 1000);
+  if (r->>'promo_base')::int <> 22355 or (r->>'promo_discount')::int <> 2236 then raise exception 'TESTFAIL stack: %', r; end if;
+  -- best: a 30% code (78.90) beats the look's 39.45 → the look's discount goes, the code applies
+  update outfits set promo_mode = 'best' where id = o;
+  r := price_cart(lines, 'percent_bp', 3000);
+  if (r->>'outfit_discount')::int <> 0 or (r->>'promo_discount')::int <> 7890 then raise exception 'TESTFAIL best: %', r; end if;
+  -- best: a 5% code (13.15) loses to the look → look kept, code base 0
+  r := price_cart(lines, 'percent_bp', 500);
+  if (r->>'outfit_discount')::int <> 3945 or (r->>'promo_discount')::int <> 0 then raise exception 'TESTFAIL best small code: %', r; end if;
+  -- a fixed $10 code with exclude on a cart that also has a loose piece: base = the loose piece
+  update outfits set promo_mode = 'exclude' where id = o;
+  r := price_cart(lines || jsonb_build_array(jsonb_build_object('key','4','variant_id',v_h,'quantity',2,'unit',4500)), 'fixed', 1000);
+  if (r->>'promo_base')::int <> 9000 or (r->>'promo_discount')::int <> 1000 then raise exception 'TESTFAIL fixed code: %', r; end if;
+  -- whole: a look with a piece missing is refused
+  update outfits set sell_mode = 'whole' where id = o;
+  begin
+    perform price_cart(lines - 2);
+    raise exception 'TESTFAIL whole incomplete accepted';
+  exception when raise_exception then if sqlerrm like 'TESTFAIL%' then raise; end if;
+  end;
+  -- exclusive: a piece on its own is refused
+  update outfits set sell_mode = 'exclusive' where id = o;
+  begin
+    perform price_cart(jsonb_build_array(jsonb_build_object('key','x','variant_id',v_h,'quantity',1,'unit',4500)));
+    raise exception 'TESTFAIL exclusive piece alone accepted';
+  exception when raise_exception then if sqlerrm like 'TESTFAIL%' then raise; end if;
+  end;
+  -- a draft look never discounts
+  update outfits set sell_mode = 'flexible', status = 'draft' where id = o;
+  if (price_cart(lines)->>'outfit_discount')::int <> 0 then raise exception 'TESTFAIL draft discounted'; end if;
+  -- quantity 2 of a piece in the look: not the look
+  update outfits set status = 'published' where id = o;
+  if (price_cart(jsonb_set(lines, '{1,quantity}', '2'))->>'outfit_discount')::int <> 0 then raise exception 'TESTFAIL qty 2 discounted'; end if;
+  -- no outfits at all: plain cart
+  r := price_cart(jsonb_build_array(jsonb_build_object('key','p','variant_id',v_h,'quantity',1,'unit',4500)), 'percent_bp', 1000);
+  if (r->>'promo_base')::int <> 4500 or (r->>'promo_discount')::int <> 450 then raise exception 'TESTFAIL plain: %', r; end if;
+end $$;
