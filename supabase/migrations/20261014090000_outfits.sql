@@ -283,3 +283,98 @@ begin
 end $$;
 revoke all on function public.price_cart(jsonb, text, integer) from public;
 grant execute on function public.price_cart(jsonb, text, integer) to anon, authenticated;
+
+-- 5 ── returns refund what a line actually cost ───────────────────────────────
+CREATE OR REPLACE FUNCTION public._validate_return(p_order_id uuid, p_items jsonb)
+ RETURNS TABLE(order_item_id uuid, variant_id uuid, quantity integer, credit integer, o_branch uuid, o_subtotal integer, o_total integer)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_role public.app_role := public.current_app_role();
+  v_order record;
+  v_line record;
+  v_req record;
+  v_already integer;
+  v_lines_total integer;
+begin
+  if v_role is null or v_role not in ('super_admin', 'store_manager', 'cashier') then
+    raise exception 'not allowed';
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if v_order is null then raise exception 'order not found'; end if;
+  if v_order.status not in ('completed', 'delivered') then
+    raise exception 'order status % cannot be returned', v_order.status;
+  end if;
+  if jsonb_array_length(coalesce(p_items, '[]'::jsonb)) = 0 then
+    raise exception 'nothing to return';
+  end if;
+  select coalesce(sum(line_total_usd_cents), 0) into v_lines_total from public.order_items where order_id = p_order_id;
+  -- a look sold only together comes back whole: every piece of its group that is
+  -- still returnable must be in this return
+  if exists (
+    select 1
+    from public.order_items oi
+    join public.outfits o on o.id = oi.outfit_id and o.sell_mode = 'exclusive'
+    where oi.order_id = p_order_id
+      and oi.outfit_group in (
+        select x.outfit_group from public.order_items x
+        where x.id in (select (i->>'order_item_id')::uuid from jsonb_array_elements(p_items) i)
+          and x.outfit_group is not null)
+      and oi.quantity - coalesce((select sum(ri.quantity) from public.order_return_items ri where ri.order_item_id = oi.id), 0) > 0
+      and coalesce((select (i->>'quantity')::int from jsonb_array_elements(p_items) i where (i->>'order_item_id')::uuid = oi.id), 0)
+          < oi.quantity - coalesce((select sum(ri.quantity) from public.order_return_items ri where ri.order_item_id = oi.id), 0)
+  ) then
+    raise exception 'this look is returned complete';
+  end if;
+  -- the returnable check reads past returns only, so a line listed twice would be credited twice
+  if (select count(distinct i->>'order_item_id') from jsonb_array_elements(p_items) i) <> jsonb_array_length(p_items) then
+    raise exception 'each item can appear only once in a return';
+  end if;
+
+  for v_req in
+    select (i->>'order_item_id')::uuid as oi, (i->>'quantity')::int as qty
+    from jsonb_array_elements(p_items) i
+  loop
+    if v_req.qty is null or v_req.qty <= 0 then raise exception 'invalid quantity'; end if;
+    select * into v_line from public.order_items where id = v_req.oi and order_id = p_order_id;
+    if v_line is null then raise exception 'item not on this order'; end if;
+    select coalesce(sum(ri.quantity), 0) into v_already
+    from public.order_return_items ri
+    join public.order_returns r on r.id = ri.return_id
+    where ri.order_item_id = v_req.oi;
+    if v_req.qty > v_line.quantity - v_already then
+      raise exception 'quantity exceeds what remains returnable for %', coalesce(v_line.sku, v_line.name_en);
+    end if;
+    order_item_id := v_req.oi;
+    variant_id := v_line.variant_id;
+    quantity := v_req.qty;
+    -- the order's discounts spread over what the lines actually cost: a line's own
+    -- discount (POS line discount, outfit share) is already in its line total, so
+    -- the ratio is taken against the sum of line totals, not the gross subtotal
+    credit := public._return_credit(
+      v_line.line_total_usd_cents, v_line.quantity, v_req.qty,
+      v_lines_total, v_order.total_usd_cents - coalesce(v_order.delivery_usd_cents, 0)
+    );
+    o_branch := v_order.branch_id;
+    o_subtotal := v_order.subtotal_usd_cents;
+    o_total := v_order.total_usd_cents - coalesce(v_order.delivery_usd_cents, 0);
+    return next;
+  end loop;
+end;
+$function$;
+
+-- a returned line remembers its outfit (copied from the sold line)
+create or replace function public.order_return_items_outfit() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  select oi.outfit_id, oi.outfit_group,
+         round(oi.outfit_discount_cents::numeric * new.quantity / greatest(oi.quantity, 1))::integer
+  into new.outfit_id, new.outfit_group, new.outfit_discount_cents
+  from public.order_items oi where oi.id = new.order_item_id;
+  new.outfit_discount_cents := coalesce(new.outfit_discount_cents, 0);
+  return new;
+end $$;
+create trigger order_return_items_outfit before insert on public.order_return_items
+  for each row execute function public.order_return_items_outfit();

@@ -124,3 +124,21 @@ begin
   r := price_cart(jsonb_build_array(jsonb_build_object('key','p','variant_id',v_h,'quantity',1,'unit',4500)), 'percent_bp', 1000);
   if (r->>'promo_base')::int <> 4500 or (r->>'promo_discount')::int <> 450 then raise exception 'TESTFAIL plain: %', r; end if;
 end $$;
+
+-- Task 4: a return refunds what the line actually cost (a POS line discount isn't taken twice)
+do $$
+declare v_order uuid; v_line uuid; v_var uuid; r record; br uuid;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"2e815687-492b-44f4-824e-95345681530a","role":"authenticated"}', true);
+  select id into br from branches where is_active order by created_at limit 1;
+  select pv.id into v_var from product_variants pv join products p on p.id = pv.product_id where p.slug = 'basic-relaxed-fit-hoodie' and pv.is_active limit 1;
+  -- $100 piece, 10% line discount → line total $90, invoice total $90
+  insert into orders (channel, status, branch_id, lbp_per_usd, subtotal_usd_cents, discount_usd_cents, tva_usd_cents, total_usd_cents)
+  values ('pos', 'completed', br, 89500, 10000, 1000, 0, 9000) returning id into v_order;
+  insert into order_items (order_id, variant_id, sku, name_en, name_ar, size, color_en, color_ar, quantity, unit_price_usd_cents, line_total_usd_cents)
+  values (v_order, v_var, 'T', 'T', 'T', 'M', 'Grey', 'رمادي', 1, 10000, 9000) returning id into v_line;
+  select * into r from _validate_return(v_order, jsonb_build_array(jsonb_build_object('order_item_id', v_line, 'quantity', 1)));
+  if r.credit <> 9000 then raise exception 'TESTFAIL credit %', r.credit; end if;
+  delete from order_items where order_id = v_order;
+  delete from orders where id = v_order;
+end $$;
