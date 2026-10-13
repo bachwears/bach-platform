@@ -13,6 +13,7 @@ import { variantPhotos } from "../lib/offline";
 
 import { CustomerPoints } from "./customer-points";
 import { type ReceiptData, ReceiptView } from "./receipt";
+import { useInvoiceConfig } from "@bach/ui/components/receipt";
 
 interface Inv {
   id: string;
@@ -256,13 +257,20 @@ export function Invoices() {
 function PackingSlip({ o }: { o: Inv }) {
   const pickup = o.fulfilment === "pickup";
   const paidAlready = o.payment_method !== "cod" || (o.order_payments ?? []).length > 0;
+  // same roll and logo choice as the receipt (MGMT → إعدادات الفاتورة)
+  const { settings } = useInvoiceConfig();
+  const narrow = settings.paper === "58";
   return (
     <>
-      <style>{`@media print { @page { size: 80mm auto; margin: 0; } .receipt-80 { width: 72mm; margin: 0 auto; font-size: 11px; } }`}</style>
+      <style>{`@media print { @page { size: ${narrow ? "58mm" : "80mm"} auto; margin: 0; } .receipt-80 { width: ${narrow ? "48mm" : "72mm"}; margin: 0 auto; font-size: ${narrow ? "10px" : "11px"}; } }`}</style>
       <div className="receipt-80 border p-6 print:border-0 print:p-1" dir="ltr">
         <div className="text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-bach.png" alt="BACH WEARS" className="mx-auto h-5 w-auto" />
+          {settings.show_logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/logo-bach.png" alt="BACH WEARS" className="mx-auto h-5 w-auto" />
+          ) : (
+            <p className="text-base font-bold tracking-widest">{settings.business_name || "BACH WEARS"}</p>
+          )}
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest">Packing slip</p>
           <p className="mt-1 font-mono text-lg">Order #{o.number}</p>
           <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("en-GB")}</p>

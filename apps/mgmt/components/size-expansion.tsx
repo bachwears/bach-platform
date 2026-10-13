@@ -11,12 +11,16 @@ import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 const LETTER_SIZES = ["S", "M", "L", "XL", "XXL"];
 const PANT_SIZES = ["30", "32", "34", "36", "38"];
 const SHOE_SIZES = ["40", "41", "42", "43", "44", "45"];
+// belt length in cm, the usual run of the big brands
+const BELT_SIZES = ["85", "90", "95", "100", "105", "110"];
+const BELT_CATS = new Set(["BLT"]);
 const BOTTOM_CATS = new Set(["PNT", "JNS", "JOG", "SHR", "TR"]);
 const SHOE_CATS = new Set(["SHO"]);
 
 /** The size run a category starts with — decided by the category or any parent of it
  *  (Boots sits under Shoes, Slim under Jeans), so new sub-categories get the right run. */
 function defaultSizes(lineage: string[]): string[] {
+  if (lineage.some((c) => BELT_CATS.has(c))) return BELT_SIZES;
   if (lineage.some((c) => SHOE_CATS.has(c))) return SHOE_SIZES;
   if (lineage.some((c) => BOTTOM_CATS.has(c))) return PANT_SIZES;
   return LETTER_SIZES;
