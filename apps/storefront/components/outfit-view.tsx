@@ -48,22 +48,22 @@ const units = (v: Variant) => (v.is_active ? Math.max((v.inventory_levels ?? [])
 const current = (p: Product) => Math.min(p.sale_price_usd_cents ?? p.price_usd_cents, p.price_usd_cents);
 
 /** A colour's product shots (front, back) — packshots only, never the model. */
-function packshots(p: Product, colorEn: string | null): { front: string | null; back: string | null; shownIn: string | null } {
+function packshots(p: Product, colorEn: string | null): { shots: string[]; shownIn: string | null } {
   const media = p.media_assets ?? [];
-  const hero = media.find((m) => m.kind === "front");
-  const heroColour = hero?.color_en ?? null;
-  const ofColour = (view: "front" | "back") =>
-    media.find((m) => m.color_en === colorEn && photoView(m).view === view && !photoView(m).numbered)?.storage_path ?? null;
-  if (colorEn && colorEn !== heroColour) {
-    const f = ofColour("front");
-    if (f) return { front: f, back: ofColour("back"), shownIn: null };
-  }
-  return {
-    front: hero?.storage_path ?? null,
-    back: media.find((m) => m.kind === "back")?.storage_path ?? null,
-    // the shots show another colour than the one picked
-    shownIn: colorEn && heroColour && colorEn !== heroColour ? heroColour : null,
-  };
+  // what the file shows (front / back packshot) beats the slot it sits in: some
+  // pieces carry a worn shot in their "front" slot
+  const isShot = (m: (typeof media)[number], view: "front" | "back") => photoView(m).view === view && !photoView(m).numbered;
+  const heroColour = media.find((m) => m.kind === "front")?.color_en ?? null;
+  const ofColour = (c: string | null, view: "front" | "back") =>
+    media.find((m) => (c == null || m.color_en === c || (m.color_en == null && c === heroColour)) && isShot(m, view))?.storage_path ?? null;
+  const pick = (c: string | null) => [ofColour(c, "front"), ofColour(c, "back")].filter((x): x is string => !!x);
+  const mine = pick(colorEn);
+  if (mine.length) return { shots: mine, shownIn: null };
+  const hero = pick(heroColour);
+  if (hero.length) return { shots: hero, shownIn: colorEn && heroColour && colorEn !== heroColour ? heroColour : null };
+  // no packshot at all: the slot photos, as a last resort
+  const slots = ["front", "back"].map((k) => media.find((m) => m.kind === k)?.storage_path).filter((x): x is string => !!x);
+  return { shots: slots, shownIn: null };
 }
 
 interface PieceState {
@@ -218,13 +218,13 @@ export function OutfitView({ outfit, colourFills }: { outfit: OutfitViewData; co
                   className={`border-t pt-6 ${!s.include ? "opacity-50" : ""} ${missing === i ? "outline outline-1 outline-offset-4 outline-foreground" : ""}`}
                 >
                   <div className="flex gap-3">
-                    {[shots.front, shots.back].map((src, k) =>
-                      src ? (
+                    {shots.shots.length ? (
+                      shots.shots.map((src, k) => (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img key={k} src={src.replace(/-1600\.webp$/, "-400.webp")} alt={`${p.name_en} — ${k ? "back" : "front"}`} loading="lazy" className="aspect-[3/4] w-[30%] bg-secondary object-cover" />
-                      ) : (
-                        <span key={k} className="aspect-[3/4] w-[30%] bg-secondary" />
-                      ),
+                        <img key={src} src={src.replace(/-1600\.webp$/, "-400.webp")} alt={`${p.name_en} — ${k ? "back" : "front"}`} loading="lazy" className="aspect-[3/4] w-[30%] bg-secondary object-contain" />
+                      ))
+                    ) : (
+                      <span className="aspect-[3/4] w-[30%] bg-secondary" />
                     )}
                     <div className="min-w-0 flex-1 space-y-1">
                       <Link href={`/products/${p.slug}${s.colour ? `?color=${s.colour}` : ""}`} className="type-meta block hover:underline">
