@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { supabaseServer } from "@bach/supabase/server";
 
 import { t } from "@bach/i18n";
@@ -22,6 +22,8 @@ import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 import { getShopCatalog, getSiteContent } from "../../../lib/cached";
 import { PdpStrip, PdpSwipe, type PdpNavItem } from "../../../components/pdp-nav";
+import { OutfitCard } from "../../../components/outfit-card";
+import { exclusivePieces, getOutfitCatalog, isListable } from "../../../lib/outfits";
 
 interface VariantRow {
   id: string;
@@ -104,6 +106,12 @@ export default async function ProductPage({
   const { color: colorParam } = await searchParams;
   const [product, locale] = await Promise.all([getProduct(slug), getLocale()]);
   if (!product) notFound();
+  // looks this piece belongs to; a piece sold only inside a look opens the look
+  const lookCatalog = await getOutfitCatalog();
+  const lockedBy = exclusivePieces(lookCatalog).get(product.id);
+  if (lockedBy) redirect(`/outfits/${lockedBy.slug}`);
+  const lockedSlugs = new Set([...exclusivePieces(lookCatalog).values()].flatMap((o) => (o.outfit_items ?? []).map((i) => i.products?.slug)));
+  const myLooks = lookCatalog.filter((o) => isListable(o) && (o.outfit_items ?? []).some((i) => i.product_id === product.id));
 
   const media =
     (product.media_assets as unknown as Array<{ kind: string; storage_path: string; color_en?: string | null; sort: number | null }>) ?? [];
@@ -195,7 +203,7 @@ export default async function ProductPage({
   const navItems: PdpNavItem[] = category
     ? ((catalog ?? []) as unknown as NavRow[])
         // sold-out pieces leave the strip (this one stays, so the strip still marks it)
-        .filter((p) => p.categories?.code === category.code && (p.slug === product.slug || isSellable(p)))
+        .filter((p) => p.categories?.code === category.code && (p.slug === product.slug || (isSellable(p) && !lockedSlugs.has(p.slug))))
         .map((p) => ({ p, front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null }))
         .filter(({ front }) => front)
         .map(({ p, front }) => ({
@@ -265,7 +273,8 @@ export default async function ProductPage({
 
   const toCard = (p: CardRow) => toCardProduct(p);
   // a card worth showing: photographed, and something in it can still be bought
-  const showable = (c: CardProduct) => Boolean(c.front) && (!(c.variants ?? []).length || (c.variants ?? []).some((v) => !v.soldOut));
+  const showable = (c: CardProduct) =>
+    Boolean(c.front) && !lockedSlugs.has(c.slug) && (!(c.variants ?? []).length || (c.variants ?? []).some((v) => !v.soldOut));
   // photographed, in-stock pieces, then keep four
   const firstFour = (rows: unknown) =>
     ((rows ?? []) as Parameters<typeof toCard>[0][])
@@ -290,7 +299,7 @@ export default async function ProductPage({
   const cardPrice = (c: CardProduct) => Math.min(c.sale_price_usd_cents ?? c.price_usd_cents, c.price_usd_cents);
   const related = ((relatedRaw ?? []) as Parameters<typeof toCard>[0][])
     .map(toCard)
-    .filter((c) => c.front && (c.variants ?? []).some((v) => !v.soldOut))
+    .filter((c) => c.front && !lockedSlugs.has(c.slug) && (c.variants ?? []).some((v) => !v.soldOut))
     .map((c) => ({
       c,
       inBand: Math.abs(cardPrice(c) - myPrice) <= myPrice * 0.25,
@@ -533,6 +542,17 @@ export default async function ProductPage({
       </PdpColourProvider>
 
       <section className="mx-auto mt-20 max-w-[1440px] space-y-16 px-4 pb-16 sm:px-8">
+        {/* the looks this piece is part of */}
+        {myLooks.length ? (
+          <div>
+            <h2 className="type-heading">Wear the full look</h2>
+            <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4">
+              {myLooks.slice(0, 4).map((o) => (
+                <OutfitCard key={o.id} outfit={o} />
+              ))}
+            </div>
+          </div>
+        ) : null}
         {wearWith.length > 0 && (
           <div>
             <h2 className="type-heading">{t(locale, "sf.pdp.wearWith")}</h2>

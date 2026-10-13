@@ -16,7 +16,9 @@ export type TrackEvent =
   | "checkout_start"
   | "order_placed"
   | "delivery_bar_seen"
-  | "search";
+  | "search"
+  | "outfit_view"
+  | "outfit_add";
 
 function optedOut(): boolean {
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };

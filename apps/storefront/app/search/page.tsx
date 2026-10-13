@@ -8,6 +8,7 @@ import { SearchTracker } from "../../components/track-events";
 import { isSellable, toCardProduct } from "../../lib/card";
 import { SearchField } from "../../components/search-field";
 import { getLocale, lhref } from "../../lib/locale";
+import { exclusivePieces, getOutfitCatalog } from "../../lib/outfits";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -99,7 +100,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   ]);
   const hasPhoto = (p: Row) => p.media_assets.some((m) => m.kind === "front");
   // unphotographed pieces stay hidden until they are shot; sold-out ones until restocked
-  const all = ((data ?? []) as unknown as Row[]).filter((p) => hasPhoto(p) && isSellable(p));
+  // pieces sold only inside a look are found through the look, not on their own
+  const lockedSlugs = new Set([...exclusivePieces(await getOutfitCatalog()).values()].flatMap((o) => (o.outfit_items ?? []).map((i) => i.products?.slug)));
+  const all = ((data ?? []) as unknown as Row[]).filter((p) => hasPhoto(p) && isSellable(p) && !lockedSlugs.has(p.slug));
   // a piece is found by its category's parents too: "shoes" finds boots, "accessories" finds caps
   const catById = new Map((cats ?? []).map((c) => [c.id, c]));
   const lineageNames = (id: string | null) => {

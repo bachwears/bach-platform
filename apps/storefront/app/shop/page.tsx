@@ -13,6 +13,8 @@ import { getShopCatalog, getSiteContent } from "../../lib/cached";
 import { DensityToggle } from "../../components/density-toggle";
 import { colorFill } from "../../lib/colors";
 import { getLocale, lhref, pick } from "../../lib/locale";
+import { OutfitCard } from "../../components/outfit-card";
+import { exclusivePieces, getOutfitCatalog, isListable } from "../../lib/outfits";
 
 export async function generateMetadata({
   searchParams,
@@ -206,13 +208,15 @@ export default async function ShopPage({
   }
 
   const locale = await getLocale();
-  const [{ data, merch, catTree }, site] = await Promise.all([getShopCatalog(), getSiteContent()]);
+  const [{ data, merch, catTree }, site, lookCatalog] = await Promise.all([getShopCatalog(), getSiteContent(), getOutfitCatalog()]);
+  // pieces sold only inside a look never show on their own
+  const exclusive = exclusivePieces(lookCatalog);
   const colourCards = (site.shop as { colour_cards?: boolean } | undefined)?.colour_cards === true;
   // Pieces without a front photo stay off the storefront until they are shot
   // (MGMT flags them under Product Data Health), and sold-out pieces leave the
   // listing until stock comes back (their own page stays up with "Notify me").
   const all = ((data ?? []) as unknown as ShopProduct[]).filter(
-    (p) => (p.media_assets ?? []).some((m) => m.kind === "front") && isSellable(p),
+    (p) => (p.media_assets ?? []).some((m) => m.kind === "front") && isSellable(p) && !exclusive.has(p.id),
   );
   const tree = catTree ?? [];
   // A category code matches everything underneath it, at any depth
@@ -304,6 +308,16 @@ export default async function ShopPage({
   const listed = listColours(items.map(toCardProduct), colourCards, color, sort === "featured");
   const show = Math.min(listed.length, Math.max(PAGE, Math.floor(Number(params.show) / PAGE) * PAGE || PAGE));
   const cards = listed.slice(0, show);
+  // MGMT switch (site_content shop.outfit_cards): looks mixed into the plain featured grid
+  const looksOn =
+    (site.shop as { outfit_cards?: boolean } | undefined)?.outfit_cards !== false &&
+    !cat && !col && !special && !q && !size && !color && !band && !sale && sort === "featured";
+  const lookList = looksOn ? lookCatalog.filter(isListable) : [];
+  const lookAt = new Map<number, (typeof lookList)[number]>();
+  lookList.forEach((o, k) => {
+    const at = 5 + k * 12;
+    if (at < cards.length) lookAt.set(at, o);
+  });
 
   // URL builder: toggles one param while keeping the rest, so every state is a link.
   const href = (patch: Record<string, string | undefined>) => {
@@ -547,15 +561,18 @@ export default async function ShopPage({
             className="mt-4 grid grid-cols-2 gap-x-2 gap-y-10 sm:gap-x-4 lg:grid-cols-4 data-[density=large]:grid-cols-1 lg:data-[density=large]:grid-cols-2"
           >
             {cards.map(({ card, colour }, i) => (
-              // the first row (2 on phones, 4 on desktop) is what the shopper sees first
-              <ProductCard
-                key={`${card.slug}|${colour ?? ""}`}
-                product={card}
-                initialColour={colour}
-                locale={locale}
-                priority={i < 4}
-                source={sort === "featured" ? "shop_featured" : "shop"}
-              />
+              <Fragment key={`${card.slug}|${colour ?? ""}`}>
+                {/* a look every 12 pieces in the unfiltered featured grid, from the 6th place */}
+                {lookAt.get(i) ? <OutfitCard outfit={lookAt.get(i)!} /> : null}
+                {/* the first row (2 on phones, 4 on desktop) is what the shopper sees first */}
+                <ProductCard
+                  product={card}
+                  initialColour={colour}
+                  locale={locale}
+                  priority={i < 4}
+                  source={sort === "featured" ? "shop_featured" : "shop"}
+                />
+              </Fragment>
             ))}
           </div>
           {listed.length > show ? (

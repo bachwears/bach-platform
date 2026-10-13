@@ -49,12 +49,15 @@ export function HeaderActions({
   collections,
   hasSale,
   hasSpecial = false,
+  hasOutfits = false,
   tiles,
 }: {
   groups: NavGroup[];
   collections: NavCollection[];
   hasSale: boolean;
   hasSpecial?: boolean;
+  /** at least one look can be bought: "Outfits" under New in */
+  hasOutfits?: boolean;
   tiles: NavTile[];
 }) {
   const locale = useLocale();
@@ -271,6 +274,13 @@ export function HeaderActions({
                         {t(locale, "sf.home.theNew")}
                       </Link>
                     </li>
+                    {hasOutfits ? (
+                      <li>
+                        <Link href="/outfits" className={`${textLink} block`} onClick={close}>
+                          Outfits
+                        </Link>
+                      </li>
+                    ) : null}
                   </ul>
                 </li>
                 {groups.map((g, i) => (

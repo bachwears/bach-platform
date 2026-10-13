@@ -7,7 +7,8 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 
 import { t } from "@bach/i18n";
 
-import { clearCart, readCart, setQuantity } from "../../lib/cart";
+import { clearCart, lineKey, readCart, setQuantity } from "../../lib/cart";
+import { usePricedCart } from "../../lib/priced-cart";
 import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { DeliveryProgress } from "../../components/delivery-progress";
@@ -16,6 +17,12 @@ import { lhref, useLocale } from "../../lib/locale-client";
 import { track } from "../../lib/track";
 
 interface SummaryLine {
+  key: string;
+  variantId: string;
+  unit: number;
+  outfitId?: string;
+  outfitGroup?: string;
+  outfitName?: string;
   name: string;
   size: string;
   color: string;
@@ -97,7 +104,7 @@ export default function CheckoutPage() {
         !!v && v.is_active !== false && (v.products as { status?: string } | null)?.status === "published";
       const dead = cart.filter((l) => !sellable((data ?? []).find((x) => x.id === l.variantId) as Record<string, unknown> | undefined));
       if (dead.length) {
-        dead.forEach((l) => setQuantity(l.variantId, 0));
+        dead.forEach((l) => setQuantity(l.variantId, 0, l.outfitGroup));
         setNotice(t(locale, "sf.co.removedGone", { n: String(dead.length) }));
         if (dead.length === cart.length) {
           router.replace(lhref(locale, "/cart"));
@@ -121,7 +128,22 @@ export default function CheckoutPage() {
           // a photo in the bought colour when there is one, else the main photo
           const media = p.media_assets ?? [];
           const image = colourPhoto(media, v.color_en as string);
-          return [{ name, size: v.size as string, color, quantity: l.quantity, lineTotal: price * l.quantity, image }];
+          return [
+            {
+              key: lineKey(l),
+              variantId: l.variantId,
+              unit: price,
+              outfitId: l.outfitId,
+              outfitGroup: l.outfitGroup,
+              outfitName: l.outfitName,
+              name,
+              size: v.size as string,
+              color,
+              quantity: l.quantity,
+              lineTotal: price * l.quantity,
+              image,
+            },
+          ];
         }),
       );
       setRate(rateRow ? Number(rateRow.lbp_per_usd) : null);
@@ -165,23 +187,25 @@ export default function CheckoutPage() {
   }, [router, locale]);
 
   const subtotal = summary.reduce((s, l) => s + l.lineTotal, 0);
-  const promoDiscount =
-    promoState.status === "ok" && promoState.value
-      ? promoState.kind === "percent"
-        ? Math.round((subtotal * promoState.value) / 100)
-        : Math.min(promoState.value, subtotal)
-      : 0;
+  // looks and the promo code priced by the database's own function (price_cart),
+  // so the summary is exactly what storefront_checkout will charge
+  const priced = usePricedCart(
+    summary.map((l) => ({ key: l.key, variantId: l.variantId, quantity: l.quantity, unit: l.unit, outfitId: l.outfitId, outfitGroup: l.outfitGroup })),
+    promoState.status === "ok" && promoState.value ? { kind: promoState.kind === "percent" ? "percent" : "fixed", value: promoState.value } : null,
+  );
+  const outfitDiscount = priced.outfitDiscount;
+  const promoDiscount = priced.promoDiscount;
   // Delivery is judged on the pieces after the promo (before any wallet reward),
   // the same rule the checkout RPC applies.
   // Pickup from the shop is free (the RPC charges no fee either).
   const isPickup = fulfilment === "pickup" && pickup !== null;
-  const delivery = isPickup ? 0 : deliveryFor(subtotal - promoDiscount, deliveryRule);
+  const delivery = isPickup ? 0 : deliveryFor(subtotal - outfitDiscount - promoDiscount, deliveryRule);
   // wallet payers get 10% off the pieces (integer cents, as the RPC rounds); delivery is paid in full
-  const walletDiscount = Math.round((subtotal - promoDiscount) / 10);
-  const walletPays = subtotal - promoDiscount - walletDiscount + delivery;
+  const walletDiscount = Math.round((subtotal - outfitDiscount - promoDiscount) / 10);
+  const walletPays = subtotal - outfitDiscount - promoDiscount - walletDiscount + delivery;
   const walletOffered = walletBalance > 0 && walletBalance >= walletPays;
   const payingWallet = payMethod === "wallet" && walletOffered;
-  const total = subtotal - promoDiscount + delivery - (payingWallet ? walletDiscount : 0);
+  const total = subtotal - outfitDiscount - promoDiscount + delivery - (payingWallet ? walletDiscount : 0);
   // one checkout_start per visit, once the bag's prices are in
   const started = useRef(false);
   useEffect(() => {
@@ -197,7 +221,7 @@ export default function CheckoutPage() {
     const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canPlace =
-    !busy && summary.length > 0 && name.trim() && phoneOk && emailOk && (isPickup || (city.trim() && address.trim()));
+    !busy && summary.length > 0 && priced.ready && !priced.error && name.trim() && phoneOk && emailOk && (isPickup || (city.trim() && address.trim()));
 
   async function placeOrder() {
     if (!canPlace) return;
@@ -206,7 +230,11 @@ export default function CheckoutPage() {
     const supabase = supabaseBrowser();
     const call = () =>
       supabase.rpc("storefront_checkout", {
-        p_items: readCart().map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
+        p_items: readCart().map((l) => ({
+          variant_id: l.variantId,
+          quantity: l.quantity,
+          ...(l.outfitGroup ? { outfit_id: l.outfitId, outfit_group: l.outfitGroup } : {}),
+        })),
         p_name: name.trim(),
         p_phone: phone,
         p_city: isPickup ? "" : city.trim(),
@@ -253,7 +281,7 @@ export default function CheckoutPage() {
       return;
     }
     // amounts only; goods = pieces after the promo (what free delivery is judged on)
-    track("order_placed", { value: total, meta: { goods: subtotal - promoDiscount } });
+    track("order_placed", { value: total, meta: { goods: subtotal - outfitDiscount - promoDiscount, outfit_saving: outfitDiscount } });
     if (payMethod === "stripe") {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`, {
@@ -287,7 +315,7 @@ export default function CheckoutPage() {
           n: data![0].order_number,
           lines: summary,
           total,
-          discount: promoDiscount + (payingWallet ? walletDiscount : 0),
+          discount: outfitDiscount + promoDiscount + (payingWallet ? walletDiscount : 0),
           delivery,
           rate,
           city: isPickup ? "" : city.trim(),
@@ -372,8 +400,8 @@ export default function CheckoutPage() {
                     () => setFulfilment("delivery"),
                     t(locale, "sf.co.optDelivery"),
                     t(locale, "sf.co.optDeliverySub", {
-                      v: deliveryFor(subtotal - promoDiscount, deliveryRule)
-                        ? usd(deliveryFor(subtotal - promoDiscount, deliveryRule))
+                      v: deliveryFor(subtotal - outfitDiscount - promoDiscount, deliveryRule)
+                        ? usd(deliveryFor(subtotal - outfitDiscount - promoDiscount, deliveryRule))
                         : t(locale, "sf.co.deliveryFree"),
                     }),
                   )}
@@ -479,7 +507,12 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   {promoState.status === "ok" && (
-                    <p className="mt-2 text-xs">✓ {t(locale, "sf.co.promoOk", { v: `${(promoDiscount / 100).toFixed(2)}` })}</p>
+                    <>
+                      <p className="mt-2 text-xs">✓ {t(locale, "sf.co.promoOk", { v: `${(promoDiscount / 100).toFixed(2)}` })}</p>
+                      {promoDiscount === 0 && outfitDiscount > 0 ? (
+                        <p className="mt-1 text-xs text-muted-foreground">Codes don&apos;t apply to a look that already has its outfit price.</p>
+                      ) : null}
+                    </>
                   )}
                   {promoState.status === "bad" && <p className="mt-2 text-xs text-destructive">{promoState.message}</p>}
                 </div>
@@ -516,6 +549,7 @@ export default function CheckoutPage() {
               {summary.map((l, i) => (
                 <li key={i} className="flex justify-between gap-4">
                   <span className="min-w-0">
+                    {l.outfitName ? <span className="type-meta block text-muted-foreground">OUTFIT · {l.outfitName}</span> : null}
                     <span className="type-meta block">{l.name}</span>
                     <span className="type-meta block text-muted-foreground">
                       {l.size} | {l.color} · × {l.quantity}
@@ -525,6 +559,17 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
+            {outfitDiscount > 0 && (
+              <p className="type-meta mt-3 flex justify-between">
+                <span>Outfit saving</span>
+                <span className="tabular-nums">- {usd(outfitDiscount)}</span>
+              </p>
+            )}
+            {priced.error ? (
+              <p role="alert" className="type-meta mt-3 text-destructive">
+                {priced.error.includes("complete") ? "A look in your bag is sold complete only — add the missing piece or remove the look." : t(locale, "sf.co.loadError")}
+              </p>
+            ) : null}
             {promoDiscount > 0 && (
               <p className="type-meta mt-3 flex justify-between">
                 <span>{t(locale, "sf.co.promoDiscount")}</span>
@@ -542,7 +587,7 @@ export default function CheckoutPage() {
               <span className="tabular-nums">{delivery ? usd(delivery) : t(locale, "sf.co.deliveryFree")}</span>
             </p>
             {/* free-delivery progress means nothing when collecting from the shop */}
-            {isPickup ? null : <DeliveryProgress goods={subtotal - promoDiscount} className="mt-3" />}
+            {isPickup ? null : <DeliveryProgress goods={subtotal - outfitDiscount - promoDiscount} className="mt-3" />}
             <p className="type-label mt-4 flex justify-between border-t pt-4">
               <span>{t(locale, "sf.co.total")}</span>
               <span className="tabular-nums">{usd(total)}</span>

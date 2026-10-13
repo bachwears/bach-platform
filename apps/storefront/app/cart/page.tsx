@@ -11,7 +11,8 @@ import { ProductCard, type CardProduct } from "../../components/product-card";
 import { CARD_COLUMNS, isSellable, toCardProduct } from "../../lib/card";
 import { DeliveryProgress } from "../../components/delivery-progress";
 import { PointsEarn } from "../../components/points-earn";
-import { onCartChange, readCart, setQuantity } from "../../lib/cart";
+import { lineKey, onCartChange, readCart, removeOutfit, setQuantity, type CartLine } from "../../lib/cart";
+import { usePricedCart } from "../../lib/priced-cart";
 import { colourPhoto, photoSrc } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
 import { lhref, useLocale } from "../../lib/locale-client";
@@ -136,7 +137,7 @@ export default function CartPage() {
       // otherwise sit invisibly in the bag count and break checkout.
       const dead = readCart().filter((l) => !map[l.variantId]);
       if (dead.length) {
-        dead.forEach((l) => setQuantity(l.variantId, 0));
+        dead.forEach((l) => setQuantity(l.variantId, 0, l.outfitGroup));
         setNotice(t(locale, "sf.co.removedGone", { n: String(dead.length) }));
       }
       setDetails(map);
@@ -176,8 +177,23 @@ export default function CartPage() {
 
   const rows = lines.map((l) => ({ line: l, d: details[l.variantId] })).filter((r) => r.d);
   const count = rows.reduce((s, r) => s + r.line.quantity, 0);
-  const subtotal = rows.reduce((s, r) => s + r.d!.price * r.line.quantity, 0);
-  const overStock = rows.some((r) => r.line.quantity > r.d!.available);
+  const gross = rows.reduce((s, r) => s + r.d!.price * r.line.quantity, 0);
+  // looks priced by the database's own function, as checkout will charge them
+  const priced = usePricedCart(
+    rows.map((r) => ({ key: lineKey(r.line), variantId: r.line.variantId, quantity: r.line.quantity, unit: r.d!.price, outfitId: r.line.outfitId, outfitGroup: r.line.outfitGroup })),
+    null,
+  );
+  // what the pieces come to after the looks' savings
+  const subtotal = gross - priced.outfitDiscount;
+  // a piece can sit loose and inside a look: stock is per piece
+  const wanted = new Map<string, number>();
+  for (const r of rows) wanted.set(r.line.variantId, (wanted.get(r.line.variantId) ?? 0) + r.line.quantity);
+  const overStock = rows.some((r) => (wanted.get(r.line.variantId) ?? 0) > r.d!.available);
+  const loose = rows.filter((r) => !r.line.outfitGroup);
+  const looks = [...new Set(rows.filter((r) => r.line.outfitGroup).map((r) => r.line.outfitGroup!))].map((g) => ({
+    group: g,
+    rows: rows.filter((r) => r.line.outfitGroup === g),
+  }));
   const bagEmpty = loaded && rows.length === 0;
 
   // one bag_view per visit to the bag, with what the pieces come to
@@ -247,6 +263,64 @@ export default function CartPage() {
       );
     });
   }, [loaded, bagSlugs, gap]);
+
+  // one piece in the bag; a look's pieces have no quantity buttons (add the look again for two)
+  const pieceRow = (line: CartLine, d: Detail) => (
+
+                <li key={lineKey(line)} className="flex gap-4 sm:block">
+                  <Link href={lhref(locale, `/products/${d!.slug}`)} className="block w-28 shrink-0 bg-secondary sm:w-full" tabIndex={-1} aria-hidden>
+                    {d!.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img {...photoSrc(d!.image, "120px")} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                    ) : (
+                      <span className="block aspect-[3/4] w-full" />
+                    )}
+                  </Link>
+                  <div className="flex min-w-0 flex-1 flex-col sm:mt-3">
+                    <Link href={lhref(locale, `/products/${d!.slug}`)} className="type-meta line-clamp-2 hover:opacity-60">
+                      {d!.name}
+                    </Link>
+                    <p className="type-meta mt-1 tabular-nums">{usd(d!.price * line.quantity)}</p>
+                    <p className="type-meta mt-1 text-muted-foreground">
+                      {d!.size} | {d!.color_en}
+                    </p>
+                    <div className="mt-auto flex items-center pt-4 sm:mt-4 sm:pt-0">
+                      {line.outfitGroup ? null : (
+                      <div className="flex items-center border">
+                        <button
+                          type="button"
+                          className="grid h-10 w-10 place-items-center hover:bg-secondary"
+                          aria-label={t(locale, "sf.cart.decrease")}
+                          onClick={() => setQuantity(line.variantId, line.quantity - 1)}
+                        >
+                          −
+                        </button>
+                        <span className="type-meta w-8 text-center tabular-nums">{line.quantity}</span>
+                        <button
+                          type="button"
+                          className="grid h-10 w-10 place-items-center hover:bg-secondary disabled:opacity-30"
+                          aria-label={t(locale, "sf.cart.increase")}
+                          disabled={line.quantity >= Math.min(d!.available, 10)}
+                          onClick={() => setQuantity(line.variantId, line.quantity + 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                      )}
+                      <button
+                        type="button"
+                        className="type-meta ms-4 h-10 underline underline-offset-4 hover:opacity-60"
+                        onClick={() => setQuantity(line.variantId, 0, line.outfitGroup)}
+                      >
+                        {t(locale, "sf.cart.remove")}
+                      </button>
+                    </div>
+                    {(wanted.get(line.variantId) ?? 0) > d!.available && (
+                      <p className="type-meta mt-2 text-destructive">{t(locale, "sf.cart.onlyStock", { n: d!.available })}</p>
+                    )}
+                  </div>
+                </li>
+  );
 
   const delivery = subtotal > 0 ? deliveryFor(subtotal, deliveryRule) : 0;
   const lbp = rate ? `${Math.round(((subtotal + delivery) / 100) * rate).toLocaleString("en-US")} LBP` : null;
@@ -364,59 +438,30 @@ export default function CartPage() {
           <DeliveryProgress goods={subtotal} className="mt-6 max-w-md" />
           <section className="mt-8 grid gap-10 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0" role="tabpanel">
             <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-              {rows.map(({ line, d }) => (
-                <li key={line.variantId} className="flex gap-4 sm:block">
-                  <Link href={lhref(locale, `/products/${d!.slug}`)} className="block w-28 shrink-0 bg-secondary sm:w-full" tabIndex={-1} aria-hidden>
-                    {d!.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img {...photoSrc(d!.image, "120px")} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
-                    ) : (
-                      <span className="block aspect-[3/4] w-full" />
-                    )}
-                  </Link>
-                  <div className="flex min-w-0 flex-1 flex-col sm:mt-3">
-                    <Link href={lhref(locale, `/products/${d!.slug}`)} className="type-meta line-clamp-2 hover:opacity-60">
-                      {d!.name}
-                    </Link>
-                    <p className="type-meta mt-1 tabular-nums">{usd(d!.price * line.quantity)}</p>
-                    <p className="type-meta mt-1 text-muted-foreground">
-                      {d!.size} | {d!.color_en}
-                    </p>
-                    <div className="mt-auto flex items-center pt-4 sm:mt-4 sm:pt-0">
-                      <div className="flex items-center border">
-                        <button
-                          type="button"
-                          className="grid h-10 w-10 place-items-center hover:bg-secondary"
-                          aria-label={t(locale, "sf.cart.decrease")}
-                          onClick={() => setQuantity(line.variantId, line.quantity - 1)}
-                        >
-                          −
-                        </button>
-                        <span className="type-meta w-8 text-center tabular-nums">{line.quantity}</span>
-                        <button
-                          type="button"
-                          className="grid h-10 w-10 place-items-center hover:bg-secondary disabled:opacity-30"
-                          aria-label={t(locale, "sf.cart.increase")}
-                          disabled={line.quantity >= Math.min(d!.available, 10)}
-                          onClick={() => setQuantity(line.variantId, line.quantity + 1)}
-                        >
-                          +
-                        </button>
+              {loose.map(({ line, d }) => pieceRow(line, d!))}
+              {looks.map((look) => {
+                const first = look.rows[0]!.line;
+                const saving = look.rows.reduce((n, r) => n + (priced.lineDiscount[lineKey(r.line)] ?? 0), 0);
+                return (
+                  <li key={look.group} className="col-span-full border-t pt-6">
+                    <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+                      <div>
+                        <p className="type-meta text-muted-foreground">OUTFIT</p>
+                        <Link href={lhref(locale, `/outfits/${first.outfitSlug ?? ""}`)} className="type-label hover:opacity-60">
+                          {first.outfitName}
+                        </Link>
+                        <p className="type-meta mt-1 tabular-nums">
+                          {saving > 0 ? `You save ${usd(saving)}` : "Not the full look — each piece at its own price"}
+                        </p>
                       </div>
-                      <button
-                        type="button"
-                        className="type-meta ms-4 h-10 underline underline-offset-4 hover:opacity-60"
-                        onClick={() => setQuantity(line.variantId, 0)}
-                      >
-                        {t(locale, "sf.cart.remove")}
+                      <button type="button" className="type-meta underline underline-offset-4 hover:opacity-60" onClick={() => removeOutfit(look.group)}>
+                        Remove the look
                       </button>
                     </div>
-                    {line.quantity > d!.available && (
-                      <p className="type-meta mt-2 text-destructive">{t(locale, "sf.cart.onlyStock", { n: d!.available })}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
+                    <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">{look.rows.map(({ line, d }) => pieceRow(line, d!))}</ul>
+                  </li>
+                );
+              })}
             </ul>
 
             {/* Total: a side column on desktop; on phones a bar fixed to the bottom

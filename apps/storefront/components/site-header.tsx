@@ -3,10 +3,15 @@ import { t } from "@bach/i18n";
 import { HeaderActions, type NavGroup, type NavTile } from "./header-actions";
 import { getLocale, lhref, pick } from "../lib/locale";
 import { getNavData, getSiteContent } from "../lib/cached";
+import { getOutfitCatalog, isListable } from "../lib/outfits";
 
 export async function SiteHeader() {
   const locale = await getLocale();
-  const [{ cats, cols, saleCount, newest, fronts, specialCount }, content] = await Promise.all([getNavData(), getSiteContent()]);
+  const [{ cats, cols, saleCount, newest, fronts, specialCount }, content, looks] = await Promise.all([
+    getNavData(),
+    getSiteContent(),
+    getOutfitCatalog(),
+  ]);
   // MGMT can hide every collection from the site in one switch
   const collectionsOn = (content.collections as { visible?: boolean } | undefined)?.visible !== false;
 
@@ -81,6 +86,7 @@ export async function SiteHeader() {
         collections={collectionsOn ? (cols ?? []).map((c) => ({ slug: c.slug, label: pick(locale, c.name_en, c.name_ar) })) : []}
         hasSale={Boolean(saleCount)}
         hasSpecial={Boolean(specialCount)}
+        hasOutfits={looks.some(isListable)}
         tiles={tiles}
       />
     </header>
