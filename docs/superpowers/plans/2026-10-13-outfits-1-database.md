@@ -471,6 +471,15 @@ Note: `stable` is wrong for a function that writes a temp table — declare it `
 
 ---
 
+## As built (2026-10-14)
+
+All 7 tasks done; `supabase/tests/outfits.sql` passes against prod in a rolled-back transaction. Deviations:
+- Outfit favourites are a separate table `outfit_favourites (customer_id, outfit_id)` — `wishlists.product_id` is part of its primary key, so it can't become nullable.
+- `price_outfit()` (display helper) dropped: the storefront calls `price_cart` itself for the live total.
+- Returned lines get their outfit through a trigger on `order_return_items` (copied from the sold line), so `pos_return` / `pos_exchange` didn't need rewriting.
+- The exclusive whole-return rule lives in `_validate_return` (shared by returns and exchanges).
+- Found and fixed on the way: a POS line discount was taken twice on return (refund $81 instead of $90) — the credit ratio now uses the sum of line totals.
+
 ## Next plans (written after Plan 1 lands)
 
 - Plan 2 — MGMT: outfits list + editor (pieces, photos, price, sell mode, promo mode, SEO, barcode card), warnings, product page "part of N outfits", shop switch.

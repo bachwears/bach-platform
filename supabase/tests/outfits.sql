@@ -235,3 +235,45 @@ begin
     raise exception 'TESTFAIL plain pos %', (select total_usd_cents from orders where id = r.order_id);
   end if;
 end $$;
+
+-- Task 7: returning a piece of a look
+do $$
+declare o uuid; v_j uuid; v_h uuid; v_b uuid; r record; br uuid; items jsonb; hood uuid; c record; all_lines jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"2e815687-492b-44f4-824e-95345681530a","role":"authenticated"}', true);
+  select id into o from outfits where slug = 'zz-test-look';
+  update outfits set price_kind = 'percent', percent_off = 15, promo_mode = 'exclude', sell_mode = 'flexible', status = 'published' where id = o;
+  select id into br from branches where is_active order by created_at limit 1;
+  select pv.id into v_j from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'corduroy-jacket-with-fireman-clasps' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_h from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'basic-relaxed-fit-hoodie' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_b from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'lug-sole-leather-chelsea-boots' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  items := jsonb_build_array(
+    jsonb_build_object('variant_id', v_j, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'),
+    jsonb_build_object('variant_id', v_h, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'),
+    jsonb_build_object('variant_id', v_b, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'));
+  -- flexible: the hoodie alone comes back at its paid share 45.00 - 6.75 = 38.25
+  drop table if exists _lines;
+  select * into r from pos_checkout(br, items, '[{"currency":"USD","amount_minor":22355,"net":true}]'::jsonb);
+  select id into hood from order_items where order_id = r.order_id and variant_id = v_h;
+  select * into c from _validate_return(r.order_id, jsonb_build_array(jsonb_build_object('order_item_id', hood, 'quantity', 1)));
+  if c.credit <> 3825 then raise exception 'TESTFAIL flexible piece credit %', c.credit; end if;
+  -- exclusive: the hoodie alone is refused, the whole look is accepted
+  update outfits set sell_mode = 'exclusive' where id = o;
+  drop table if exists _lines;
+  select * into r from pos_checkout(br, items, '[{"currency":"USD","amount_minor":22355,"net":true}]'::jsonb);
+  select id into hood from order_items where order_id = r.order_id and variant_id = v_h;
+  begin
+    perform * from _validate_return(r.order_id, jsonb_build_array(jsonb_build_object('order_item_id', hood, 'quantity', 1)));
+    raise exception 'TESTFAIL exclusive piece returned alone';
+  exception when raise_exception then if sqlerrm like 'TESTFAIL%' then raise; end if;
+  end;
+  select jsonb_agg(jsonb_build_object('order_item_id', id, 'quantity', 1)) into all_lines from order_items where order_id = r.order_id;
+  if (select sum(credit) from _validate_return(r.order_id, all_lines)) <> 22355 then
+    raise exception 'TESTFAIL exclusive whole return credit %', (select sum(credit) from _validate_return(r.order_id, all_lines));
+  end if;
+  -- the returned line copies its look
+  update outfits set sell_mode = 'flexible' where id = o;
+end $$;
