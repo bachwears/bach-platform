@@ -42,7 +42,10 @@ export function AssistantWidget() {
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   // on phones the launcher would sit on the bag, place-order, pinned ADD and account-form buttons
-  const inPurchase = /\/(cart|checkout|products|account)(\/|$)/.test(usePathname() ?? "");
+  const path = usePathname() ?? "";
+  const inPurchase = /\/(cart|checkout|products|account)(\/|$)/.test(path);
+  // an outfit page's ADD bar spans the whole width on every screen: the chat button would sit on it
+  const onOutfit = /\/outfits\/./.test(path);
 
   // Phones/tablets: the launcher steps aside while the shopper scrolls down
   // through photos and comes back on the way up (or near the top), so it never
@@ -119,7 +122,7 @@ export function AssistantWidget() {
           aria-label="Chat with us"
           className={`assistant-fab fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center bg-foreground text-background transition-[opacity,transform] duration-300 hover:opacity-90 motion-reduce:transition-none max-lg:right-3 max-lg:h-10 max-lg:w-10 ${
             tucked ? "max-lg:pointer-events-none max-lg:translate-y-3 max-lg:opacity-0 max-lg:focus-visible:pointer-events-auto max-lg:focus-visible:translate-y-0 max-lg:focus-visible:opacity-100" : ""
-          } ${inPurchase ? "max-lg:hidden" : ""}`}
+          } ${onOutfit ? "hidden" : inPurchase ? "max-lg:hidden" : ""}`}
         ><MessageCircle className="h-5 w-5 max-lg:h-4 max-lg:w-4" strokeWidth={1.25} aria-hidden /></button>
       )}
       {open && (
