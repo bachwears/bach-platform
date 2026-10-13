@@ -142,3 +142,44 @@ begin
   delete from order_items where order_id = v_order;
   delete from orders where id = v_order;
 end $$;
+
+-- Task 5: storefront_checkout sells a look
+do $$
+declare o uuid; v_j uuid; v_h uuid; v_b uuid; r record; br uuid; shares int; n int; res0 int; res1 int;
+begin
+  select id into o from outfits where slug = 'zz-test-look';
+  update outfits set price_kind = 'percent', percent_off = 15, promo_mode = 'exclude', sell_mode = 'flexible', status = 'published' where id = o;
+  select id into br from branches where is_active order by created_at limit 1;
+  -- a variant of each piece with stock at the web branch
+  select pv.id into v_j from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'corduroy-jacket-with-fireman-clasps' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_h from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'basic-relaxed-fit-hoodie' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_b from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'lug-sole-leather-chelsea-boots' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  if v_j is null or v_h is null or v_b is null then raise exception 'TESTFAIL no stock for the test look'; end if;
+  select reserved into res0 from inventory_levels where variant_id = v_h and branch_id = br;
+  select * into r from storefront_checkout(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', v_j, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'look-1'),
+      jsonb_build_object('variant_id', v_h, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'look-1'),
+      jsonb_build_object('variant_id', v_b, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'look-1')),
+    'Test Buyer', '+96170000001', 'Tripoli', 'Test street', null, null, null, 'cod', false, 'delivery');
+  if r.discount_usd_cents <> 3945 then raise exception 'TESTFAIL web look discount %', r.discount_usd_cents; end if;
+  select coalesce(sum(outfit_discount_cents), 0), count(*) filter (where outfit_id = o and outfit_group is not null)
+    into shares, n from order_items where order_id = r.order_id;
+  if shares <> 3945 or n <> 3 then raise exception 'TESTFAIL web order items: shares % lines %', shares, n; end if;
+  if (select total_usd_cents from orders where id = r.order_id) <> 26300 - 3945 then
+    raise exception 'TESTFAIL web total %', (select total_usd_cents from orders where id = r.order_id);
+  end if;
+  select reserved into res1 from inventory_levels where variant_id = v_h and branch_id = br;
+  if res1 <> res0 + 1 then raise exception 'TESTFAIL reserve % → %', res0, res1; end if;
+  -- a plain cart is priced as before (each real checkout is its own transaction)
+  drop table if exists _web;
+  select * into r from storefront_checkout(
+    jsonb_build_array(jsonb_build_object('variant_id', v_h, 'quantity', 1)),
+    'Test Buyer', '+96170000001', 'Tripoli', 'Test street', null, null, null, 'cod', false, 'delivery');
+  if r.discount_usd_cents <> 0 or (select total_usd_cents from orders where id = r.order_id) <> 4500 + 500 then
+    raise exception 'TESTFAIL plain web order changed: % %', r.discount_usd_cents, (select total_usd_cents from orders where id = r.order_id);
+  end if;
+end $$;
