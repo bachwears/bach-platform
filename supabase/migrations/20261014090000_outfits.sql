@@ -118,3 +118,39 @@ create policy outfit_favourites_own on public.outfit_favourites for all
   using (customer_id in (select c.id from public.customers c where c.auth_user_id = auth.uid()))
   with check (customer_id in (select c.id from public.customers c where c.auth_user_id = auth.uid()));
 create policy outfit_favourites_staff on public.outfit_favourites for select using (public.is_staff());
+
+-- 3 ── an exclusive piece belongs to one exclusive outfit ─────────────────────
+-- "exclusive" means the pieces are never sold on their own, so a piece can't
+-- be exclusive to two outfits at once.
+create or replace function public._outfit_exclusive_check(p_outfit uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if exists (
+    select 1
+    from public.outfit_items mine
+    join public.outfits me on me.id = mine.outfit_id and me.sell_mode = 'exclusive'
+    join public.outfit_items other on other.product_id = mine.product_id and other.outfit_id <> mine.outfit_id
+    join public.outfits them on them.id = other.outfit_id and them.sell_mode = 'exclusive'
+    where mine.outfit_id = p_outfit
+  ) then
+    raise exception 'piece already sold only inside another outfit';
+  end if;
+end $$;
+
+create or replace function public.outfit_items_exclusive_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public._outfit_exclusive_check(new.outfit_id);
+  return new;
+end $$;
+create trigger outfit_items_exclusive_guard after insert or update on public.outfit_items
+  for each row execute function public.outfit_items_exclusive_guard();
+
+create or replace function public.outfits_exclusive_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public._outfit_exclusive_check(new.id);
+  return new;
+end $$;
+create trigger outfits_exclusive_guard after update of sell_mode on public.outfits
+  for each row when (new.sell_mode = 'exclusive') execute function public.outfits_exclusive_guard();
