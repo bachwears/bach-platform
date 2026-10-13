@@ -31,8 +31,8 @@ export interface NavTile {
 }
 
 // Phones get a bottom tab bar everywhere except where the bottom of the screen
-// already carries the purchase (product page ADD bar, bag total, checkout).
-const NO_TAB_BAR = [/^\/products\//, /^\/cart/, /^\/checkout/, /^\/confirmed/];
+// already carries the purchase (product / outfit page ADD bar, bag total, checkout).
+const NO_TAB_BAR = [/^\/products\//, /^\/outfits\/./, /^\/cart/, /^\/checkout/, /^\/confirmed/];
 
 type Mode = "light" | "dark";
 
