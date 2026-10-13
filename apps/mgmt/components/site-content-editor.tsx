@@ -83,6 +83,8 @@ export function SiteContentEditor() {
   const [colourCards, setColourCards] = useState(false);
   // the strip of the category's pieces at the bottom of a product page (phones)
   const [pdpStrip, setPdpStrip] = useState(true);
+  // outfit cards mixed into the shop grid
+  const [outfitCards, setOutfitCards] = useState(true);
   const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -107,6 +109,7 @@ export function SiteContentEditor() {
           if (row.key === "shop") {
             setColourCards((v as { colour_cards?: boolean }).colour_cards === true);
             setPdpStrip((v as { pdp_strip?: boolean }).pdp_strip !== false);
+            setOutfitCards((v as { outfit_cards?: boolean }).outfit_cards !== false);
           }
           if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
@@ -322,7 +325,7 @@ export function SiteContentEditor() {
             onChange={async (e) => {
               const v = e.target.checked;
               setColourCards(v);
-              const problem = await saveKey("shop", { colour_cards: v, pdp_strip: pdpStrip });
+              const problem = await saveKey("shop", { colour_cards: v, pdp_strip: pdpStrip, outfit_cards: outfitCards });
               if (problem) {
                 setColourCards(!v);
                 setErr(problem);
@@ -354,7 +357,7 @@ export function SiteContentEditor() {
             onChange={async (e) => {
               const v = e.target.checked;
               setPdpStrip(v);
-              const problem = await saveKey("shop", { colour_cards: colourCards, pdp_strip: v });
+              const problem = await saveKey("shop", { colour_cards: colourCards, pdp_strip: v, outfit_cards: outfitCards });
               if (problem) {
                 setPdpStrip(!v);
                 setErr(problem);
@@ -362,6 +365,38 @@ export function SiteContentEditor() {
             }}
           />
           {pdpStrip ? "ظاهر" : "مخفي"}
+        </label>
+      </div>
+
+      <div className="space-y-3 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="collections" size={18} className="text-muted-foreground" />
+          الأطقم بين القطع بالشوب
+          <HintDot
+            hint={{
+              title: "كروت الأطقم بالشوب",
+              what: "الأطقم المنشورة (يلّي كل قطعها فيها ستوك) بتطلع ككروت بين المنتجات بالشوب. من هون بتطفيها أو بترجّعها. صفحة «Outfits» والقسم بصفحة كل قطعة بيضلّوا.",
+              source: "جدول site_content (مفتاح shop، الخانة outfit_cards).",
+              edit: "من هون. الأطقم نفسها من «الأطقم».",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-foreground"
+            checked={outfitCards}
+            onChange={async (e) => {
+              const v = e.target.checked;
+              setOutfitCards(v);
+              const problem = await saveKey("shop", { colour_cards: colourCards, pdp_strip: pdpStrip, outfit_cards: v });
+              if (problem) {
+                setOutfitCards(!v);
+                setErr(problem);
+              } else setMsg(v ? "الأطقم رجعت تطلع بين القطع — خلال دقيقة." : "الأطقم ما عادت تطلع بين القطع — خلال دقيقة.");
+            }}
+          />
+          {outfitCards ? "ظاهرة" : "مخفية"}
         </label>
       </div>
 

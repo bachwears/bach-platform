@@ -29,7 +29,7 @@ export default async function EditProductPage({
   const { id } = await params;
   const supabase = await supabaseServer();
 
-  const [{ data: product }, { data: categories }, { data: variantRows }, { data: media }, { data: pairs }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variantRows }, { data: media }, { data: pairs }, { data: lookRows }] = await Promise.all([
     supabase.from("products").select("*, product_seasons(season)").eq("id", id).single(),
     supabase.from("categories").select("id, name_ar, code, parent_id").eq("is_active", true).order("sort"),
     supabase
@@ -44,8 +44,13 @@ export default async function EditProductPage({
       .select("sort, paired:products!product_pairings_paired_id_fkey(id, name_en, price_usd_cents, media_assets(kind, storage_path))")
       .eq("product_id", id)
       .order("sort"),
+    // the outfits this piece is part of
+    supabase.from("outfit_items").select("outfits(id, name_en, sell_mode)").eq("product_id", id),
   ]);
   if (!product) notFound();
+  const looks = ((lookRows ?? []) as unknown as Array<{ outfits: { id: string; name_en: string; sell_mode: string } | null }>)
+    .map((r) => r.outfits)
+    .filter((x): x is { id: string; name_en: string; sell_mode: string } => !!x);
 
   const paired: PairedPiece[] = ((pairs ?? []) as unknown as Array<{
     paired: { id: string; name_en: string; price_usd_cents: number; media_assets: Array<{ kind: string; storage_path: string }> | null } | null;
@@ -147,6 +152,20 @@ export default async function EditProductPage({
             → المنتجات
           </a>
           <ProductStatusBar saved={saved} />
+          {looks.length ? (
+            <p className="pt-2 text-sm text-muted-foreground print:hidden">
+              ضمن {looks.length === 1 ? "طقم" : `${looks.length} أطقم`}:{" "}
+              {looks.map((l, i) => (
+                <span key={l.id}>
+                  {i ? " · " : ""}
+                  <a href={`/outfits/${l.id}`} dir="ltr" className="underline underline-offset-2 hover:text-foreground">
+                    {l.name_en}
+                  </a>
+                  {l.sell_mode === "exclusive" ? " (ما بتنباع لحالها)" : ""}
+                </span>
+              ))}
+            </p>
+          ) : null}
 
           <div className="space-y-4 pt-2">
             <ProductSection id="overview" step={1} title="الحالة وشو ناقص">

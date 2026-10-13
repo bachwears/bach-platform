@@ -27,6 +27,7 @@ const ROUTES: Array<[string, StaffRole[]]> = [
   ["/products", CATALOG],
   ["/categories", CATALOG],
   ["/collections", CATALOG],
+  ["/outfits", CATALOG],
   ["/media-import", CATALOG],
   ["/media-match", CATALOG],
   ["/product-health", CATALOG],

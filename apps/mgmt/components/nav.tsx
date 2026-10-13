@@ -29,6 +29,7 @@ export const ITEMS: PortalNavItem[] = [
       { href: "/categories", label: "الفئات", icon: <Icon name="categories" /> },
       { href: "/categories/images", label: "صور الفئات", icon: <Icon name="categoryImages" /> },
       { href: "/collections", label: "الكولكشنات", icon: <Icon name="collections" /> },
+      { href: "/outfits", label: "الأطقم", icon: <Icon name="collections" /> },
       { href: "/sizes", label: "المقاسات", icon: <Icon name="sizes" /> },
       { href: "/media-import", label: "رفع الصور", icon: <Icon name="photosUpload" /> },
       { href: "/media-match", label: "مطابقة الصور", icon: <Icon name="photosMatch" /> },
