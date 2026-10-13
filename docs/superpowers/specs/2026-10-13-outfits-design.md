@@ -73,7 +73,7 @@ RLS: anyone reads published outfits (+ their items/media); catalogue roles
 1. Load the outfit's items; for each line find its product and the variant's
    **current** price (sale price when lower) and **full** price.
 2. Complete = every outfit item's product has exactly one line, quantity 1, and
-   the outfit is published (POS also allows draft? → no: published only).
+   the outfit is published (website and POS alike; drafts never discount).
    Not complete → no discount; each line at its current price.
 3. Complete:
    - `current_sum` = Σ current prices
