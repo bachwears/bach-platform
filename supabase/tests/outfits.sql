@@ -183,3 +183,55 @@ begin
     raise exception 'TESTFAIL plain web order changed: % %', r.discount_usd_cents, (select total_usd_cents from orders where id = r.order_id);
   end if;
 end $$;
+
+-- Task 6: pos_checkout sells a look; the invoice discount follows the look's promo mode
+do $$
+declare o uuid; v_j uuid; v_h uuid; v_b uuid; r record; br uuid; shares int; items jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"2e815687-492b-44f4-824e-95345681530a","role":"authenticated"}', true);
+  select id into o from outfits where slug = 'zz-test-look';
+  update outfits set price_kind = 'percent', percent_off = 15, promo_mode = 'exclude', sell_mode = 'flexible', status = 'published' where id = o;
+  select id into br from branches where is_active order by created_at limit 1;
+  -- test stock (rolled back with everything else)
+  update inventory_levels l set quantity = l.quantity + 5
+  from product_variants pv join products p on p.id = pv.product_id
+  where l.variant_id = pv.id and l.branch_id = br
+    and p.slug in ('corduroy-jacket-with-fireman-clasps', 'basic-relaxed-fit-hoodie', 'lug-sole-leather-chelsea-boots');
+  select pv.id into v_j from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'corduroy-jacket-with-fireman-clasps' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_h from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'basic-relaxed-fit-hoodie' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  select pv.id into v_b from product_variants pv join products p on p.id = pv.product_id join inventory_levels l on l.variant_id = pv.id and l.branch_id = br
+    where p.slug = 'lug-sole-leather-chelsea-boots' and pv.is_active and l.quantity - l.reserved > 0 limit 1;
+  items := jsonb_build_array(
+    jsonb_build_object('variant_id', v_j, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'),
+    jsonb_build_object('variant_id', v_h, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'),
+    jsonb_build_object('variant_id', v_b, 'quantity', 1, 'outfit_id', o, 'outfit_group', 'g'));
+  drop table if exists _lines;
+  select * into r from pos_checkout(br, items, '[{"currency":"USD","amount_minor":22355,"net":true}]'::jsonb);
+  if (select discount_usd_cents from orders where id = r.order_id) <> 3945 then
+    raise exception 'TESTFAIL pos look discount %', (select discount_usd_cents from orders where id = r.order_id);
+  end if;
+  select sum(outfit_discount_cents) into shares from order_items where order_id = r.order_id and outfit_id = o;
+  if shares <> 3945 then raise exception 'TESTFAIL pos shares %', shares; end if;
+  -- 10% invoice discount, exclude: the look keeps its own price, nothing more
+  drop table if exists _lines;
+  select * into r from pos_checkout(br, items, '[{"currency":"USD","amount_minor":22355,"net":true}]'::jsonb, 1000);
+  if (select discount_usd_cents from orders where id = r.order_id) <> 3945 then
+    raise exception 'TESTFAIL pos exclude %', (select discount_usd_cents from orders where id = r.order_id);
+  end if;
+  -- a line discount on a look piece is refused
+  drop table if exists _lines;
+  begin
+    perform pos_checkout(br, jsonb_set(items, '{0,line_discount_bp}', '500'), '[{"currency":"USD","amount_minor":22355,"net":true}]'::jsonb);
+    raise exception 'TESTFAIL line discount on a look accepted';
+  exception when raise_exception then if sqlerrm like 'TESTFAIL%' then raise; end if;
+  end;
+  -- a plain POS sale with 10% off is unchanged: 45.00 → 40.50
+  drop table if exists _lines;
+  select * into r from pos_checkout(br, jsonb_build_array(jsonb_build_object('variant_id', v_h, 'quantity', 1)),
+    '[{"currency":"USD","amount_minor":4050,"net":true}]'::jsonb, 1000);
+  if (select total_usd_cents from orders where id = r.order_id) <> 4050 then
+    raise exception 'TESTFAIL plain pos %', (select total_usd_cents from orders where id = r.order_id);
+  end if;
+end $$;
