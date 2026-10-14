@@ -206,6 +206,8 @@ export interface QueuedSale {
   /** Net drawer lines (net: true); sales queued by older tills carry tendered amounts. */
   payments: Array<{ currency: string; amount_minor: number; net?: boolean }>;
   discountBp: number;
+  /** invoice discount as an amount (USD cents) — sales queued before 2026-10-14 have none */
+  discountCents?: number;
   actingCashier: string | null;
   totalUsdCents: number;
   status: "pending" | "failed";
@@ -277,6 +279,7 @@ async function runSync(supabase: SupabaseClient): Promise<SyncResult> {
         p_discount_basis_points: sale.discountBp,
         p_acting_cashier: sale.actingCashier,
         p_client_ref: sale.clientRef,
+        ...(sale.discountCents ? { p_discount_usd_cents: sale.discountCents } : {}),
       }));
     } catch {
       error = { message: "Failed to fetch" };

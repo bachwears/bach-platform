@@ -49,6 +49,7 @@ interface CartLine {
 const MAX_CASHIER_DISCOUNT_BP = 1000;
 /** LBP change is rounded down to this step. */
 const CHANGE_STEP_LBP = 5_000;
+const DISCOUNT_TOO_BIG_MSG = "الخصم أكبر من مجموع الفاتورة.";
 const DISCOUNT_NEEDS_MANAGER_MSG = "الخصم فوق 10% بدّو موافقة مدير — بدّل عالمدير بالـPIN وكمّل.";
 
 function usd(cents: number): string {
@@ -87,6 +88,8 @@ export function Cashier({
   const [syncMsg, setSyncMsg] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [discountPct, setDiscountPct] = useState("");
+  /** invoice discount as a percentage or as an amount in USD */
+  const [discountMode, setDiscountMode] = useState<"pct" | "usd">("pct");
   const [paidUsd, setPaidUsd] = useState("");
   const [paidLbpStr, setPaidLbpStr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -386,12 +389,20 @@ export function Cashier({
     (s, l) => s + Math.round((l.unitUsdCents * l.quantity * Math.round((l.lineDiscountPct ?? 0) * 100)) / 10_000),
     0,
   );
-  const manualBp = Math.round(Math.min(Math.max(parseFloat(discountPct) || 0, 0), 100) * 100);
+  // The invoice discount comes off what is left after line discounts: a percentage
+  // or an amount in USD (never both — the server refuses that).
+  const invoiceBase = subtotal - lineDiscounts;
+  const discountValue = Math.max(parseFloat(discountPct) || 0, 0);
+  const manualBp = discountMode === "pct" ? Math.round(Math.min(discountValue, 100) * 100) : 0;
+  const manualCents = discountMode === "usd" ? Math.round(discountValue * 100) : 0;
+  const discountTooBig = manualCents > invoiceBase;
   // Invoice discount above 10% needs a manager (signed in, or switched in with their PIN).
   const actingIsManager = acting.role === "super_admin" || acting.role === "store_manager";
-  const discountNeedsManager = manualBp > MAX_CASHIER_DISCOUNT_BP && !actingIsManager;
+  const discountNeedsManager =
+    (manualBp > MAX_CASHIER_DISCOUNT_BP || manualCents * 10_000 > invoiceBase * MAX_CASHIER_DISCOUNT_BP) && !actingIsManager;
   const discountBp = bdayApplied && bday ? Math.max(manualBp, bday.percent * 100) : manualBp;
-  const discount = lineDiscounts + Math.round(((subtotal - lineDiscounts) * discountBp) / 10_000);
+  const invoiceDiscount = Math.max(Math.min(manualCents, invoiceBase), Math.round((invoiceBase * discountBp) / 10_000));
+  const discount = lineDiscounts + invoiceDiscount;
   let total = subtotal - discount;
   let tvaCents = 0;
   if (tva.enabled) {
@@ -413,7 +424,7 @@ export function Cashier({
   const overLbpX = paidLbp * 10_000 + (paidUsdCents - total) * rateCenti;
   const changeLbp = overLbpX >= CHANGE_STEP_LBP * 10_000 ? Math.floor(overLbpX / (CHANGE_STEP_LBP * 10_000)) * CHANGE_STEP_LBP : 0;
   const changeKeptLbp = overLbpX > 0 ? Math.floor((overLbpX - changeLbp * 10_000) / 10_000) : 0;
-  const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy && !discountNeedsManager;
+  const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy && !discountNeedsManager && !discountTooBig;
 
   function finishSale(number: number | null, offlineRef?: string) {
     setReceipt({
@@ -470,6 +481,7 @@ export function Cashier({
         items,
         payments,
         discountBp: manualBp,
+        discountCents: manualCents,
         actingCashier,
         totalUsdCents: total,
         status: "pending",
@@ -513,6 +525,7 @@ export function Cashier({
         p_apply_birthday: bdayApplied,
         p_acting_cashier: actingCashier,
         p_client_ref: clientRef,
+        ...(manualCents > 0 ? { p_discount_usd_cents: manualCents } : {}),
       }));
     } catch {
       err = { message: "Failed to fetch" } as { message: string };
@@ -533,6 +546,8 @@ export function Cashier({
           ? "المخزون ما بيكفي — حدّث الكمية."
           : err.message.includes("needs a manager")
             ? DISCOUNT_NEEDS_MANAGER_MSG
+            : err.message.includes("discount above total")
+            ? DISCOUNT_TOO_BIG_MSG
             : err.message.includes("less than 30 days")
               ? "هدية عيد الميلاد بتتفعّل بعد 30 يوم من تسجيل تاريخ الميلاد."
               : `ما مشي الحال: ${err.message}`,
@@ -936,26 +951,48 @@ export function Cashier({
           <div className="flex items-center justify-between gap-2">
             <label className="flex items-center gap-1.5 text-muted-foreground" htmlFor="disc">
               <Icon name="discount" size={14} />
-              خصم %
+              خصم
               <HintDot
                 hint={{
                   title: "خصم عالفاتورة",
-                  what: "نسبة خصم على مجموع الفاتورة كلها — غير خصم القطعة الواحدة بالجدول.",
-                  source: "بينحسب من المجموع قبل الضريبة وبينسجّل مع الطلب.",
-                  edit: "الكاشير بيقدر يحطّ لحد 10% خصم عالفاتورة كلها هون؛ أكتر من هيك بدّو مدير (يبدّل عحالو بالـPIN). خصم القطعة الواحدة (عمود «خصم %» بالجدول) بس لحساب مدير.",
+                  what: "خصم على مجموع الفاتورة كلها، يا نسبة (%) يا مبلغ بالدولار ($) — غير خصم القطعة الواحدة بالجدول.",
+                  source: "بينحسب من المجموع قبل الضريبة، وبينسجّل مع الطلب: بيطلع عالإيصال، بتفاصيل الطلب بالإدارة، وبالتقارير وتقفيلة آخر النهار.",
+                  edit: "اختار % أو $ وحطّ الرقم. الكاشير بيقدر يعطي لحد 10% من الفاتورة (أو مبلغ ما بيتعدّى 10% منها)؛ أكتر من هيك بدّو مدير (يبدّل عحالو بالـPIN). خصم القطعة الواحدة (عمود «خصم %» بالجدول) بس لحساب مدير.",
                 }}
               />
             </label>
-            <Input
-              id="disc"
-              value={discountPct}
-              onChange={(e) => setDiscountPct(e.target.value)}
-              className="h-8 w-20 text-left font-mono"
-              inputMode="decimal"
-              placeholder="0"
-            />
+            <div className="flex items-center gap-1.5">
+              <div className="flex h-8 border" role="group" aria-label="نوع الخصم">
+                {(["pct", "usd"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={discountMode === m}
+                    onClick={() => {
+                      setDiscountMode(m);
+                      setDiscountPct("");
+                    }}
+                    className={`w-8 font-mono text-sm transition-colors ${
+                      discountMode === m ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {m === "pct" ? "%" : "$"}
+                  </button>
+                ))}
+              </div>
+              <Input
+                id="disc"
+                value={discountPct}
+                onChange={(e) => setDiscountPct(e.target.value)}
+                className="h-8 w-20 text-left font-mono"
+                inputMode="decimal"
+                placeholder={discountMode === "pct" ? "0" : "0.00"}
+                aria-label={discountMode === "pct" ? "نسبة الخصم" : "مبلغ الخصم بالدولار"}
+              />
+            </div>
           </div>
           {discountNeedsManager && <p className="text-xs text-destructive">{DISCOUNT_NEEDS_MANAGER_MSG}</p>}
+          {discountTooBig && <p className="text-xs text-destructive">{DISCOUNT_TOO_BIG_MSG}</p>}
           {discount > 0 && <Row label="قيمة الخصم" value={`- ${usd(discount)}`} />}
           {tva.enabled && <Row label={tva.pricesIncludeTva ? "منها TVA" : "TVA"} value={usd(tvaCents)} />}
           <div className="flex justify-between border-t pt-2 text-lg font-medium">
