@@ -28,8 +28,11 @@ export function OutfitCard({ outfit, priority = false }: { outfit: Outfit; prior
       <span className="type-meta mt-1 block tabular-nums">
         {price.saving > 0 ? (
           <>
-            {usd(price.pay)} <span className="text-muted-foreground line-through">{usd(price.sum)}</span>{" "}
-            <span className="bg-foreground px-1 text-background">SAVE {usd(price.saving)}</span>
+            <span className="block text-muted-foreground line-through">{usd(price.sum)}</span>
+            <span className="mt-1 inline-flex gap-3 bg-foreground px-1.5 py-0.5 text-background">
+              <span>-{Math.round((price.saving / price.sum) * 100)}%</span>
+              <span>{usd(price.pay)}</span>
+            </span>
           </>
         ) : (
           usd(price.pay)

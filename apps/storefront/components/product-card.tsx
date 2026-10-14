@@ -135,17 +135,18 @@ export function ProductCard({
           <Link href={href} className="block">
             <h3 className="type-meta line-clamp-2">{name}</h3>
           </Link>
-          <p className="type-meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
-            {onSale ? (
-              <>
+          {onSale ? (
+            // was-price on its own line, then the cut and the price together in one black tag
+            <p className="type-meta mt-1 tabular-nums">
+              <span className="block text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
+              <span className="mt-1 inline-flex gap-3 bg-foreground px-1.5 py-0.5 text-background">
+                <span>-{off}%</span>
                 <span>{usd(product.sale_price_usd_cents!)}</span>
-                <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
-                <span className="bg-foreground px-1 text-background">-{off}%</span>
-              </>
-            ) : (
-              usd(product.price_usd_cents)
-            )}
-          </p>
+              </span>
+            </p>
+          ) : (
+            <p className="type-meta mt-1 tabular-nums">{usd(product.price_usd_cents)}</p>
+          )}
           <ColorChips colors={product.colors} selected={colour} onPick={variants.length ? setColour : undefined} />
           {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} slug={product.slug} source={source} /> : null}
         </div>
