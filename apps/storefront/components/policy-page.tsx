@@ -40,12 +40,15 @@ export async function PolicyPage({
   fallback,
   cta,
   draft,
+  notice,
 }: {
   content: unknown;
   fallback: { title: string; body: string };
   cta?: { href: string; label: string };
   /** show the "draft under review" note above the text */
   draft?: boolean;
+  /** a boxed notice above the text (e.g. "delivery within Lebanon only") */
+  notice?: string;
 }) {
   const locale = await getLocale();
   const c = (content ?? {}) as PolicyContent;
@@ -66,6 +69,7 @@ export async function PolicyPage({
       {draft ? (
         <p className="type-meta mt-8 border border-foreground px-4 py-3">{t(locale, "sf.policy.draft")}</p>
       ) : null}
+      {notice ? <p className="type-meta mt-8 border border-foreground px-4 py-3">{notice}</p> : null}
       <div className="mt-10 space-y-5">
         {paragraphs.map((p, i) => {
           const lines = p.trim().split("\n");

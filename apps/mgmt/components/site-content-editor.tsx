@@ -48,6 +48,9 @@ interface PolicyDoc {
   body: string;
 }
 
+const SHIP_NOTICE = "We currently deliver within Lebanon only.";
+const SHIP_CONFIRM = "I confirm my delivery address is in Lebanon.";
+
 const EMPTY_BANNER: Banner = { enabled: false, text: "", cta_label: "", cta_href: "/shop" };
 const EMPTY_POLICY: PolicyDoc = { title: "", body: "" };
 
@@ -85,6 +88,9 @@ export function SiteContentEditor() {
   const [pdpStrip, setPdpStrip] = useState(true);
   // outfit cards mixed into the shop grid
   const [outfitCards, setOutfitCards] = useState(true);
+  // delivery within Lebanon only (until card payments bring international orders back)
+  const [shipScope, setShipScope] = useState({ lebanon_only: false, notice: SHIP_NOTICE, confirm: SHIP_CONFIRM });
+  const [shipBusy, setShipBusy] = useState(false);
   const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -93,7 +99,7 @@ export function SiteContentEditor() {
     void supabase
       .from("site_content")
       .select("key, value")
-      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms", "collections", "seo", "shop"])
+      .in("key", ["home_hero", "home_banner", "page_shipping", "page_returns", "wheel", "page_privacy", "page_terms", "collections", "seo", "shop", "shipping"])
       .then(({ data, error }) => {
         if (!error) setLegalLoaded(true);
         for (const row of data ?? []) {
@@ -110,6 +116,10 @@ export function SiteContentEditor() {
             setColourCards((v as { colour_cards?: boolean }).colour_cards === true);
             setPdpStrip((v as { pdp_strip?: boolean }).pdp_strip !== false);
             setOutfitCards((v as { outfit_cards?: boolean }).outfit_cards !== false);
+          }
+          if (row.key === "shipping") {
+            const sv = v as { lebanon_only?: boolean; notice?: string; confirm?: string };
+            setShipScope({ lebanon_only: sv.lebanon_only === true, notice: sv.notice || SHIP_NOTICE, confirm: sv.confirm || SHIP_CONFIRM });
           }
           if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
@@ -130,7 +140,7 @@ export function SiteContentEditor() {
     return null;
   }
 
-  async function saveKey(key: "collections" | "seo" | "shop", value: Record<string, unknown>) {
+  async function saveKey(key: "collections" | "seo" | "shop" | "shipping", value: Record<string, unknown>) {
     const { error } = await supabase.from("site_content").upsert({ key, value, updated_at: new Date().toISOString() });
     return error ? `ما انحفظ: ${error.message}` : null;
   }
@@ -302,6 +312,60 @@ export function SiteContentEditor() {
           />
           {colsVisible ? "ظاهرين عالموقع" : "مخفيين عن الموقع"}
         </label>
+      </div>
+
+      <div className="space-y-4 border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <Icon name="courier" size={18} className="text-muted-foreground" />
+          شحن داخل لبنان فقط
+          <HintDot
+            hint={{
+              title: "التوصيل جوّا لبنان بس",
+              what: "لمّا تشغّلها، الموقع بيقول بوضوح إنّو التوصيل جوّا لبنان بس: بصفحة المنتج، بالسلّة، بالـcheckout، بصفحة الشحن وبأسفل كل صفحة. وبالـcheckout الزبون لازم يأشّر إنّو عنوانو بلبنان قبل ما يقدر يطلب (الاستلام من المحل ما بيحتاج).",
+              source: "جدول site_content (مفتاح shipping). الموقع بيقراه خلال دقيقة.",
+              edit: "من هون: الزر والعبارتين. لمّا يشتغل الدفع بالبطاقة ونرجّع الشحن الدولي، طفّيها.",
+            }}
+          />
+        </h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-foreground"
+            checked={shipScope.lebanon_only}
+            onChange={async (e) => {
+              const next = { ...shipScope, lebanon_only: e.target.checked };
+              setShipScope(next);
+              const problem = await saveKey("shipping", next);
+              if (problem) {
+                setShipScope(shipScope);
+                setErr(problem);
+              } else setMsg(next.lebanon_only ? "صار الموقع يقول «التوصيل جوّا لبنان بس» — خلال دقيقة." : "انشالت عبارة «لبنان بس» عن الموقع — خلال دقيقة.");
+            }}
+          />
+          {shipScope.lebanon_only ? "شغّالة: التوصيل جوّا لبنان بس" : "مطفية: ما في أي تقييد مذكور"}
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs text-muted-foreground">العبارة يلي بتطلع بالموقع (بالإنكليزي)</span>
+          <Input value={shipScope.notice} onChange={(e) => setShipScope({ ...shipScope, notice: e.target.value })} dir="ltr" maxLength={140} />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs text-muted-foreground">جملة التأكيد بالـcheckout (بالإنكليزي)</span>
+          <Input value={shipScope.confirm} onChange={(e) => setShipScope({ ...shipScope, confirm: e.target.value })} dir="ltr" maxLength={140} />
+        </label>
+        <Button
+          variant="outline"
+          disabled={shipBusy || !shipScope.notice.trim() || !shipScope.confirm.trim()}
+          onClick={async () => {
+            setShipBusy(true);
+            const problem = await saveKey("shipping", { ...shipScope, notice: shipScope.notice.trim(), confirm: shipScope.confirm.trim() });
+            setShipBusy(false);
+            if (problem) setErr(problem);
+            else setMsg("انحفظت العبارات — بتبيّن عالموقع خلال دقيقة.");
+          }}
+        >
+          <Icon name="save" size={16} />
+          احفظ العبارات
+        </Button>
       </div>
 
       <div className="space-y-3 border p-5">

@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { t } from "@bach/i18n";
+import { Icon } from "@bach/ui/components/icon";
 
 import { NewsletterForm } from "./newsletter-form";
 import { publishedLegalPages } from "../lib/legal";
 import { getLocale, lhref } from "../lib/locale";
+import { getSiteContent } from "../lib/cached";
+import { shippingScopeOf } from "../lib/shipping-scope";
 
 type FooterLink = { href: string; label: string; external?: boolean };
 
 export async function SiteFooter() {
   const locale = await getLocale();
   const legal = await publishedLegalPages();
+  const shipping = shippingScopeOf((await getSiteContent()).shipping);
   const columns: Array<{ heading: string; links: FooterLink[] }> = [
     {
       heading: t(locale, "sf.footer.colHelp"),
@@ -87,7 +91,13 @@ export async function SiteFooter() {
           ))}
         </nav>
 
-        <p className="type-meta mt-16 pb-10 text-muted-foreground">© BACH Wears · Menswear, Lebanon</p>
+        {shipping.lebanonOnly ? (
+          <p className="type-meta mt-16 flex items-center gap-2">
+            <Icon name="courier" size={14} />
+            {shipping.notice}
+          </p>
+        ) : null}
+        <p className={`type-meta pb-10 text-muted-foreground ${shipping.lebanonOnly ? "mt-4" : "mt-16"}`}>© BACH Wears · Menswear, Lebanon</p>
       </div>
     </footer>
   );

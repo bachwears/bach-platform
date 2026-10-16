@@ -11,6 +11,8 @@ import { clearCart, lineKey, readCart, setQuantity } from "../../lib/cart";
 import { usePricedCart } from "../../lib/priced-cart";
 import { colourPhoto } from "../../lib/media";
 import { deliveryFor, useDeliveryRule } from "../../lib/delivery";
+import { useShippingScope } from "../../lib/use-shipping-scope";
+import { Icon } from "@bach/ui/components/icon";
 import { DeliveryProgress } from "../../components/delivery-progress";
 import { PointsEarn } from "../../components/points-earn";
 import { lhref, useLocale } from "../../lib/locale-client";
@@ -60,6 +62,9 @@ export default function CheckoutPage() {
   const [payMethod, setPayMethod] = useState("cod");
   const [walletBalance, setWalletBalance] = useState(0);
   const deliveryRule = useDeliveryRule();
+  const shipping = useShippingScope();
+  // "delivery within Lebanon only": the customer ticks that the address is in Lebanon
+  const [inLebanon, setInLebanon] = useState(false);
   const [pickup, setPickup] = useState<PickupInfo | null>(null);
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
   const [busy, setBusy] = useState(false);
@@ -221,7 +226,8 @@ export default function CheckoutPage() {
     const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canPlace =
-    !busy && summary.length > 0 && priced.ready && !priced.error && name.trim() && phoneOk && emailOk && (isPickup || (city.trim() && address.trim()));
+    !busy && summary.length > 0 && priced.ready && !priced.error && name.trim() && phoneOk && emailOk &&
+    (isPickup || (city.trim() && address.trim() && (!shipping.lebanonOnly || inLebanon)));
 
   async function placeOrder() {
     if (!canPlace) return;
@@ -442,6 +448,12 @@ export default function CheckoutPage() {
               </Step>
             ) : (
               <Step n={pickup ? 3 : 2} title={t(locale, "sf.co.stepAddress")}>
+                {shipping.lebanonOnly ? (
+                  <p className="type-meta flex items-center gap-2 border border-foreground px-4 py-3">
+                    <Icon name="courier" size={14} />
+                    {shipping.notice}
+                  </p>
+                ) : null}
                 <div className="grid gap-6 sm:grid-cols-2">
                   <Field label={t(locale, "sf.co.city")}>
                     <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
@@ -453,6 +465,17 @@ export default function CheckoutPage() {
                 <Field label={t(locale, "sf.co.notes")}>
                   <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
                 </Field>
+                {shipping.lebanonOnly ? (
+                  <label className="flex cursor-pointer items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={inLebanon}
+                      onChange={(e) => setInLebanon(e.target.checked)}
+                      className="mt-0.5 size-4 shrink-0 accent-foreground"
+                    />
+                    <span>{shipping.confirm}</span>
+                  </label>
+                ) : null}
               </Step>
             )}
 

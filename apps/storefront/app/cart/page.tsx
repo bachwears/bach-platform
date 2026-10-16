@@ -10,6 +10,8 @@ import { t } from "@bach/i18n";
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { CARD_COLUMNS, isSellable, toCardProduct } from "../../lib/card";
 import { DeliveryProgress } from "../../components/delivery-progress";
+import { useShippingScope } from "../../lib/use-shipping-scope";
+import { Icon } from "@bach/ui/components/icon";
 import { PointsEarn } from "../../components/points-earn";
 import { lineKey, onCartChange, readCart, removeOutfit, setQuantity, type CartLine } from "../../lib/cart";
 import { usePricedCart } from "../../lib/priced-cart";
@@ -56,6 +58,7 @@ type Tab = "bag" | "favourites";
  */
 export default function CartPage() {
   const locale = useLocale();
+  const shipping = useShippingScope();
   const [tab, setTab] = useState<Tab>("bag");
   const [lines, setLines] = useState(readCart());
   const [details, setDetails] = useState<Record<string, Detail>>({});
@@ -436,6 +439,12 @@ export default function CartPage() {
         ) : (
           <>
           <DeliveryProgress goods={subtotal} className="mt-6 max-w-md" />
+          {shipping.lebanonOnly ? (
+            <p className="type-meta mt-3 flex items-center gap-2">
+              <Icon name="courier" size={14} />
+              {shipping.notice}
+            </p>
+          ) : null}
           <section className="mt-8 grid gap-10 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0" role="tabpanel">
             <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
               {loose.map(({ line, d }) => pieceRow(line, d!))}

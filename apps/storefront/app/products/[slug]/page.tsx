@@ -21,6 +21,8 @@ import { FitFinder } from "../../../components/fit-finder";
 import { ProductViewTracker } from "../../../components/track-events";
 import { getLocale, lhref, pick } from "../../../lib/locale";
 import { getShopCatalog, getSiteContent } from "../../../lib/cached";
+import { shippingScopeOf } from "../../../lib/shipping-scope";
+import { Icon } from "@bach/ui/components/icon";
 import { PdpStrip, PdpSwipe, type PdpNavItem } from "../../../components/pdp-nav";
 import { OutfitCard } from "../../../components/outfit-card";
 import { exclusivePieces, getOutfitCatalog, isListable } from "../../../lib/outfits";
@@ -188,6 +190,7 @@ export default async function ProductPage({
   ]);
   // MGMT can switch off the strip of the category's pieces (site_content shop.pdp_strip)
   const showStrip = (site.shop as { pdp_strip?: boolean } | undefined)?.pdp_strip !== false;
+  const shipping = shippingScopeOf(site.shipping);
   const colourFills: Record<string, string> = {};
   for (const c of (colourRows ?? []) as Array<{ name_en: string; hex: string | null; hex2: string | null }>) {
     if (!c.hex) continue;
@@ -487,6 +490,12 @@ export default async function ProductPage({
 
           {/* the Fit Finder window, opened from "Find your size" in the size sheet */}
           <FitFinder guide={guide} categoryCodes={lineage} sizes={sizeRun(variants.map((v) => v.size), product.fit)} hideTrigger />
+          {shipping.lebanonOnly ? (
+            <p className="type-meta flex items-center gap-2">
+              <Icon name="courier" size={14} />
+              {shipping.notice}
+            </p>
+          ) : null}
           {/* details as horizontal tabs: details, care, delivery, returns */}
           <PdpTabs
             tabs={[
@@ -517,7 +526,16 @@ export default async function ProductPage({
               ...(product.care_en
                 ? [{ key: "care", label: t(locale, "sf.pdp.care"), content: <p>{pick(locale, product.care_en, product.care_ar)}</p> }]
                 : []),
-              { key: "delivery", label: t(locale, "sf.pdp.delivery"), content: <p>{t(locale, "sf.pdp.deliveryBody")}</p> },
+              {
+                key: "delivery",
+                label: t(locale, "sf.pdp.delivery"),
+                content: (
+                  <div className="space-y-2">
+                    {shipping.lebanonOnly ? <p className="text-foreground">{shipping.notice}</p> : null}
+                    <p>{t(locale, "sf.pdp.deliveryBody")}</p>
+                  </div>
+                ),
+              },
               {
                 key: "returns",
                 label: t(locale, "sf.pdp.returnsTitle"),
