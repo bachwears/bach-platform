@@ -3,6 +3,7 @@ import { supabaseServer } from "@bach/supabase/server";
 import { Badge } from "@bach/ui/components/badge";
 import { OrderStatus } from "@bach/ui/components/order-status";
 import { PageHeader } from "@bach/ui/components/page-header";
+import { invoiceNo } from "@bach/ui/lib/invoice-number";
 import { Thumb } from "@bach/ui/components/thumb";
 import { thumbUrl } from "@bach/ui/lib/photos";
 
@@ -63,6 +64,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   #{order.number}
                 </span>
               </span>
+              {order.invoice_number != null ? (
+                <span className="text-base text-muted-foreground">
+                  فاتورة{" "}
+                  <span className="font-mono" dir="ltr">
+                    {invoiceNo(order.invoice_number)}
+                  </span>
+                </span>
+              ) : null}
               <OrderStatus status={order.status} fulfilment={(order as { fulfilment?: string }).fulfilment} />
               {isPickup ? <Badge variant="outline" className="gap-1"><Icon name="branch" size={12} />{PICKUP_BADGE}</Badge> : null}
             </span>

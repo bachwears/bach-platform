@@ -36,6 +36,7 @@ const ROUTES: Array<[string, StaffRole[]]> = [
   ["/inventory", STOCK],
   ["/purchasing", STOCK],
   ["/transfers", STOCK],
+  ["/invoices", ["store_manager"]],
   ["/reports", ["store_manager"]],
   ["/exchange-rate", ["store_manager"]],
   ["/payments", []],

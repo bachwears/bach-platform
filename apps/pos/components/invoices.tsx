@@ -14,10 +14,12 @@ import { variantPhotos } from "../lib/offline";
 import { CustomerPoints } from "./customer-points";
 import { type ReceiptData, ReceiptView } from "./receipt";
 import { useInvoiceConfig } from "@bach/ui/components/receipt";
+import { invoiceNo } from "@bach/ui/lib/invoice-number";
 
 interface Inv {
   id: string;
   number: number;
+  invoice_number: number | null;
   status: string;
   channel: string;
   total_usd_cents: number;
@@ -51,7 +53,7 @@ interface Inv {
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const SELECT =
-  "id, number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(variant_id, name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
+  "id, number, invoice_number, status, channel, total_usd_cents, discount_usd_cents, subtotal_usd_cents, tva_usd_cents, delivery_usd_cents, lbp_per_usd, payment_method, fulfilment, ship_name, ship_phone, ship_city, ship_address, note, created_at, branches(name), customers(id, full_name, phone, balance_usd_cents), order_items(variant_id, name_en, size, color_en, sku, quantity, unit_price_usd_cents, line_total_usd_cents), order_payments(method, currency, amount_minor)";
 
 /** The payment method's icon (cash on delivery is cash; store credit is the wallet). */
 const METHOD_ICON: Record<string, IconName> = { cash: "cash", cod: "cash", whish: "whish", stripe: "card", credit: "wallet" };
@@ -68,6 +70,7 @@ function receiptOf(o: Inv): ReceiptData {
   }
   return {
     number: o.number,
+    invoiceNumber: o.invoice_number,
     lines: o.order_items.map((i, k) => ({
       key: `${k}-${i.sku ?? i.name_en}`,
       nameEn: i.name_en,
@@ -116,7 +119,13 @@ export function Invoices() {
     setSearched(true);
     const num = /^\d+$/.test(t) ? parseInt(t, 10) : null;
     if (num) {
-      const { data } = await supabase.from("orders").select(SELECT).eq("number", num).limit(1);
+      // an invoice number or an order number
+      const { data } = await supabase
+        .from("orders")
+        .select(SELECT)
+        .or(`invoice_number.eq.${num},number.eq.${num}`)
+        .order("created_at", { ascending: false })
+        .limit(2);
       setRows((data ?? []) as never);
       return;
     }
@@ -186,7 +195,8 @@ export function Invoices() {
             onClick={() => setOpen(open === o.id ? null : o.id)}
           >
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="font-mono text-lg font-medium" dir="ltr">#{o.number}</span>
+              <span className="font-mono text-lg font-medium" dir="ltr">{invoiceNo(o.invoice_number)}</span>
+              <span className="font-mono text-xs text-muted-foreground" dir="ltr">#{o.number}</span>
               <Badge variant="secondary">{o.channel === "pos" ? "محل" : "أونلاين"}</Badge>
               {o.fulfilment === "pickup" ? <Badge variant="outline">استلام من المحل</Badge> : null}
               <OrderStatus status={o.status} fulfilment={o.fulfilment} />
@@ -273,6 +283,7 @@ function PackingSlip({ o }: { o: Inv }) {
           )}
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest">Packing slip</p>
           <p className="mt-1 font-mono text-lg">Order #{o.number}</p>
+          {o.invoice_number != null && <p className="font-mono text-xs">Invoice No. {invoiceNo(o.invoice_number)}</p>}
           <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("en-GB")}</p>
         </div>
         <div className="my-4 border-t border-dashed" />

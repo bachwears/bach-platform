@@ -18,6 +18,7 @@ import {
 // a made-up sale, only for the preview
 const SAMPLE: ReceiptData = {
   number: 1042,
+  invoiceNumber: 318,
   lines: [
     { key: "a", nameEn: "Ribbed Knit Crew Neck Sweater", size: "M", colorEn: "Burgundy", quantity: 1, unitUsdCents: 4500 },
     { key: "b", nameEn: "Braided Leather Belt", size: "90", colorEn: "Black", quantity: 1, unitUsdCents: 2500 },

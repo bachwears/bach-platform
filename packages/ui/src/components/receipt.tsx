@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 
+import { invoiceNo } from "../lib/invoice-number";
 import { DEFAULT_INVOICE_SETTINGS, cachedInvoiceConfig, loadInvoiceConfig, type InvoiceConfig } from "../lib/invoice-settings";
 
 /**
@@ -23,7 +24,10 @@ export interface ReceiptLine {
 }
 
 export interface ReceiptData {
+  /** the order number (customer reference) */
   number: number | null;
+  /** the gapless invoice number (null on an offline sale until it syncs) */
+  invoiceNumber?: number | null;
   offlineRef?: string;
   lines: ReceiptLine[];
   subtotal: number;
@@ -98,8 +102,13 @@ export function ReceiptView({
               COPY / نسخة
             </p>
           ) : null}
-          {receipt.number != null ? (
-            <p className="mt-2 font-mono text-lg">Invoice #{receipt.number}</p>
+          {receipt.invoiceNumber != null ? (
+            <>
+              <p className="mt-2 font-mono text-lg">Invoice No. {invoiceNo(receipt.invoiceNumber)}</p>
+              {receipt.number != null && <p className="font-mono text-xs">Order #{receipt.number}</p>}
+            </>
+          ) : receipt.number != null ? (
+            <p className="mt-2 font-mono text-lg">Order #{receipt.number}</p>
           ) : (
             <p className="mt-2 font-mono text-lg">OFFLINE-{receipt.offlineRef}</p>
           )}

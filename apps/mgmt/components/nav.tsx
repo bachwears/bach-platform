@@ -56,6 +56,7 @@ export const ITEMS: PortalNavItem[] = [
   {
     label: "المالية",
     links: [
+      { href: "/invoices", label: "الفواتير", icon: <Icon name="invoices" /> },
       { href: "/reports", label: "التقارير", icon: <Icon name="reports" /> },
       { href: "/exchange-rate", label: "سعر الصرف", icon: <Icon name="rate" /> },
       { href: "/payments", label: "الدفع", icon: <Icon name="payments" /> },

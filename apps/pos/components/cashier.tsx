@@ -426,9 +426,10 @@ export function Cashier({
   const changeKeptLbp = overLbpX > 0 ? Math.floor((overLbpX - changeLbp * 10_000) / 10_000) : 0;
   const canCheckout = cart.length > 0 && paidEquivCents >= total - 5 && !busy && !discountNeedsManager && !discountTooBig;
 
-  function finishSale(number: number | null, offlineRef?: string) {
+  function finishSale(number: number | null, offlineRef?: string, invoiceNumber?: number | null) {
     setReceipt({
       number,
+      invoiceNumber,
       offlineRef,
       lines: cart.map((l) => ({
         key: l.variantId,
@@ -555,7 +556,9 @@ export function Cashier({
       return;
     }
     void refreshCatalog(supabase, branchId).then((b) => { if (b) { setCatalog(b.items); setAliases(b.aliases ?? []); } });
-    finishSale(data![0].order_number);
+    // the gapless invoice number is set by the database as the order is written
+    const { data: inv } = await supabase.from("orders").select("invoice_number").eq("id", data![0].order_id).maybeSingle();
+    finishSale(data![0].order_number, undefined, inv?.invoice_number ?? null);
   }
 
   if (receipt) {
