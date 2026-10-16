@@ -26,7 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     supabase
       .from("orders")
       .select(
-        "*, branches(name), profiles(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path, color_en, sort)))), order_payments(*), customers(full_name, phone)",
+        "*, branches(name), profiles!orders_cashier_id_fkey(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path, color_en, sort)))), order_payments(*), customers(full_name, phone)",
       )
       .eq("id", id)
       .maybeSingle(),

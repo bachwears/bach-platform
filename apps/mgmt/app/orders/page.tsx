@@ -34,7 +34,7 @@ export default async function OrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, number, channel, source, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
+      "id, number, channel, source, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles!orders_cashier_id_fkey(full_name), customers(full_name, phone), order_items(quantity)",
     )
     .order("created_at", { ascending: false })
     .limit(q ? 500 : 100);

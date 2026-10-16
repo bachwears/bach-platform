@@ -48,7 +48,7 @@ export default async function InvoicesPage({
     let q = supabase
       .from("orders")
       .select(
-        "id, number, invoice_number, invoiced_at, channel, status, fulfilment, payment_method, subtotal_usd_cents, discount_usd_cents, delivery_usd_cents, tva_usd_cents, total_usd_cents, ship_name, ship_phone, customers(full_name, phone), branches(name), profiles(full_name)",
+        "id, number, invoice_number, invoiced_at, channel, status, fulfilment, payment_method, subtotal_usd_cents, discount_usd_cents, delivery_usd_cents, tva_usd_cents, total_usd_cents, ship_name, ship_phone, customers(full_name, phone), branches(name), profiles!orders_cashier_id_fkey(full_name)",
       )
       .not("invoice_number", "is", null)
       .lt("invoiced_at", beirutMidnightOf(addDays(to, 1)).toISOString());
