@@ -12,6 +12,8 @@ import { beirutDayStart, fmt } from "../../lib/time";
 import { EmptyState } from "@bach/ui/components/empty-state";
 
 const CHANNEL_LABELS: Record<string, string> = { pos: "المحل", online: "أونلاين" };
+// online orders the team took for the customer
+const SOURCE_LABELS: Record<string, string> = { instagram: "عبر إنستغرام", whatsapp: "عبر واتساب", phone: "عبر التلفون", other: "طلب يدوي" };
 
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -32,7 +34,7 @@ export default async function OrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, number, channel, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
+      "id, number, channel, source, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles(full_name), customers(full_name, phone), order_items(quantity)",
     )
     .order("created_at", { ascending: false })
     .limit(q ? 500 : 100);
@@ -242,6 +244,7 @@ export default async function OrdersPage({
                       </td>
                       <td className="p-3">
                         {CHANNEL_LABELS[o.channel] ?? o.channel}
+                        {o.source ? <span className="block text-xs text-muted-foreground">{SOURCE_LABELS[o.source] ?? o.source}</span> : null}
                         {o.fulfilment === "pickup" ? (
                           <span className="flex items-center gap-1 text-xs text-muted-foreground"><Icon name="branch" size={12} />{PICKUP_BADGE}</span>
                         ) : null}

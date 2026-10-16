@@ -26,6 +26,7 @@ export async function PosNav({ branchName }: { branchName?: string | null }) {
       items={[
         { href: "/", label: "بيع", icon: <Icon name="sell" /> },
         { href: "/queue", label: "أونلاين", icon: <Icon name="online" /> },
+        { href: "/order", label: "طلب زبون", icon: <Icon name="whatsapp" /> },
         { href: "/returns", label: "مرتجع", icon: <Icon name="returns" /> },
         { href: "/invoices", label: "فواتير", icon: <Icon name="invoices" /> },
         { href: "/stocktake", label: "جرد", icon: <Icon name="stocktake" /> },

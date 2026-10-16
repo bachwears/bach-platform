@@ -21,6 +21,8 @@ const NEXT: Record<string, { to: string; label: string }> = {
 };
 
 // Pickup orders walk the same statuses: 'shipped' = ready for pickup, 'delivered' = collected.
+const SOURCE_LABELS: Record<string, string> = { instagram: "إنستغرام", whatsapp: "واتساب", phone: "تلفون", other: "طلب يدوي" };
+
 const PICKUP_NEXT: Record<string, { to: string; label: string }> = {
   packed: { to: "shipped", label: "جاهز للاستلام — بلّغ الزبون" },
   shipped: { to: "delivered", label: "انستلم" },
@@ -33,6 +35,8 @@ interface QueueOrder {
   number: number;
   status: string;
   fulfilment: string | null;
+  /** an order the team took for the customer (instagram, whatsapp, phone, other); null = the website */
+  source: string | null;
   payment_method: string | null;
   total_usd_cents: number;
   created_at: string;
@@ -190,7 +194,7 @@ export function FulfillmentQueue() {
     const { data, error: err } = await supabase
       .from("orders")
       .select(
-        "id, number, status, fulfilment, payment_method, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity, product_variants(product_id))",
+        "id, number, status, fulfilment, source, payment_method, total_usd_cents, created_at, ship_name, ship_phone, ship_city, ship_address, note, order_items(name_en, size, color_en, sku, quantity, product_variants(product_id))",
       )
       .eq("channel", "online")
       .in("status", ["pending", "confirmed", "picking", "packed", "shipped", "delivered"])
@@ -262,6 +266,7 @@ export function FulfillmentQueue() {
                 <span className="font-mono text-lg font-medium">#{o.number}</span>
                 <OrderStatus status={o.status} fulfilment={o.fulfilment} />
                 {pickup ? <Badge variant="outline">استلام من المحل</Badge> : null}
+                {o.source ? <Badge variant="secondary">{SOURCE_LABELS[o.source] ?? o.source}</Badge> : null}
                 <span className="text-sm text-muted-foreground" dir="ltr">
                   {new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
                 </span>
