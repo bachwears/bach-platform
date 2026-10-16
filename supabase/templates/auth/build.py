@@ -36,6 +36,13 @@ SUBJECTS = {
 CODE_AND_LINK = {"magic_link"}
 
 # Security notices carry no one-time link; their button points at a fixed page.
+# Links that verify on bachwears.com itself (token_hash) instead of Supabase's
+# redirect link: they work in any browser or mail app, not only the one that
+# signed up (the default PKCE link needs the same browser).
+VERIFY_URLS = {
+    "confirmation": "{{ .SiteURL }}/account/confirm?token_hash={{ .TokenHash }}&type=email",
+}
+
 NOTICE_URLS = {
     "password_changed_notification": "https://bachwears.com/account/forgot",
 }
@@ -198,5 +205,6 @@ if __name__ == "__main__":
     for kind, parts in CONTENT.items():
         (HERE / f"{kind}.html").write_text(
             page(SUBJECTS[kind], *parts, url=NOTICE_URLS.get(kind), code_first=kind in CODE_AND_LINK)
+            .replace("{{ .ConfirmationURL }}", VERIFY_URLS.get(kind, "{{ .ConfirmationURL }}"))
         )
     print("rendered:", ", ".join(CONTENT))

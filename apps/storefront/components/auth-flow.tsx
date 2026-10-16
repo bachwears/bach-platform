@@ -39,6 +39,9 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  /** signed in with an address that was never confirmed: offer to send the link again */
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resent, setResent] = useState(false);
   const [next, setNext] = useState("/account");
   const [code, setCode] = useState("");
   const [resendAt, setResendAt] = useState(0);
@@ -85,13 +88,15 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const canSignIn = !busy && emailOk && password;
   const canCreate = !busy && name.trim() && emailOk && password.length >= 8 && password === confirm;
-  const canVerify = !busy && /^\d{6}$/.test(code);
+  const canVerify = !busy && /^\d{6,8}$/.test(code);
   const resendIn = Math.max(0, Math.ceil((resendAt - now) / 1000));
 
   async function signIn() {
     if (!canSignIn) return;
     setBusy(true);
     setError("");
+    setUnconfirmed(false);
+    setResent(false);
     const supabase = supabaseBrowser();
     const address = email.trim().toLowerCase();
     const { error: err } = await supabase.auth.signInWithPassword({ email: address, password });
@@ -109,6 +114,7 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
     }
     if (err) {
       setBusy(false);
+      setUnconfirmed(err.message.includes("not confirmed"));
       setError(
         err.message.includes("Invalid login")
           ? t(locale, "sf.login.wrong")
@@ -141,7 +147,7 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
     router.replace(lhref(locale, next));
   }
 
-  /** Email the 6-digit code (never creates an account). */
+  /** Email the sign-in code (never creates an account). */
   async function sendCode(): Promise<boolean> {
     const { error: err } = await supabaseBrowser().auth.signInWithOtp({
       email: email.trim().toLowerCase(),
@@ -187,21 +193,57 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
     router.replace(lhref(locale, next));
   }
 
+  /** Send the confirmation link again (sign-up that was never confirmed). */
+  async function resendConfirmation() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    const { error: err } = await supabaseBrowser().auth.resend({
+      type: "signup",
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: `${window.location.origin}/account` },
+    });
+    setBusy(false);
+    if (err) {
+      setError(
+        err.status === 429 || /seconds|rate limit/i.test(err.message)
+          ? t(locale, "sf.twostep.wait")
+          : t(locale, "sf.new.failed", { m: err.message }),
+      );
+      return;
+    }
+    setResent(true);
+  }
+
   async function create() {
     if (!canCreate) return;
     setBusy(true);
     setError("");
-    const { error: err } = await supabaseBrowser().auth.signUp({
+    const { data, error: err } = await supabaseBrowser().auth.signUp({
       email: email.trim().toLowerCase(),
       password,
       options: {
         data: { full_name: name.trim(), phone },
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/account`,
       },
     });
     setBusy(false);
     if (err) {
-      setError(err.message.includes("already registered") ? t(locale, "sf.new.exists") : t(locale, "sf.new.failed", { m: err.message }));
+      setError(
+        err.message.includes("already registered")
+          ? t(locale, "sf.new.exists")
+          : /invalid/i.test(err.message) && /email/i.test(err.message)
+            ? t(locale, "sf.new.badEmail")
+            : err.status === 429 || /rate limit|seconds/i.test(err.message)
+              ? t(locale, "sf.twostep.wait")
+              : t(locale, "sf.new.failed", { m: err.message }),
+      );
+      return;
+    }
+    // Supabase answers an address that already has a confirmed account with a
+    // user and no identities (and sends nothing) — send them to sign in instead.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setError(t(locale, "sf.new.exists"));
       return;
     }
     setDone(true);
@@ -219,6 +261,15 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
           </span>
           . {t(locale, "sf.new.doneBody2")}
         </p>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t(locale, "sf.new.spam")}</p>
+        {resent ? (
+          <p className="type-meta mt-6">{t(locale, "sf.new.resent")}</p>
+        ) : (
+          <button type="button" className="type-meta mt-6 underline underline-offset-4 hover:opacity-60" onClick={resendConfirmation} disabled={busy}>
+            {t(locale, "sf.new.resend")}
+          </button>
+        )}
+        {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
         <Link href={lhref(locale, "/shop")} className={`${SECONDARY} mt-10`}>
           {t(locale, "sf.confirmed.continue")}
         </Link>
@@ -297,6 +348,14 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
               {t(locale, "sf.login.forgot")}
             </Link>
             {error && <p className="text-xs text-destructive">{error}</p>}
+            {unconfirmed &&
+              (resent ? (
+                <p className="type-meta">{t(locale, "sf.new.resent")}</p>
+              ) : (
+                <button type="button" className="type-meta -mt-2 underline underline-offset-4 hover:opacity-60" onClick={resendConfirmation} disabled={busy}>
+                  {t(locale, "sf.new.resend")}
+                </button>
+              ))}
             <button type="submit" className={PRIMARY} disabled={!canSignIn}>
               {busy ? t(locale, "sf.login.signingIn") : t(locale, "sf.login.signIn")}
             </button>
@@ -317,10 +376,10 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
                 ref={focusRef}
                 className={`${INPUT} tracking-[0.3em] tabular-nums`}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={6}
+                maxLength={8}
                 dir="ltr"
               />
             </label>
@@ -371,6 +430,7 @@ export function AuthFlow({ initial }: { initial: "email" | "register" }) {
               <span className="type-meta text-muted-foreground">{t(locale, "sf.new.confirm")}</span>
               <input className={INPUT} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
             </label>
+            {password && password.length < 8 && <p className="text-xs text-muted-foreground">{t(locale, "sf.new.short")}</p>}
             {password && confirm && password !== confirm && <p className="text-xs text-destructive">{t(locale, "sf.new.noMatch")}</p>}
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button type="submit" className={PRIMARY} disabled={!canCreate}>
