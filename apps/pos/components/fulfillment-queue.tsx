@@ -20,15 +20,17 @@ const NEXT: Record<string, { to: string; label: string }> = {
   delivered: { to: "completed", label: "سكّر الطلب" },
 };
 
-// Pickup orders walk the same statuses: 'shipped' = ready for pickup, 'delivered' = collected.
 const SOURCE_LABELS: Record<string, string> = { instagram: "إنستغرام", whatsapp: "واتساب", phone: "تلفون", other: "طلب يدوي" };
 
+// Pickup orders walk the same statuses: 'shipped' = ready for pickup, 'delivered' = collected.
 const PICKUP_NEXT: Record<string, { to: string; label: string }> = {
   packed: { to: "shipped", label: "جاهز للاستلام — بلّغ الزبون" },
   shipped: { to: "delivered", label: "انستلم" },
 };
 
 const CANCELLABLE = new Set(["pending", "confirmed", "picking"]);
+// a pickup the customer never came for can still be cancelled once packed / ready
+const PICKUP_CANCELLABLE = new Set(["packed", "shipped"]);
 
 interface QueueOrder {
   id: string;
@@ -345,13 +347,20 @@ export function FulfillmentQueue() {
                   {busy === o.id ? "لحظة…" : next.label}
                 </Button>
               ) : null}
-              {CANCELLABLE.has(o.status) && (
+              {(CANCELLABLE.has(o.status) || (pickup && PICKUP_CANCELLABLE.has(o.status))) && (
                 <Button
                   variant="outline"
                   className="h-10"
                   disabled={busy === o.id}
                   onClick={() => {
-                    if (window.confirm(`إلغاء الطلب #${o.number}؟ المخزون المحجوز بيرجع متاح.`)) {
+                    const offShelf = PICKUP_CANCELLABLE.has(o.status);
+                    if (
+                      window.confirm(
+                        offShelf
+                          ? `إلغاء الطلب #${o.number}؟ الزبون ما إجا — القطع بترجع عالرف وبتنباع من جديد.`
+                          : `إلغاء الطلب #${o.number}؟ المخزون المحجوز بيرجع متاح.`,
+                      )
+                    ) {
                       void advance(o.id, "cancelled");
                     }
                   }}

@@ -30,7 +30,14 @@ export function OrderStatusControl({
   const isPickup = fulfilment === "pickup";
   const router = useRouter();
   // In-store sales are complete at the till; only online orders move through steps.
-  const options = channel === "online" ? (ALLOWED_TRANSITIONS[currentStatus] ?? []) : [];
+  // a pickup the customer never came for can also be cancelled once packed / ready
+  const options =
+    channel === "online"
+      ? [
+          ...(ALLOWED_TRANSITIONS[currentStatus] ?? []),
+          ...(isPickup && (currentStatus === "packed" || currentStatus === "shipped") ? ["cancelled"] : []),
+        ]
+      : [];
   const [next, setNext] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -66,7 +73,15 @@ export function OrderStatusControl({
 
   async function apply() {
     if (!next) return;
-    if (next === "cancelled" && !window.confirm("نلغي هالطلب؟ القطع المحجوزة بترجع للمخزون، وما في رجعة عن الإلغاء.")) return;
+    if (
+      next === "cancelled" &&
+      !window.confirm(
+        currentStatus === "packed" || currentStatus === "shipped"
+          ? "نلغي هالطلب؟ الزبون ما إجا يستلم — القطع بترجع عالرف وبتنباع من جديد، وما في رجعة عن الإلغاء."
+          : "نلغي هالطلب؟ القطع المحجوزة بترجع للمخزون، وما في رجعة عن الإلغاء.",
+      )
+    )
+      return;
     setBusy(true);
     setError("");
     // The RPC checks the step and moves stock (packed = sale, cancelled = release).

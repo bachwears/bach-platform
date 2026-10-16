@@ -69,7 +69,7 @@ export function CustomerOrder() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<{ number: number; invoice: number | null; total: number; text: string } | null>(null);
+  const [done, setDone] = useState<{ number: number; invoice: number | null; total: number; text: string; pickup: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
   const [photoOf, setPhotoOf] = useState<ReturnType<typeof variantPhotos>>(() => () => null);
 
@@ -265,7 +265,7 @@ export function CustomerOrder() {
       `Total: ${usd(finalTotal)} — ${fulfilment === "pickup" ? "pay at the shop" : "cash on delivery"}`,
       "Track it at bachwears.com/track",
     ].join("\n");
-    setDone({ number: row.order_number, invoice: o?.invoice_number ?? null, total: finalTotal, text });
+    setDone({ number: row.order_number, invoice: o?.invoice_number ?? null, total: finalTotal, text, pickup: fulfilment === "pickup" });
   }
 
   function reset() {
@@ -306,6 +306,12 @@ export function CustomerOrder() {
           </span>{" "}
           · الإجمالي <span className="font-mono">{usd(done.total)}</span> — بيطلع هلّق بشاشة «أونلاين» متل أي طلب من الموقع، وبيوصل للزبون إشعار إذا عندو إيميل.
         </p>
+        {done.pickup ? (
+          <p className="flex items-center gap-2 border p-3 text-sm">
+            <Icon name="branch" size={16} />
+            القطع انشالت عن الرف ومحجوزة للزبون. حطّها عجنب، وكبس «جاهز للاستلام» بشاشة «أونلاين» لما بدّك تبلّغو. إذا ما إجا، الإلغاء بيرجّعها عالرف.
+          </p>
+        ) : null}
         <pre className="whitespace-pre-wrap border bg-muted/40 p-4 text-sm" dir="ltr">
           {done.text}
         </pre>
@@ -394,7 +400,7 @@ export function CustomerOrder() {
                 className={`flex h-11 items-center justify-center gap-2 border text-sm ${fulfilment === f ? "border-foreground bg-foreground text-background" : "hover:bg-muted"}`}
               >
                 <Icon name={f === "delivery" ? "courier" : "branch"} size={16} />
-                {f === "delivery" ? "توصيل — دفع عند الاستلام" : "استلام من المحل — دفع بالمحل"}
+                {f === "delivery" ? "توصيل — دفع عند الاستلام" : "استلام من المحل — بينشال عن الرف دغري"}
               </button>
             ))}
           </div>
