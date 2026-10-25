@@ -8,6 +8,7 @@
  * with colour (BW-SWT-055-BLA), stamp = Date.now() (or v2 + 8 hex for older sets).
  */
 import type { supabaseBrowser } from "@bach/supabase/browser";
+import { encodePhoto } from "../lib/encode-image";
 
 type SupabaseClient = ReturnType<typeof supabaseBrowser>;
 
@@ -137,9 +138,7 @@ async function toWebp(bitmap: ImageBitmap, width: number): Promise<Blob> {
   canvas.width = w;
   canvas.height = h;
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("webp encode failed"))), "image/webp", 0.82),
-  );
+  return encodePhoto(canvas);
 }
 
 /**
@@ -162,7 +161,7 @@ export async function uploadRenditions(
       const path = `${dir}/${tag}-${stamp}-${w}.webp`;
       const { error } = await supabase.storage
         .from(BUCKET)
-        .upload(path, blob, { contentType: "image/webp", cacheControl: "31536000" });
+        .upload(path, blob, { contentType: blob.type, cacheControl: "31536000" });
       if (error) throw new Error(error.message);
       if (w === RENDITIONS[0]) mainUrl = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
     }

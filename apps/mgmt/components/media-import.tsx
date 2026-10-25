@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
+import { encodePhoto } from "../lib/encode-image";
 
 const RENDITIONS = [1600, 800, 400];
 // {CODE}_{view}[-n].jpg — view words the photo team uses, mapped to the gallery slots:
@@ -44,9 +45,7 @@ async function toWebp(bitmap: ImageBitmap, width: number): Promise<Blob> {
   canvas.width = w;
   canvas.height = h;
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("webp encode failed"))), "image/webp", 0.82),
-  );
+  return encodePhoto(canvas);
 }
 
 export function MediaImport() {
@@ -186,7 +185,7 @@ export function MediaImport() {
           const path = `${p.sku}/${tag}-${stamp}-${w}.webp`;
           const { error: upErr } = await supabase.storage
             .from("product-media")
-            .upload(path, blob, { contentType: "image/webp", cacheControl: "31536000" });
+            .upload(path, blob, { contentType: blob.type, cacheControl: "31536000" });
           if (upErr) throw new Error(upErr.message);
           if (w === RENDITIONS[0]) {
             mainUrl = supabase.storage.from("product-media").getPublicUrl(path).data.publicUrl;

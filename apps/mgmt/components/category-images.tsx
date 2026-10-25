@@ -6,6 +6,7 @@ import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
 import { NOT_SAVED } from "../lib/access";
 import { HintDot } from "@bach/ui/components/hint-dot";
+import { encodePhoto } from "../lib/encode-image";
 
 export interface CategoryImageRow {
   id: string;
@@ -172,7 +173,7 @@ function ImageSlot({
     const ctx = canvas.getContext("2d")!;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, target.w, target.h);
-    const blob: Blob | null = await new Promise((r) => canvas.toBlob(r, "image/webp", 0.82));
+    const blob: Blob | null = await encodePhoto(canvas).catch(() => null);
     if (!blob) {
       setBusy(false);
       setErr("ما قدرنا نحوّل الصورة.");
@@ -182,7 +183,7 @@ function ImageSlot({
     const path = `site/cat-${row.code}-${slot === "desktop" ? "d" : "m"}-${Date.now()}.webp`;
     const up = await supabase.storage
       .from("product-media")
-      .upload(path, blob, { contentType: "image/webp", cacheControl: "31536000", upsert: false });
+      .upload(path, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false });
     if (up.error) {
       setBusy(false);
       setErr(`ما قدرنا نرفع الصورة: ${up.error.message}`);
