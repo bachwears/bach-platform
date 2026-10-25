@@ -64,24 +64,50 @@ export const getNavData = unstable_cache(
   { revalidate: 2 * MINUTE, tags: ["catalog"] },
 );
 
+/**
+ * One in-flight read per server process: visitors who arrive together on a cold
+ * cache (right after a deploy) share a single database query instead of each
+ * starting their own — that stampede is what timed the catalogue read out.
+ */
+function shared<T>(fn: () => Promise<T>): () => Promise<T> {
+  let inflight: Promise<T> | null = null;
+  return () =>
+    (inflight ??= fn().finally(() => {
+      inflight = null;
+    }));
+}
+
+async function readShopCatalog() {
+  const supabase = supabasePublic();
+  const [{ data, error }, { data: merch }, { data: catTree }] = await Promise.all([
+    supabase
+      .from("products")
+      .select(
+        "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, tags, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort, in_strip), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active, inventory_levels(quantity, reserved)), product_collections(collections(slug, name_en))",
+      )
+      .eq("status", "published")
+      .order("created_at", { ascending: false }),
+    supabase.from("merchandising_settings").select("active_season").maybeSingle(),
+    // "*" so banner_mobile_url is picked up whether or not its migration has landed
+    supabase.from("categories").select("*"),
+  ]);
+  // a failed read must not be cached as an empty shop for a minute: throw, so
+  // the cache keeps serving the last good catalogue (or the page retries)
+  if (error) throw new Error(`shop catalogue read failed: ${error.message}`);
+  return { data, merch, catTree };
+}
+
 /** The shop grid's source: every published product with what cards and filters need. */
 export const getShopCatalog = unstable_cache(
-  async () => {
-    const supabase = supabasePublic();
-    const [{ data }, { data: merch }, { data: catTree }] = await Promise.all([
-      supabase
-        .from("products")
-        .select(
-          "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, tags, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort, in_strip), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active, inventory_levels(quantity, reserved)), product_collections(collections(slug, name_en))",
-        )
-        .eq("status", "published")
-        .order("created_at", { ascending: false }),
-      supabase.from("merchandising_settings").select("active_season").maybeSingle(),
-      // "*" so banner_mobile_url is picked up whether or not its migration has landed
-      supabase.from("categories").select("*"),
-    ]);
-    return { data, merch, catTree };
-  },
+  shared(async () => {
+    try {
+      return await readShopCatalog();
+    } catch {
+      // one retry: a timeout under load usually clears a moment later
+      await new Promise((r) => setTimeout(r, 300));
+      return readShopCatalog();
+    }
+  }),
   ["shop-catalog-v3"],
   { revalidate: MINUTE, tags: ["catalog"] },
 );
