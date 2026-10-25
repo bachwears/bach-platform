@@ -4,6 +4,8 @@
  * It is posted to log_app_error with the public key (the database fills in
  * nothing about the visitor); failures here are swallowed.
  */
+const BENIGN = /destination stream closed early|ECONNRESET|EPIPE|socket hang up|aborted|ERR_STREAM_PREMATURE_CLOSE/i;
+
 export async function reportServerError(
   app: "storefront" | "pos" | "mgmt",
   err: unknown,
@@ -14,6 +16,8 @@ export async function reportServerError(
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return;
   const e = err instanceof Error ? err : new Error(String(err));
+  // a visitor who closes the tab or moves on mid-page isn't an error
+  if (BENIGN.test(`${e.name}: ${e.message}`) || BENIGN.test(String((e as { code?: string }).code ?? ""))) return;
   const host = { storefront: "bachwears.com", pos: "pos.bachwears.com", mgmt: "mgmt.bachwears.com" }[app];
   try {
     await fetch(`${url}/rest/v1/rpc/log_app_error`, {

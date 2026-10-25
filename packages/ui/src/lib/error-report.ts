@@ -70,6 +70,8 @@ export function startErrorTracking(which: ErrorApp): () => void {
   const onError = (ev: ErrorEvent) => {
     // a failed <img>/<script> load has no message; browser extensions' noise is skipped
     if (!ev.message || /^Script error\.?$/.test(ev.message) || /extension:\/\//.test(ev.filename ?? "")) return;
+    // a browser layout notice, not a bug
+    if (/ResizeObserver loop/.test(ev.message)) return;
     const { message, stack } = messageOf(ev.error ?? ev.message);
     reportError({ kind: "unhandled", message, stack: stack ?? `at ${ev.filename}:${ev.lineno}:${ev.colno}` });
   };
