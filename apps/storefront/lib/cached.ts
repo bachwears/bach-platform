@@ -72,7 +72,7 @@ export const getShopCatalog = unstable_cache(
       supabase
         .from("products")
         .select(
-          "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, tags, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active, inventory_levels(quantity, reserved)), product_collections(collections(slug, name_en))",
+          "id, slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, tags, created_at, categories(code, name_en, name_ar), media_assets(kind, storage_path, color_en, sort, in_strip), product_seasons(season), product_variants(id, size, color_en, color_ar, color_code, is_active, inventory_levels(quantity, reserved)), product_collections(collections(slug, name_en))",
         )
         .eq("status", "published")
         .order("created_at", { ascending: false }),
@@ -82,7 +82,7 @@ export const getShopCatalog = unstable_cache(
     ]);
     return { data, merch, catTree };
   },
-  ["shop-catalog-v2"],
+  ["shop-catalog-v3"],
   { revalidate: MINUTE, tags: ["catalog"] },
 );
 

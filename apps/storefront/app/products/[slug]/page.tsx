@@ -200,14 +200,21 @@ export default async function ProductPage({
     slug: string;
     name_en: string;
     categories: { code: string } | null;
-    media_assets: Array<{ kind: string; storage_path: string }> | null;
+    media_assets: Array<{ kind: string; storage_path: string; color_en?: string | null; in_strip?: boolean }> | null;
     product_variants: Array<{ is_active: boolean; inventory_levels: Array<{ quantity: number; reserved: number }> | null }> | null;
   };
   const navItems: PdpNavItem[] = category
     ? ((catalog ?? []) as unknown as NavRow[])
         // sold-out pieces leave the strip (this one stays, so the strip still marks it)
         .filter((p) => p.categories?.code === category.code && (p.slug === product.slug || (isSellable(p) && !lockedSlugs.has(p.slug))))
-        .map((p) => ({ p, front: (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ?? null }))
+        // the photo picked in MGMT for the strip, else the main photo
+        .map((p) => ({
+          p,
+          front:
+            (p.media_assets ?? []).find((m) => m.in_strip)?.storage_path ??
+            (p.media_assets ?? []).find((m) => m.kind === "front")?.storage_path ??
+            null,
+        }))
         .filter(({ front }) => front)
         .map(({ p, front }) => ({
           slug: p.slug,
@@ -221,6 +228,15 @@ export default async function ProductPage({
   for (const [c, imgs] of Object.entries(colorGalleries)) {
     const shot = imgs.find((i) => /\/front-/.test(i.url)) ?? imgs[0];
     if (shot) stripPhotos[c] = shot.url.replace(/-1600\.webp$/, "-400.webp");
+  }
+  // the strip photo picked in MGMT stands for its colour (or every colour, when it has none)
+  const picked = ((catalog ?? []) as unknown as NavRow[])
+    .find((p) => p.slug === product.slug)
+    ?.media_assets?.find((m) => m.in_strip);
+  if (picked) {
+    const url = picked.storage_path.replace(/-1600\.webp$/, "-400.webp");
+    if (picked.color_en) stripPhotos[picked.color_en] = url;
+    else for (const c of Object.keys(stripPhotos)) stripPhotos[c] = url;
   }
   const navAt = navItems.findIndex((i) => i.slug === product.slug);
   const prevHref = navAt > 0 ? navItems[navAt - 1]!.href : null;

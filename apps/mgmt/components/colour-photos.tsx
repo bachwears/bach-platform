@@ -259,6 +259,7 @@ function ColourCard({
                       {photoView(m).n > 1 ? ` ${photoView(m).n}` : ""}
                     </span>
                     {r ? <span className="bg-foreground px-1.5 py-0.5 text-[10px] leading-none text-background">{r}</span> : null}
+                    {m.in_strip ? <span className="bg-foreground px-1.5 py-0.5 text-[10px] leading-none text-background">الشريط</span> : null}
                   </span>
                   {!live ? <span className="absolute inset-x-1 bottom-1 bg-background/85 px-1.5 py-0.5 text-center text-[10px]">مخفية</span> : null}
                   {otherColourSlot ? (
@@ -382,6 +383,20 @@ function PhotoEditor({
   const isFront = photo.kind === "front";
   const isSlot = photo.kind !== "other";
   const colourOptions = [...new Set([...colours.map((c) => c.en), ...(photo.color_en ? [photo.color_en] : [])])];
+
+  // ── the photo this product shows in the strip at the bottom of product pages ──
+  const setStrip = (on: boolean) =>
+    run(
+      async (sb) => {
+        // one per product: clear the current one first (a unique index holds it)
+        if (on) {
+          const { error } = await sb.from("media_assets").update({ in_strip: false }).eq("product_id", productId).eq("in_strip", true);
+          if (error) return error.message;
+        }
+        return update(sb, photo.id, { in_strip: on });
+      },
+      on ? "صارت هيدي الصورة يلّي بتبيّن للمنتج بالشريط تحت بصفحة المنتج — خلال دقيقة." : "رجع الشريط يورجي الصورة الأساسية.",
+    );
 
   // ── make it the product's main photo ──────────────────────────────────────
   const makeMain = () =>
@@ -544,6 +559,10 @@ function PhotoEditor({
               خليها الأساسية
             </Button>
           ) : null}
+          <Button type="button" size="sm" variant={photo.in_strip ? "default" : "outline"} disabled={busy} onClick={() => void setStrip(!photo.in_strip)}>
+            <Icon name="products" size={16} />
+            {photo.in_strip ? "صورة الشريط ✓ (شيلها)" : "خليها صورة الشريط تحت"}
+          </Button>
           {!isFront ? (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void toggle()}>
               <Icon name={live ? "hidden" : "visible"} size={16} />

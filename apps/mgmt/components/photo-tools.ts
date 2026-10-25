@@ -21,6 +21,8 @@ export interface MediaRow {
   storage_path: string;
   color_en?: string | null;
   sort: number | null;
+  /** the photo shown for this product in the strip at the bottom of a product page */
+  in_strip?: boolean;
 }
 
 /** The views the photo team shoots, in the order staff pick from. */
