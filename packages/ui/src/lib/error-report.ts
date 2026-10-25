@@ -24,6 +24,22 @@ const lastSent = new Map<string, number>();
 let sentCount = 0;
 const MAX_PER_PAGE = 25;
 
+/** A random id for this browser (no personal data), so MGMT can count how many people an error hit. */
+let visitorId: string | null = null;
+function visitor(): string {
+  if (visitorId) return visitorId;
+  try {
+    visitorId = localStorage.getItem("bach-vid");
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem("bach-vid", visitorId);
+    }
+  } catch {
+    visitorId ??= Math.random().toString(36).slice(2);
+  }
+  return visitorId;
+}
+
 export const RELEASE = (process.env.NEXT_PUBLIC_BUILD_SHA ?? "").slice(0, 12) || null;
 
 export function reportError(e: ErrorInput) {
@@ -42,7 +58,7 @@ export function reportError(e: ErrorInput) {
         p_stack: e.stack?.slice(0, 4000) ?? null,
         p_url: e.url ?? window.location.href,
         p_digest: e.digest ?? null,
-        p_context: { ...(e.context ?? {}), screen: `${window.innerWidth}x${window.innerHeight}`, online: navigator.onLine },
+        p_context: { ...(e.context ?? {}), screen: `${window.innerWidth}x${window.innerHeight}`, online: navigator.onLine, visitor: visitor() },
         p_release: RELEASE,
       })
       .then(

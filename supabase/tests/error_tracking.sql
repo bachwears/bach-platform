@@ -50,3 +50,15 @@ begin
   select count(*) into n from app_error_groups where app = 'server' and kind = 'client' and length(message) = 500;
   if n <> 1 then raise exception 'TESTFAIL tidy'; end if;
 end $$;
+
+-- visitors count too (20261026100000_error_visitors)
+do $$
+declare g record;
+begin
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform log_app_error('pos', 'client', 'Visitor count test', null, '/x', null, '{"visitor":"v-1"}'::jsonb);
+  perform log_app_error('pos', 'client', 'Visitor count test', null, '/x', null, '{"visitor":"v-1"}'::jsonb);
+  perform log_app_error('pos', 'client', 'Visitor count test', null, '/x', null, '{"visitor":"v-2"}'::jsonb);
+  select * into g from app_error_groups where message = 'Visitor count test';
+  if g.count <> 3 or g.users <> 2 then raise exception 'TESTFAIL visitors count % users %', g.count, g.users; end if;
+end $$;

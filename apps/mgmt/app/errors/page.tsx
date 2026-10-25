@@ -153,7 +153,7 @@ export default async function ErrorsPage({ searchParams }: { searchParams: Promi
                     </span>
                     <span className="text-center">
                       <span className="block font-mono text-lg">{g.users}</span>
-                      <span className="text-xs text-muted-foreground">مسجّل</span>
+                      <span className="text-xs text-muted-foreground">شخص</span>
                     </span>
                     <span className="text-xs text-muted-foreground" title={fmt(g.last_seen)}>
                       آخر مرّة: {ago(g.last_seen)}

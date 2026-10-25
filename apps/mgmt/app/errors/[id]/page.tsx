@@ -54,7 +54,7 @@ export default async function ErrorDetailPage({ params }: { params: Promise<{ id
           icon="errors"
           back={{ href: "/errors", label: "الأخطاء" }}
           title={`${APP_LABEL[g.app] ?? g.app} · ${KIND_LABEL[g.kind] ?? g.kind}`}
-          description={`${STATUS_LABEL[g.status] ?? g.status} · ${g.count} مرّة · ${g.users} مسجّل دخول · آخر مرّة ${ago(g.last_seen)}`}
+          description={`${STATUS_LABEL[g.status] ?? g.status} · ${g.count} مرّة · ${g.users} شخص · آخر مرّة ${ago(g.last_seen)}`}
         />
 
         <section className="space-y-4 border p-4">
