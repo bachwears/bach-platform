@@ -26,7 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     supabase
       .from("orders")
       .select(
-        "*, branches(name), profiles!orders_cashier_id_fkey(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path, color_en, sort)))), order_payments(*), customers(full_name, phone)",
+        "*, branches(name), profiles!orders_cashier_id_fkey(full_name), order_items(*, product_variants(products(media_assets(kind, storage_path, color_en, sort)))), order_payments(*), customers(full_name, phone), order_returns!order_returns_order_id_fkey(kind, credit_usd_cents, note, created_at)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -103,6 +103,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             />
           </section>
         )}
+
+        {((order.order_returns ?? []) as Array<{ kind: string; credit_usd_cents: number; note: string | null; created_at: string }>)
+          .filter((r) => r.kind === "not_received")
+          .map((r) => (
+            <p key={r.created_at} className="flex items-start gap-2 border p-4 text-sm">
+              <Icon name="returns" size={16} className="mt-0.5 shrink-0" />
+              <span>
+                {(order as { fulfilment?: string }).fulfilment === "pickup" ? "الزبون ما إجا يستلم" : "الزبون ما استلم"} — القطع رجعت عالمخزون والفاتورة
+                كلها انسجّلت مرتجعة (<span className="font-mono">{`$${(r.credit_usd_cents / 100).toFixed(2)}`}</span>) بتاريخ{" "}
+                <span dir="ltr">{fmt(r.created_at, { dateStyle: "short", timeStyle: "short" })}</span>. ما انقبض شي.
+              </span>
+            </p>
+          ))}
 
         <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <Info label="الوقت" value={fmt(order.created_at)} ltr />

@@ -29,8 +29,9 @@ const PICKUP_NEXT: Record<string, { to: string; label: string }> = {
 };
 
 const CANCELLABLE = new Set(["pending", "confirmed", "picking"]);
-// a pickup the customer never came for can still be cancelled once packed / ready
-const PICKUP_CANCELLABLE = new Set(["packed", "shipped"]);
+// «الزبون ما استلم»: out with the courier, or a pickup set aside / ready — the
+// order comes back as a return (stock back on the shelf), not a cancel
+const notReceivedAllowed = (status: string, pickup: boolean) => status === "shipped" || (pickup && status === "packed");
 
 interface QueueOrder {
   id: string;
@@ -220,6 +221,18 @@ export function FulfillmentQueue() {
    * `paid`: what a pickup paid at the counter (dollars, lira, Whish) — without
    * it a cash-on-delivery order is recorded as the full total in dollars.
    */
+  async function notReceived(id: string) {
+    setBusy(id);
+    setError("");
+    const { error: err } = await supabase.rpc("mark_not_received", { p_order_id: id });
+    setBusy(null);
+    if (err) {
+      setError(`ما مشي الحال: ${err.message}`);
+      return;
+    }
+    void load();
+  }
+
   async function advance(id: string, to: string, paid?: { usd: number; lbp: number; whish: number }) {
     setBusy(id);
     setError("");
@@ -347,25 +360,39 @@ export function FulfillmentQueue() {
                   {busy === o.id ? "لحظة…" : next.label}
                 </Button>
               ) : null}
-              {(CANCELLABLE.has(o.status) || (pickup && PICKUP_CANCELLABLE.has(o.status))) && (
+              {CANCELLABLE.has(o.status) && (
                 <Button
                   variant="outline"
                   className="h-10"
                   disabled={busy === o.id}
                   onClick={() => {
-                    const offShelf = PICKUP_CANCELLABLE.has(o.status);
-                    if (
-                      window.confirm(
-                        offShelf
-                          ? `إلغاء الطلب #${o.number}؟ الزبون ما إجا — القطع بترجع عالرف وبتنباع من جديد.`
-                          : `إلغاء الطلب #${o.number}؟ المخزون المحجوز بيرجع متاح.`,
-                      )
-                    ) {
+                    if (window.confirm(`إلغاء الطلب #${o.number}؟ المخزون المحجوز بيرجع متاح.`)) {
                       void advance(o.id, "cancelled");
                     }
                   }}
                 >
                   ألغِ الطلب
+                </Button>
+              )}
+              {notReceivedAllowed(o.status, pickup) && (
+                <Button
+                  variant="outline"
+                  className="h-10"
+                  disabled={busy === o.id}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        pickup
+                          ? `الزبون ما إجا يستلم #${o.number}؟ القطع بترجع عالرف وبتنباع من جديد، والطلب بيتسجّل «مرتجع».`
+                          : `الزبون ما استلم #${o.number}؟ لما ترجع القطع من الدليفري، بترجع عالمخزون والطلب بيتسجّل «مرتجع».`,
+                      )
+                    ) {
+                      void notReceived(o.id);
+                    }
+                  }}
+                >
+                  <Icon name="returns" size={16} />
+                  {pickup ? "ما إجا يستلم" : "الزبون ما استلم"}
                 </Button>
               )}
             </div>

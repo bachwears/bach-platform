@@ -309,7 +309,7 @@ export function CustomerOrder() {
         {done.pickup ? (
           <p className="flex items-center gap-2 border p-3 text-sm">
             <Icon name="branch" size={16} />
-            القطع انشالت عن الرف ومحجوزة للزبون. حطّها عجنب، وكبس «جاهز للاستلام» بشاشة «أونلاين» لما بدّك تبلّغو. إذا ما إجا، الإلغاء بيرجّعها عالرف.
+            القطع انشالت عن الرف ومحجوزة للزبون. حطّها عجنب، وكبس «جاهز للاستلام» بشاشة «أونلاين» لما بدّك تبلّغو. إذا ما إجا، كبس «ما إجا يستلم» بيرجّعها عالرف.
           </p>
         ) : null}
         <pre className="whitespace-pre-wrap border bg-muted/40 p-4 text-sm" dir="ltr">

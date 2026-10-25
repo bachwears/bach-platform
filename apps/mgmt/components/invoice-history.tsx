@@ -29,12 +29,16 @@ export interface InvoiceRow {
   customers: { full_name: string | null; phone: string | null } | null;
   branches: { name: string } | null;
   profiles: { full_name: string | null } | null;
+  /** returns against this invoice (POS returns / exchanges, and «الزبون ما استلم») */
+  order_returns: Array<{ kind: string; credit_usd_cents: number }> | null;
 }
 
 const CHANNEL: Record<string, string> = { pos: "المحل", online: "أونلاين" };
 const STEP = 100;
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const isVoid = (r: InvoiceRow) => r.status === "cancelled";
+const returnedOf = (r: InvoiceRow) => (r.order_returns ?? []).reduce((s, x) => s + x.credit_usd_cents, 0);
+const notReceived = (r: InvoiceRow) => (r.order_returns ?? []).some((x) => x.kind === "not_received");
 
 function csvEscape(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -83,14 +87,16 @@ export function InvoiceHistory({
   const valid = list.filter((r) => !isVoid(r));
   const totals = {
     count: valid.length,
-    sales: valid.reduce((s, r) => s + r.total_usd_cents, 0),
+    // net of returns: a returned invoice (or a delivery the customer never took) counts as nothing
+    sales: valid.reduce((s, r) => s + r.total_usd_cents - returnedOf(r), 0),
+    returned: valid.reduce((s, r) => s + returnedOf(r), 0),
     discount: valid.reduce((s, r) => s + r.discount_usd_cents, 0),
     voided: list.length - valid.length,
   };
   const label = from ? (from === to ? from : `${from} → ${to}`) : `لحد ${to}`;
 
   function exportCsv() {
-    const headers = ["invoice", "order", "date (Beirut)", "channel", "customer", "phone", "payment", "subtotal", "discount", "delivery", "tva", "total", "status"];
+    const headers = ["invoice", "order", "date (Beirut)", "channel", "customer", "phone", "payment", "subtotal", "discount", "delivery", "tva", "total", "returned", "status"];
     const body = list.map((r) => {
       const c = customer(r);
       return [
@@ -106,7 +112,8 @@ export function InvoiceHistory({
         ((r.delivery_usd_cents ?? 0) / 100).toFixed(2),
         (r.tva_usd_cents / 100).toFixed(2),
         (r.total_usd_cents / 100).toFixed(2),
-        r.status,
+        (returnedOf(r) / 100).toFixed(2),
+        notReceived(r) ? "returned (not received)" : r.status,
       ];
     });
     const csv = "﻿" + [headers, ...body].map((row) => row.map(csvEscape).join(",")).join("\r\n");
@@ -135,9 +142,11 @@ export function InvoiceHistory({
           <p className="text-xs text-muted-foreground" dir="ltr">{label}</p>
         </div>
         <div className="border p-4">
-          <p className="text-sm text-muted-foreground">مجموع المبيعات</p>
+          <p className="text-sm text-muted-foreground">صافي المبيعات</p>
           <p className="mt-1 font-mono text-2xl font-semibold">{usd(totals.sales)}</p>
-          <p className="text-xs text-muted-foreground">بلا الفواتير الملغاة</p>
+          <p className="text-xs text-muted-foreground">
+            {totals.returned ? `بعد مرتجعات ${usd(totals.returned)} · بلا الملغاة` : "بلا الفواتير الملغاة"}
+          </p>
         </div>
         <div className="border p-4">
           <p className="text-sm text-muted-foreground">الخصومات</p>
@@ -242,7 +251,16 @@ export function InvoiceHistory({
                     <td className="p-3">{paymentLabel(r.payment_method)}</td>
                     <td className="p-3 font-mono">{r.discount_usd_cents > 0 ? `- ${usd(r.discount_usd_cents)}` : "—"}</td>
                     <td className="p-3 font-mono">{usd(r.total_usd_cents)}</td>
-                    <td className="p-3">{isVoid(r) ? "ملغاة" : <OrderStatus status={r.status} fulfilment={r.fulfilment} />}</td>
+                    <td className="p-3">
+                      {isVoid(r) ? (
+                        "ملغاة"
+                      ) : notReceived(r) ? (
+                        r.fulfilment === "pickup" ? "مرتجع — ما إجا يستلم" : "مرتجع — ما استلم"
+                      ) : (
+                        <OrderStatus status={r.status} fulfilment={r.fulfilment} />
+                      )}
+                      {returnedOf(r) > 0 ? <span className="block font-mono text-xs text-muted-foreground">- {usd(returnedOf(r))}</span> : null}
+                    </td>
                   </tr>
                 );
               })}

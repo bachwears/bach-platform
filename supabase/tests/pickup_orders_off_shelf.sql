@@ -31,11 +31,11 @@ begin
     raise exception 'TESTFAIL sale movement';
   end if;
 
-  -- 2. ready, then the customer never comes: cancel puts the pieces back
+  -- 2. ready, then the customer never comes: «ما استلم» puts the pieces back (20261025090000)
   perform advance_online_order(r.order_id, 'shipped');
-  perform advance_online_order(r.order_id, 'cancelled');
+  perform mark_not_received(r.order_id);
   select quantity, reserved into q1, r1 from inventory_levels where variant_id = v and branch_id = br;
-  if (select status from orders where id = r.order_id) <> 'cancelled' or q1 <> q0 or r1 <> r0 then
+  if (select status from orders where id = r.order_id) <> 'returned' or q1 <> q0 or r1 <> r0 then
     raise exception 'TESTFAIL uncollected cancel: qty %->% reserved %->%', q0, q1, r0, r1;
   end if;
 

@@ -76,6 +76,8 @@ export default async function OrdersPage({
       .eq("payment_method", "cod")
       .eq("fulfilment", "delivery")
       .in("status", ["delivered", "completed", "returned", "exchanged"])
+      // a "returned" order the customer never received was never paid to the courier
+      .not("delivered_at", "is", null)
       .is("cod_settled_at", null)
       .limit(1000),
   ]);

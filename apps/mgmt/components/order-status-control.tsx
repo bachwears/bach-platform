@@ -9,6 +9,14 @@ import { Select } from "@bach/ui/components/select";
 import { ALLOWED_TRANSITIONS } from "../lib/order-status";
 import { statusLabelFor } from "./fulfilment";
 
+/** a pseudo-step in the list: the customer didn't receive / collect the order */
+const NOT_RECEIVED = "not_received";
+const notReceivedLabel = (pickup: boolean) => (pickup ? "الزبون ما إجا يستلم" : "الزبون ما استلم");
+const NOT_RECEIVED_CONFIRM =
+  "الزبون ما استلم الطلب؟ القطع بترجع عالمخزون والطلب بيتسجّل «مرتجع» كامل. ما في رجعة عن هالخطوة.";
+const NOT_COLLECTED_CONFIRM =
+  "الزبون ما إجا يستلم؟ القطع بترجع عالرف وبتنباع من جديد، والطلب بيتسجّل «مرتجع» كامل. ما في رجعة عن هالخطوة.";
+
 export function OrderStatusControl({
   orderId,
   currentStatus,
@@ -30,14 +38,11 @@ export function OrderStatusControl({
   const isPickup = fulfilment === "pickup";
   const router = useRouter();
   // In-store sales are complete at the till; only online orders move through steps.
-  // a pickup the customer never came for can also be cancelled once packed / ready
+  // «الزبون ما استلم»: out with the courier, or a pickup set aside / ready — a return
+  // of the whole order (mark_not_received), not a cancel
+  const canNotReceived = channel === "online" && (currentStatus === "shipped" || (isPickup && currentStatus === "packed"));
   const options =
-    channel === "online"
-      ? [
-          ...(ALLOWED_TRANSITIONS[currentStatus] ?? []),
-          ...(isPickup && (currentStatus === "packed" || currentStatus === "shipped") ? ["cancelled"] : []),
-        ]
-      : [];
+    channel === "online" ? [...(ALLOWED_TRANSITIONS[currentStatus] ?? []), ...(canNotReceived ? [NOT_RECEIVED] : [])] : [];
   const [next, setNext] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -73,15 +78,21 @@ export function OrderStatusControl({
 
   async function apply() {
     if (!next) return;
-    if (
-      next === "cancelled" &&
-      !window.confirm(
-        currentStatus === "packed" || currentStatus === "shipped"
-          ? "نلغي هالطلب؟ الزبون ما إجا يستلم — القطع بترجع عالرف وبتنباع من جديد، وما في رجعة عن الإلغاء."
-          : "نلغي هالطلب؟ القطع المحجوزة بترجع للمخزون، وما في رجعة عن الإلغاء.",
-      )
-    )
+    if (next === "cancelled" && !window.confirm("نلغي هالطلب؟ القطع المحجوزة بترجع للمخزون، وما في رجعة عن الإلغاء.")) return;
+    if (next === NOT_RECEIVED) {
+      if (!window.confirm(isPickup ? NOT_COLLECTED_CONFIRM : NOT_RECEIVED_CONFIRM)) return;
+      setBusy(true);
+      setError("");
+      const { error: e } = await supabaseBrowser().rpc("mark_not_received", { p_order_id: orderId });
+      setBusy(false);
+      if (e) {
+        setError(`ما مشي التعديل: ${e.message}`);
+        return;
+      }
+      router.refresh();
+      setNext("");
       return;
+    }
     setBusy(true);
     setError("");
     // The RPC checks the step and moves stock (packed = sale, cancelled = release).
@@ -109,12 +120,18 @@ export function OrderStatusControl({
           <option value="">اختار الحالة الجديدة…</option>
           {options.map((s) => (
             <option key={s} value={s}>
-              {statusLabelFor(s, fulfilment)}
+              {s === NOT_RECEIVED ? notReceivedLabel(isPickup) : statusLabelFor(s, fulfilment)}
             </option>
           ))}
         </Select>
         <Button size="sm" disabled={!next || busy || (collecting && shortBy > 5)} onClick={() => void apply()}>
-          {busy ? "عم نحدّث…" : next ? `غيّر لـ«${statusLabelFor(next, fulfilment)}»` : "غيّر الحالة"}
+          {busy
+            ? "عم نحدّث…"
+            : next === NOT_RECEIVED
+              ? `سجّل «${notReceivedLabel(isPickup)}»`
+              : next
+                ? `غيّر لـ«${statusLabelFor(next, fulfilment)}»`
+                : "غيّر الحالة"}
         </Button>
       </div>
       {collecting ? (
@@ -191,6 +208,10 @@ export function OrderStatusControl({
         <p className="text-xs text-muted-foreground">«جاهز» بينزّل القطع من المخزون (البيع بيتسجّل).</p>
       ) : next === "cancelled" ? (
         <p className="text-xs text-muted-foreground">الإلغاء بيرجّع القطع المحجوزة للمخزون.</p>
+      ) : next === NOT_RECEIVED ? (
+        <p className="text-xs text-muted-foreground">
+          القطع بترجع عالمخزون، والطلب بيصير «مرتجع» والفاتورة كلها بتتسجّل مرتجعة (بتنطرح من المبيعات بالتقارير). ما في مصاري بترجع لأنو ما انقبض شي.
+        </p>
       ) : null}
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
     </div>

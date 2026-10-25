@@ -107,6 +107,8 @@ export async function Dashboard({ name, days }: { name: string; days: number }) 
       .eq("payment_method", "cod")
       .eq("fulfilment", "delivery")
       .in("status", ["delivered", "completed", "returned", "exchanged"])
+      // a "returned" order the customer never received was never paid to the courier
+      .not("delivered_at", "is", null)
       .is("cod_settled_at", null)
       .limit(1000),
     // same query API as the browser client; the helper is typed for that one
