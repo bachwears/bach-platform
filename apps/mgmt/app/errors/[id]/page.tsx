@@ -44,7 +44,9 @@ export default async function ErrorDetailPage({ params }: { params: Promise<{ id
   ]);
   if (!g) notFound();
   const list = (rows ?? []) as Occurrence[];
-  const who = (o: Occurrence) => (o.role ? (ROLE_LABEL[o.role] ?? o.role) : o.user_id ? "زبون مسجّل" : "زائر");
+  const fromServer = (o: Occurrence) => /^node|undici/i.test(o.user_agent ?? "") || (o.context as { where?: string } | null)?.where != null;
+  const who = (o: Occurrence) =>
+    o.role ? (ROLE_LABEL[o.role] ?? o.role) : o.user_id ? "زبون مسجّل" : fromServer(o) ? "السيرفر وهو عم يحضّر الصفحة" : "زائر";
 
   return (
     <div className="min-h-dvh bg-background">
@@ -99,7 +101,7 @@ export default async function ErrorDetailPage({ params }: { params: Promise<{ id
                     {fmt(o.created_at, { dateStyle: "short", timeStyle: "medium" })}
                   </span>
                   <span>{who(o)}</span>
-                  <span className="text-muted-foreground">{deviceOf(o.user_agent)}</span>
+                  {fromServer(o) ? null : <span className="text-muted-foreground">{deviceOf(o.user_agent)}</span>}
                   {o.release ? (
                     <span className="font-mono text-xs text-muted-foreground" dir="ltr">
                       v {o.release.slice(0, 7)}

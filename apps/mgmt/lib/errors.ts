@@ -21,6 +21,8 @@ export const STATUS_LABEL: Record<string, string> = { open: "مفتوح", resolv
 /** "iPhone · Instagram" — enough to tell where it happened, not a fingerprint. */
 export function deviceOf(ua: string | null | undefined): string {
   if (!ua) return "—";
+  // reported by the web server itself while it built the page
+  if (/^node|undici/i.test(ua)) return "السيرفر";
   const device = /iPhone/.test(ua)
     ? "iPhone"
     : /iPad/.test(ua)
@@ -48,9 +50,7 @@ export function deviceOf(ua: string | null | undefined): string {
               ? "Firefox"
               : /Safari\//.test(ua)
                 ? "Safari"
-                : /node|undici/i.test(ua)
-                  ? "السيرفر"
-                  : "متصفح";
+                : "متصفح";
   return `${device} · ${browser}`;
 }
 
