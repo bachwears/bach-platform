@@ -15,6 +15,10 @@ COPY . .
 # --ignore-scripts: skips the supabase-CLI/esbuild postinstalls (dev tooling
 # not needed to build the apps)
 RUN pnpm install --frozen-lockfile --ignore-scripts
+# the commit being built: errors in MGMT → الأخطاء say which release they came
+# from (declared after the install so a new commit keeps the install cache)
+ARG NEXT_PUBLIC_BUILD_SHA=""
+ENV NEXT_PUBLIC_BUILD_SHA=$NEXT_PUBLIC_BUILD_SHA
 RUN pnpm build --filter @bach/${APP}
 
 FROM node:22-alpine AS runner
@@ -24,6 +28,7 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     APP_DIR=apps/${APP} \
+    BACH_APP=${APP} \
     NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=build /app/apps/${APP}/.next/standalone ./

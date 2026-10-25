@@ -206,6 +206,7 @@ const SET = {
   phone: { icon: Phone, ar: "تلفون" },
   whatsapp: { icon: MessageCircle, ar: "واتساب" },
   lowStock: { icon: TriangleAlert, ar: "قرّب يخلص" },
+  errors: { icon: TriangleAlert, ar: "الأخطاء" },
   offline: { icon: WifiOff, ar: "بلا إنترنت" },
 
   // ── details inside screens (sections, fields, info rows) ────────────────

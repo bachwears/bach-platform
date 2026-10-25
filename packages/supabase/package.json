@@ -5,7 +5,8 @@
     "./browser": "./src/browser.ts",
     "./server": "./src/server.ts",
     "./middleware": "./src/middleware.ts",
-    "./public": "./src/public.ts"
+    "./public": "./src/public.ts",
+    "./failure": "./src/failure.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

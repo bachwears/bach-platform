@@ -67,6 +67,7 @@ export const ITEMS: PortalNavItem[] = [
     label: "الإدارة",
     links: [
       { href: "/staff", label: "الموظفين", icon: <Icon name="staff" /> },
+      { href: "/errors", label: "الأخطاء", icon: <Icon name="errors" /> },
       { href: "/help-articles", label: "تعديل المساعدة", icon: <Icon name="helpEditor" /> },
     ],
   },

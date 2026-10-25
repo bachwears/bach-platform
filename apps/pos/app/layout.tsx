@@ -50,6 +50,7 @@ export const metadata: Metadata = {
 import { StaffAssistant } from "@bach/ui/components/staff-assistant";
 import { ThemeScript } from "@bach/ui/components/theme-script";
 import { FreshApp } from "@bach/ui/components/fresh-app";
+import { ErrorTracking } from "@bach/ui/components/error-tracking";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -63,7 +64,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ["--font-app-mono" as string]: "var(--font-plex-mono), ui-monospace, monospace",
       }}
     >
-      <body><ThemeScript />{children}<StaffAssistant /><FreshApp /></body>
+      <body><ThemeScript /><ErrorTracking app="pos" />{children}<StaffAssistant /><FreshApp /></body>
     </html>
   );
 }

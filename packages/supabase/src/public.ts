@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { trackedServerFetch } from "./failure";
+
 /**
  * Anonymous, cookie-free client for public catalogue reads (what any visitor
  * sees under RLS). Safe to use inside cached functions: it carries no session,
@@ -8,5 +10,6 @@ import { createClient } from "@supabase/supabase-js";
 export function supabasePublic() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: trackedServerFetch("public") },
   });
 }

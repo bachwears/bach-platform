@@ -17,6 +17,7 @@ import { PageViewTracker } from "../components/track-events";
 import { ThemeScript } from "@bach/ui/components/theme-script";
 import { getSiteContent } from "../lib/cached";
 import { getLocale } from "../lib/locale";
+import { ErrorTracking } from "@bach/ui/components/error-tracking";
 
 // Fonts are served from the repo (app/fonts, Google Fonts files under the OFL):
 // fetching them from Google at build time made the Docker build fail at random.
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-app-sans" as string]: stack }}
     >
       <body>
+        <ErrorTracking app="storefront" />
         <ThemeScript fallback="light" />
         <div className="flex min-h-dvh flex-col bg-background">
           <SiteHeader />
