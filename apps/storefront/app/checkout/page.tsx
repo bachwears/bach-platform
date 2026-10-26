@@ -68,6 +68,8 @@ export default function CheckoutPage() {
   const [pickup, setPickup] = useState<PickupInfo | null>(null);
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
   const [busy, setBusy] = useState(false);
+  // a second tap before the first one re-renders must not send the order twice
+  const placing = useRef(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -230,7 +232,10 @@ export default function CheckoutPage() {
     (isPickup || (city.trim() && address.trim() && (!shipping.lebanonOnly || inLebanon)));
 
   async function placeOrder() {
-    if (!canPlace) return;
+    if (!canPlace || placing.current) return;
+    // the bag can empty under us (the order already went through in another tap or tab)
+    if (readCart().length === 0) return;
+    placing.current = true;
     setBusy(true);
     setError("");
     const supabase = supabaseBrowser();
@@ -261,6 +266,8 @@ export default function CheckoutPage() {
       ({ data, error: err } = await call());
     }
     setBusy(false);
+    // a refused order can be fixed and sent again
+    if (err) placing.current = false;
     if (err) {
       const m = err.message;
       const known: Array<[RegExp, string]> = [

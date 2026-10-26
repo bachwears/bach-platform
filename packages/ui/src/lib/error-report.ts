@@ -80,6 +80,15 @@ function messageOf(reason: unknown): { message: string; stack?: string } {
   }
 }
 
+/**
+ * In-app browsers (Instagram, Facebook) and Chrome on iPhone inject their own
+ * scripts into the page; their errors carry no frame from our bundles
+ * (/_next/…). Without a stack we can't tell, so those are kept.
+ */
+function fromOurCode(stack: string | undefined): boolean {
+  return !stack || /\/_next\//.test(stack);
+}
+
 /** Wire the page: uncaught errors, rejected promises, failed database calls. Returns the cleanup. */
 export function startErrorTracking(which: ErrorApp): () => void {
   app = which;
@@ -89,12 +98,15 @@ export function startErrorTracking(which: ErrorApp): () => void {
     // a browser layout notice, not a bug
     if (/ResizeObserver loop/.test(ev.message)) return;
     const { message, stack } = messageOf(ev.error ?? ev.message);
-    reportError({ kind: "unhandled", message, stack: stack ?? `at ${ev.filename}:${ev.lineno}:${ev.colno}` });
+    const where = stack ?? `at ${ev.filename}:${ev.lineno}:${ev.colno}`;
+    if (!fromOurCode(where) || /webkit\.messageHandlers/.test(message)) return;
+    reportError({ kind: "unhandled", message, stack: where });
   };
   const onRejection = (ev: PromiseRejectionEvent) => {
     const { message, stack } = messageOf(ev.reason);
     // a dropped connection isn't a bug (the POS works offline on purpose)
     if (/Failed to fetch|NetworkError|Load failed|AbortError|The operation was aborted/i.test(message)) return;
+    if (!fromOurCode(stack) || /webkit\.messageHandlers/.test(message)) return;
     reportError({ kind: "unhandled", message, stack });
   };
   window.addEventListener("error", onError);

@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 
 import { reportError, startErrorTracking, type ErrorApp } from "../lib/error-report";
+import { guardDomAgainstTranslation } from "../lib/translate-guard";
+
+// before anything renders on the client: page translation must not crash React
+if (typeof window !== "undefined") guardDomAgainstTranslation();
 
 /** Mounted once in each app's root layout: sends this app's errors to MGMT → الأخطاء. */
 export function ErrorTracking({ app }: { app: ErrorApp }) {
