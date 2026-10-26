@@ -32,6 +32,12 @@ export default async function UsagePage() {
   const s = data as Summary | null;
   const maxGb = Math.max(1, ...(s?.daily ?? []).map((d) => Number(d.gb)));
   const daysLeft = s ? Math.max(0, Math.round((new Date(`${s.cycle_end}T00:00:00Z`).getTime() - Date.now()) / 86_400_000)) : 0;
+  // photo traffic swings a lot (one viral day, a heavy upload): forecast it at
+  // yesterday's rate — how the site behaves now — not the cycle's average
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = (s?.daily ?? []).filter((d) => d.day < today).at(-1);
+  const forecast = (m: Metric) =>
+    m.metric === "cached_egress_gb" && yesterday ? Number(m.used) + Number(yesterday.gb) * daysLeft : Number(m.projected);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -77,7 +83,8 @@ export default async function UsagePage() {
             <ul className="grid gap-4 sm:grid-cols-2">
               {s.metrics.map((m) => {
                 const pct = (Number(m.used) / Number(m.monthly_limit)) * 100;
-                const pace = m.kind === "sum" ? (Number(m.projected) / Number(m.monthly_limit)) * 100 : null;
+                const projected = forecast(m);
+                const pace = m.kind === "sum" ? (projected / Number(m.monthly_limit)) * 100 : null;
                 const over = pct >= 100;
                 const warn = pct >= 70 || (pace ?? 0) > 100;
                 return (
@@ -92,7 +99,9 @@ export default async function UsagePage() {
                     </div>
                     <p className={`text-xs ${over || warn ? "text-destructive" : "text-muted-foreground"}`}>
                       {Math.round(pct)}٪ من الحدّ
-                      {pace != null ? ` · بهالسرعة لآخر الدورة: ${num(Number(m.projected), m.unit)} (${Math.round(pace)}٪)` : " · منقاس هلّق"}
+                      {pace != null
+                        ? ` · ${m.metric === "cached_egress_gb" && yesterday ? "بسرعة مبارح" : "بهالسرعة"} لآخر الدورة: ${num(projected, m.unit)} (${Math.round(pace)}٪)`
+                        : " · منقاس هلّق"}
                     </p>
                   </li>
                 );
