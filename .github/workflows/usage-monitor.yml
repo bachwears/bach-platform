@@ -1,0 +1,33 @@
+name: usage-monitor
+
+# Every hour: today's and yesterday's Supabase usage (photo traffic, edge calls)
+# from the project logs into platform_usage_daily — MGMT → حدود Supabase, and an
+# email to the admin when a limit gets close. See scripts/usage-monitor.py.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days to (re)compute (the logs keep 7)"
+        default: "2"
+
+concurrency:
+  group: usage-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the token is set
+        run: test -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" || { echo "::error::SUPABASE_ACCESS_TOKEN secret is missing"; exit 1; }
+      - name: Record usage
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 scripts/usage-monitor.py --days "${{ github.event.inputs.days || '2' }}"
