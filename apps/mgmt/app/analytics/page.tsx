@@ -43,6 +43,13 @@ interface Analytics {
   sources: Array<{ source: string; clicks: number; quick_adds: number; pdp_adds: number }>;
   delivery_bar: Array<{ place: string; seen: number; below: number; avg_gap_cents: number }>;
   searches: Array<{ len: string; hits: string; n: number }>;
+  checkout_steps: Record<
+    "started" | "tracked" | "touch" | "name" | "phone" | "email" | "city" | "address" | "pickup" | "ready" | "submit" | "blocked" | "refused" | "ordered",
+    number
+  >;
+  checkout_blocked: Array<{ field: string; n: number }>;
+  checkout_refused: Array<{ reason: string; n: number }>;
+  unsold: Array<ProductRow & { sold: number; stock: number; variants_left: number; variants: number; price_cents: number }>;
 }
 
 const RANGES = [7, 30, 90];
@@ -59,6 +66,14 @@ const SOURCE_LABELS: Record<string, string> = {
   recent: "شفتها مؤخرًا",
   bag_empty: "اقتراحات السلة الفاضية",
   favourites: "المفضلة",
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "الاسم",
+  phone: "التلفون",
+  email: "الإيميل (غلط)",
+  city: "المدينة",
+  address: "العنوان",
 };
 
 const PLACE_LABELS: Record<string, string> = {
@@ -84,7 +99,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const a = (error ? null : data) as Analytics | null;
 
   // the top lists carry slugs only: look up their ids for the photos
-  const slugs = [...new Set([...(a?.top_viewed ?? []), ...(a?.top_added ?? [])].map((r) => r.slug))];
+  const slugs = [...new Set([...(a?.top_viewed ?? []), ...(a?.top_added ?? []), ...(a?.unsold ?? [])].map((r) => r.slug))];
   const [{ data: slugRows }, photoMap] = await Promise.all([
     slugs.length ? supabase.from("products").select("id, slug").in("slug", slugs) : Promise.resolve({ data: [] }),
     // same query API as the browser client; the helper is typed for that one
@@ -192,6 +207,8 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
         </p>
       </Section>
 
+      <CheckoutSteps a={a} />
+
       <Section
         title="أداء الاقتراحات والترتيب"
         note="كبسات = فتحوا القطعة من هالمكان. إضافة سريعة = من الـ + عالكرت نفسه. إضافة من صفحة المنتج = فاتوا من هالمكان وبعدين ضافوا من صفحة القطعة."
@@ -286,6 +303,8 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
         </Section>
       </div>
 
+      <Unsold rows={a.unsold ?? []} photos={photos} />
+
       <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
         <ProductTable title="الأكثر مشاهدة" rows={a.top_viewed} photos={photos} />
         <ProductTable title="الأكثر إضافة للسلة" rows={a.top_added} photos={photos} />
@@ -324,6 +343,121 @@ function Report({ a, photos }: { a: Analytics; photos: Record<string, string | n
         )}
       </Section>
     </>
+  );
+}
+
+function CheckoutSteps({ a }: { a: Analytics }) {
+  const c = a.checkout_steps;
+  const note =
+    "كل زيارة فتحت صفحة الدفع بتنحسب مرة. خانة بتنحسب لمّا الزبون يكتبها صح ويطلع منها؛ اللي فايت مسجّل دخول بتكون تفاصيلو معبّاية، فبيقفز لـ«كل التفاصيل جاهزة». النسبة التانية من الخطوة اللي قبلها.";
+  if (!c || c.tracked === 0) {
+    return (
+      <Section title="خطوات الدفع — وين عم يوقفوا" note={note}>
+        <p className="text-sm text-muted-foreground">
+          تتبّع الخطوات بيبلّش يحسب من 29 تشرين الأول. ارجع بعد كم يوم لتشوف وين عم يوقف الزبون بصفحة الدفع.
+        </p>
+      </Section>
+    );
+  }
+  const rows: Array<[string, number]> = [
+    ["فتحوا صفحة الدفع", c.tracked],
+    ["كبسوا على أول خانة", c.touch],
+    ["كتبوا الاسم", c.name],
+    ["كتبوا التلفون", c.phone],
+    ["كتبوا المدينة", c.city],
+    ["كتبوا العنوان", c.address],
+    ["كل التفاصيل جاهزة", c.ready],
+    ["كبسوا «سجّل الطلب»", c.submit],
+    ["طلبوا", c.ordered],
+  ];
+  return (
+    <Section title="خطوات الدفع — وين عم يوقفوا" note={note}>
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map(([label, n], i) => (
+            <tr key={label} className="border-b last:border-0">
+              <td className="w-44 py-2">{label}</td>
+              <td className="w-20 py-2 font-mono">{n.toLocaleString("en-US")}</td>
+              <td className="py-2">
+                <Bar value={n} max={c.tracked} />
+              </td>
+              <td className="w-20 py-2 text-left font-mono text-muted-foreground">{pct(n, c.tracked)}</td>
+              <td className="w-20 py-2 text-left font-mono text-muted-foreground">{i ? pct(n, rows[i - 1]![1]) : ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 text-xs text-muted-foreground">
+        اختاروا الاستلام من المحل: {c.pickup} · كتبوا إيميل: {c.email} · كبسوا «سجّل الطلب» وفي شي ناقص: {c.blocked} · الطلب انرفض من السيستم: {c.refused}
+      </p>
+      {a.checkout_blocked.length > 0 ? (
+        <p className="mt-2 text-xs">
+          <span className="text-muted-foreground">أول شي كان ناقص لمّا كبسوا: </span>
+          {a.checkout_blocked.map((b) => `${FIELD_LABELS[b.field] ?? b.field} ${b.n}`).join(" · ")}
+        </p>
+      ) : null}
+      {a.checkout_refused.length > 0 ? (
+        <p className="mt-2 text-xs" dir="ltr">
+          <span className="text-muted-foreground" dir="rtl">سبب الرفض: </span>
+          {a.checkout_refused.map((r) => `${r.reason} (${r.n})`).join(" · ")}
+        </p>
+      ) : null}
+    </Section>
+  );
+}
+
+function Unsold({
+  rows,
+  photos,
+}: {
+  rows: Analytics["unsold"];
+  photos: Record<string, string | null>;
+}) {
+  return (
+    <Section
+      title="بتنشاف كتير وما بتنباع"
+      note="قطع إلها 20 مشاهدة أو أكتر بهالفترة، الأقل إضافة للسلة فوق. «متوفر» = كم مقاس/لون فيه بضاعة من أصل كل المقاسات — إذا بقي واحد بس، أغلب الزوار ما بيلاقوا مقاسن. غير هيك شيك السعر والصور."
+    >
+      {rows.length === 0 ? (
+        <Empty />
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-start text-muted-foreground">
+              <th className="py-2 font-normal">القطعة</th>
+              <th className="py-2 font-normal">السعر</th>
+              <th className="py-2 font-normal">مشاهدات</th>
+              <th className="py-2 font-normal">إضافات</th>
+              <th className="py-2 font-normal">نسبة</th>
+              <th className="py-2 font-normal">انباع</th>
+              <th className="py-2 font-normal">بالمخزون</th>
+              <th className="py-2 font-normal">متوفر</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.slug} className="border-b last:border-0">
+                <td className="py-2">
+                  <span className="flex items-center gap-3">
+                    <Thumb src={photos[r.slug]} size="sm" />
+                    <span className="min-w-0">{r.name}</span>
+                  </span>
+                </td>
+                <td className="py-2 font-mono">{usd(r.price_cents)}</td>
+                <td className="py-2 font-mono">{r.views}</td>
+                <td className="py-2 font-mono">{r.adds}</td>
+                <td className="py-2 font-mono text-muted-foreground">{pct(r.adds, r.views)}</td>
+                <td className="py-2 font-mono">{r.sold}</td>
+                <td className="py-2 font-mono">{r.stock}</td>
+                <td className={`py-2 font-mono ${r.variants_left <= 1 ? "text-destructive" : ""}`} dir="ltr">
+                  {r.variants_left}/{r.variants}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Section>
   );
 }
 

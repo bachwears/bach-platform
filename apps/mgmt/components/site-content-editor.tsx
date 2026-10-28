@@ -49,7 +49,6 @@ interface PolicyDoc {
 }
 
 const SHIP_NOTICE = "We currently deliver within Lebanon only.";
-const SHIP_CONFIRM = "I confirm my delivery address is in Lebanon.";
 
 const EMPTY_BANNER: Banner = { enabled: false, text: "", cta_label: "", cta_href: "/shop" };
 const EMPTY_POLICY: PolicyDoc = { title: "", body: "" };
@@ -89,7 +88,7 @@ export function SiteContentEditor() {
   // outfit cards mixed into the shop grid
   const [outfitCards, setOutfitCards] = useState(true);
   // delivery within Lebanon only (until card payments bring international orders back)
-  const [shipScope, setShipScope] = useState({ lebanon_only: false, notice: SHIP_NOTICE, confirm: SHIP_CONFIRM });
+  const [shipScope, setShipScope] = useState({ lebanon_only: false, notice: SHIP_NOTICE });
   const [shipBusy, setShipBusy] = useState(false);
   const [ogImage, setOgImage] = useState("");
   const [msg, setMsg] = useState("");
@@ -118,8 +117,8 @@ export function SiteContentEditor() {
             setOutfitCards((v as { outfit_cards?: boolean }).outfit_cards !== false);
           }
           if (row.key === "shipping") {
-            const sv = v as { lebanon_only?: boolean; notice?: string; confirm?: string };
-            setShipScope({ lebanon_only: sv.lebanon_only === true, notice: sv.notice || SHIP_NOTICE, confirm: sv.confirm || SHIP_CONFIRM });
+            const sv = v as { lebanon_only?: boolean; notice?: string };
+            setShipScope({ lebanon_only: sv.lebanon_only === true, notice: sv.notice || SHIP_NOTICE });
           }
           if (row.key === "seo") setOgImage(String((v as { og_image_url?: string }).og_image_url ?? ""));
         }
@@ -321,9 +320,9 @@ export function SiteContentEditor() {
           <HintDot
             hint={{
               title: "التوصيل جوّا لبنان بس",
-              what: "لمّا تشغّلها، الموقع بيقول بوضوح إنّو التوصيل جوّا لبنان بس: بصفحة المنتج، بالسلّة، بالـcheckout، بصفحة الشحن وبأسفل كل صفحة. وبالـcheckout الزبون لازم يأشّر إنّو عنوانو بلبنان قبل ما يقدر يطلب (الاستلام من المحل ما بيحتاج).",
+              what: "لمّا تشغّلها، الموقع بيقول بوضوح إنّو التوصيل جوّا لبنان بس: بصفحة المنتج، بالسلّة، بالـcheckout، بصفحة الشحن وبأسفل كل صفحة. (ما عاد في خانة تأكيد بالـcheckout — كانت عم تخسّرنا طلبات؛ العبارة فوق العنوان بتكفّي.)",
               source: "جدول site_content (مفتاح shipping). الموقع بيقراه خلال دقيقة.",
-              edit: "من هون: الزر والعبارتين. لمّا يشتغل الدفع بالبطاقة ونرجّع الشحن الدولي، طفّيها.",
+              edit: "من هون: الزر والعبارة. لمّا يشتغل الدفع بالبطاقة ونرجّع الشحن الدولي، طفّيها.",
             }}
           />
         </h2>
@@ -348,23 +347,19 @@ export function SiteContentEditor() {
           <span className="text-xs text-muted-foreground">العبارة يلي بتطلع بالموقع (بالإنكليزي)</span>
           <Input value={shipScope.notice} onChange={(e) => setShipScope({ ...shipScope, notice: e.target.value })} dir="ltr" maxLength={140} />
         </label>
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">جملة التأكيد بالـcheckout (بالإنكليزي)</span>
-          <Input value={shipScope.confirm} onChange={(e) => setShipScope({ ...shipScope, confirm: e.target.value })} dir="ltr" maxLength={140} />
-        </label>
         <Button
           variant="outline"
-          disabled={shipBusy || !shipScope.notice.trim() || !shipScope.confirm.trim()}
+          disabled={shipBusy || !shipScope.notice.trim()}
           onClick={async () => {
             setShipBusy(true);
-            const problem = await saveKey("shipping", { ...shipScope, notice: shipScope.notice.trim(), confirm: shipScope.confirm.trim() });
+            const problem = await saveKey("shipping", { ...shipScope, notice: shipScope.notice.trim() });
             setShipBusy(false);
             if (problem) setErr(problem);
-            else setMsg("انحفظت العبارات — بتبيّن عالموقع خلال دقيقة.");
+            else setMsg("انحفظت العبارة — بتبيّن عالموقع خلال دقيقة.");
           }}
         >
           <Icon name="save" size={16} />
-          احفظ العبارات
+          احفظ العبارة
         </Button>
       </div>
 

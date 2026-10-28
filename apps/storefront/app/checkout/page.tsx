@@ -63,14 +63,15 @@ export default function CheckoutPage() {
   const [walletBalance, setWalletBalance] = useState(0);
   const deliveryRule = useDeliveryRule();
   const shipping = useShippingScope();
-  // "delivery within Lebanon only": the customer ticks that the address is in Lebanon
-  const [inLebanon, setInLebanon] = useState(false);
   const [pickup, setPickup] = useState<PickupInfo | null>(null);
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
   const [busy, setBusy] = useState(false);
   // a second tap before the first one re-renders must not send the order twice
   const placing = useRef(false);
   const [error, setError] = useState("");
+  // set by a tap on "Place order" with details missing: from then on the button
+  // area names the first detail still missing, until there is none
+  const [askedMissing, setAskedMissing] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -220,6 +221,14 @@ export default function CheckoutPage() {
     started.current = true;
     track("checkout_start", { value: subtotal });
   }, [summary.length, subtotal]);
+  // Where shoppers stop (MGMT → التحليلات → خطوات الدفع): each step at most once
+  // per visit, and only the step's name is sent, never what was typed.
+  const stepsSeen = useRef(new Set<string>());
+  function step(name: string, meta?: Record<string, string | number>) {
+    if (stepsSeen.current.has(name)) return;
+    stepsSeen.current.add(name);
+    track("checkout_step", { source: name, meta });
+  }
   // The wallet option hides when the balance no longer covers the order (e.g. a promo
   // was removed): fall back to cash on delivery rather than keep a hidden choice.
   useEffect(() => {
@@ -227,12 +236,32 @@ export default function CheckoutPage() {
   }, [payMethod, walletOffered]);
     const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
-  const canPlace =
-    !busy && summary.length > 0 && priced.ready && !priced.error && name.trim() && phoneOk && emailOk &&
-    (isPickup || (city.trim() && address.trim() && (!shipping.lebanonOnly || inLebanon)));
+  // the first detail still missing, in the order the form asks for them
+  const missing: Array<[string, string]> = [
+    ...(name.trim() ? [] : [["name", "sf.co.errName"]] as Array<[string, string]>),
+    ...(phoneOk ? [] : [["phone", "sf.co.errPhone"]] as Array<[string, string]>),
+    ...(emailOk ? [] : [["email", "sf.co.errEmail"]] as Array<[string, string]>),
+    ...(isPickup || city.trim() ? [] : [["city", "sf.co.errAddress"]] as Array<[string, string]>),
+    ...(isPickup || address.trim() ? [] : [["address", "sf.co.errAddress"]] as Array<[string, string]>),
+  ];
+  const canPlace = !busy && summary.length > 0 && priced.ready && !priced.error && missing.length === 0;
+  useEffect(() => {
+    if (canPlace) step("ready");
+  }, [canPlace]);
 
   async function placeOrder() {
+    // The button stays tappable: a tap with details missing says which one and
+    // jumps to it, instead of a greyed-out button with no reason.
+    if (!busy && missing.length > 0) {
+      const [field] = missing[0]!;
+      setError("");
+      setAskedMissing(true);
+      document.getElementById(`co-${field}`)?.focus();
+      track("checkout_step", { source: "blocked", meta: { missing: missing.map(([f]) => f).join(",") } });
+      return;
+    }
     if (!canPlace || placing.current) return;
+    step("submit");
     // the bag can empty under us (the order already went through in another tap or tab)
     if (readCart().length === 0) return;
     placing.current = true;
@@ -284,6 +313,7 @@ export default function CheckoutPage() {
         [/temporarily unavailable/, t(locale, "sf.co.errDown")],
       ];
       const hit = known.find(([re]) => re.test(m));
+      track("checkout_step", { source: "refused", meta: { reason: (hit ? hit[0].source : m).slice(0, 60) } });
       if (hit) setError(hit[1]);
       else if (m.startsWith("promocode:")) setError(`${t(locale, "sf.co.promo")}: ${m.slice(10).trim()}`);
       else {
@@ -377,14 +407,17 @@ export default function CheckoutPage() {
           <div className="max-w-2xl space-y-12">
             <Step n={1} title={t(locale, "sf.co.stepContact")}>
               <Field label={t(locale, "sf.co.name")}>
-                <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+                <input id="co-name" className={INPUT} value={name} onChange={(e) => setName(e.target.value)} onFocus={() => step("touch")} onBlur={() => name.trim() && step("name")} autoComplete="name" />
               </Field>
               <div className="grid gap-6 sm:grid-cols-2">
                 <Field label={t(locale, "sf.co.phone")}>
                   <input
+                    id="co-phone"
                     className={INPUT}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    onFocus={() => step("touch")}
+                    onBlur={() => phoneOk && step("phone")}
                     placeholder="+961 71 000 000"
                     inputMode="tel"
                     autoComplete="tel"
@@ -393,9 +426,12 @@ export default function CheckoutPage() {
                 </Field>
                 <Field label={t(locale, "sf.co.email")}>
                   <input
+                    id="co-email"
                     className={INPUT}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => step("touch")}
+                    onBlur={() => email.trim() && emailOk && step("email")}
                     placeholder="you@example.com"
                     inputMode="email"
                     autoComplete="email"
@@ -420,7 +456,10 @@ export default function CheckoutPage() {
                   )}
                   {radioOption(
                     fulfilment === "pickup",
-                    () => setFulfilment("pickup"),
+                    () => {
+                      setFulfilment("pickup");
+                      step("pickup");
+                    },
                     t(locale, "sf.co.optPickup"),
                     t(locale, "sf.co.optPickupSub", { v: [pickup.address, pickup.hours].filter(Boolean).join(" · ") }),
                   )}
@@ -463,26 +502,15 @@ export default function CheckoutPage() {
                 ) : null}
                 <div className="grid gap-6 sm:grid-cols-2">
                   <Field label={t(locale, "sf.co.city")}>
-                    <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                    <input id="co-city" className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} onFocus={() => step("touch")} onBlur={() => city.trim() && step("city")} autoComplete="address-level2" />
                   </Field>
                   <Field label={t(locale, "sf.co.address")}>
-                    <input className={INPUT} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
+                    <input id="co-address" className={INPUT} value={address} onChange={(e) => setAddress(e.target.value)} onFocus={() => step("touch")} onBlur={() => address.trim() && step("address")} autoComplete="street-address" />
                   </Field>
                 </div>
                 <Field label={t(locale, "sf.co.notes")}>
                   <textarea className={`${INPUT} h-auto resize-none py-2`} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
                 </Field>
-                {shipping.lebanonOnly ? (
-                  <label className="flex cursor-pointer items-start gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={inLebanon}
-                      onChange={(e) => setInLebanon(e.target.checked)}
-                      className="mt-0.5 size-4 shrink-0 accent-foreground"
-                    />
-                    <span>{shipping.confirm}</span>
-                  </label>
-                ) : null}
               </Step>
             )}
 
@@ -560,10 +588,13 @@ export default function CheckoutPage() {
             {/* Phones: the button rides along the bottom of the screen. */}
             <div className="sticky bottom-0 z-30 -mx-4 border-t bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:border-0 lg:p-0">
               {error && <p className="mb-3 text-xs text-destructive">{error}</p>}
+              {!error && askedMissing && missing.length > 0 ? (
+                <p role="alert" className="mb-3 text-xs text-destructive">{t(locale, missing[0]![1])}</p>
+              ) : null}
               <button
                 type="button"
                 className="type-label h-12 w-full bg-foreground text-background hover:opacity-90 disabled:opacity-40"
-                disabled={!canPlace}
+                disabled={busy || summary.length === 0 || !priced.ready || !!priced.error}
                 onClick={() => void placeOrder()}
               >
                 {busy ? t(locale, "sf.co.placing") : t(locale, "sf.co.place", { v: usd(total) })}

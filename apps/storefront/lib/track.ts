@@ -15,6 +15,7 @@ export type TrackEvent =
   | "bag_view"
   | "checkout_start"
   | "order_placed"
+  | "checkout_step"
   | "delivery_bar_seen"
   | "search"
   | "outfit_view"
