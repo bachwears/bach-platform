@@ -9,6 +9,8 @@ import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
 import { Thumb } from "@bach/ui/components/thumb";
 
+import { findVariants } from "../lib/variant-search";
+
 const REASONS = [
   { value: "purchase", label: "استلام بضاعة" },
   { value: "adjustment", label: "تصحيح" },
@@ -27,30 +29,6 @@ export interface MovementVariant {
   photo?: string | null;
   /** quantity on hand per branch id */
   stock: Record<string, number>;
-}
-
-/** Arabic-Indic digits (٠-٩ / ۰-۹) as Latin, so a typed SKU or barcode still matches. */
-const latin = (s: string) => s.replace(/[٠-٩۰-۹]/g, (d) => String((d.charCodeAt(0) - 0x0660) % 0x90 % 10));
-const norm = (s: string) => latin(s).trim().toLowerCase();
-
-/**
- * Like the POS search: a scanned / typed barcode or SKU picks its piece at once;
- * words (name, colour, size, SKU) list up to 8 matches to choose from.
- */
-function findVariants(variants: MovementVariant[], query: string, exact: boolean): MovementVariant[] {
-  const q = norm(query);
-  if (!q) return [];
-  if (exact) {
-    const hit = variants.find((v) => v.barcode?.toLowerCase() === q || v.sku.toLowerCase() === q);
-    if (hit) return [hit];
-  }
-  const words = q.split(/\s+/);
-  return variants
-    .filter((v) => {
-      const text = `${v.name} ${v.sku} ${v.barcode ?? ""} ${v.color} ${v.size}`.toLowerCase();
-      return words.every((w) => text.includes(w));
-    })
-    .slice(0, 8);
 }
 
 export function MovementForm({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { Button } from "@bach/ui/components/button";
@@ -9,6 +9,8 @@ import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
+
+import { findVariants } from "../lib/variant-search";
 
 interface Branch {
   id: string;
@@ -23,6 +25,9 @@ interface Found {
   barcode: string | null;
   size: string;
   color_en: string;
+  /** for the search (findVariants) */
+  color: string;
+  alt: string | null;
   name: string;
   /** on hand minus reserved, per branch */
   available: Record<string, number>;
@@ -39,16 +44,40 @@ type VariantRow = {
   barcode: string | null;
   size: string;
   color_en: string;
+  color_ar: string | null;
   products: { name_en: string } | null;
   inventory_levels: Array<{ branch_id: string; quantity: number; reserved: number }> | null;
 };
 
-const SELECT = "id, product_id, sku, barcode, size, color_en, products!inner(name_en), inventory_levels(branch_id, quantity, reserved)";
+const SELECT = "id, product_id, sku, barcode, size, color_en, color_ar, products!inner(name_en), inventory_levels(branch_id, quantity, reserved)";
 
 function toFound(v: VariantRow): Found {
   const available: Record<string, number> = {};
   for (const l of v.inventory_levels ?? []) available[l.branch_id] = l.quantity - l.reserved;
-  return { id: v.id, product_id: v.product_id, sku: v.sku, barcode: v.barcode, size: v.size, color_en: v.color_en, name: v.products?.name_en ?? "", available };
+  return {
+    id: v.id,
+    product_id: v.product_id,
+    sku: v.sku,
+    barcode: v.barcode,
+    size: v.size,
+    color_en: v.color_en,
+    color: v.color_en,
+    alt: v.color_ar,
+    name: v.products?.name_en ?? "",
+    available,
+  };
+}
+
+/** Every variant with its stock (paged: the API caps a request at 1000 rows). */
+async function loadAll(): Promise<Found[]> {
+  const supabase = supabaseBrowser();
+  const all: Found[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from("product_variants").select(SELECT).order("sku").range(from, from + 999);
+    if (error) throw error;
+    all.push(...((data ?? []) as unknown as VariantRow[]).map(toFound));
+    if (!data || data.length < 1000) return all;
+  }
 }
 
 const branchLabel = (b: Branch) => b.name_ar || b.name;
@@ -59,7 +88,6 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
   const [from, setFrom] = useState(branches[0]?.id ?? "");
   const [to, setTo] = useState(branches[1]?.id ?? "");
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<Found[]>([]);
   const [lines, setLines] = useState<Line[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,38 +99,73 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
     void loadFrontPhotos(supabaseBrowser()).then(setPhotos);
   }, []);
 
-  // search: SKU / barcode / product name (debounced)
+  // the whole list once, searched in the browser like the POS (instant, works with a scanner)
+  const [all, setAll] = useState<Found[]>([]);
+  const [loadErr, setLoadErr] = useState("");
+  const reload = () =>
+    loadAll().then(
+      (v) => {
+        setAll(v);
+        setLoadErr("");
+      },
+      () => setLoadErr("ما قدرنا نحمّل القطع — حدّث الصفحة."),
+    );
   useEffect(() => {
-    const t = q.trim().replace(/[,()%*\\]/g, " ").trim();
-    if (t.length < 2) {
-      setResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const supabase = supabaseBrowser();
-      const [byCode, byName] = await Promise.all([
-        supabase.from("product_variants").select(SELECT).or(`sku.ilike.%${t}%,barcode.eq.${t}`).limit(20),
-        supabase.from("product_variants").select(SELECT).ilike("products.name_en", `%${t}%`).limit(20),
-      ]);
-      const seen = new Set<string>();
-      const merged: Found[] = [];
-      for (const v of [...(byCode.data ?? []), ...(byName.data ?? [])] as unknown as VariantRow[]) {
-        if (seen.has(v.id)) continue;
-        seen.add(v.id);
-        merged.push(toFound(v));
-      }
-      setResults(merged.slice(0, 25));
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [q]);
+    void reload();
+  }, []);
+
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const results = useMemo(() => (q.trim().length >= 2 ? findVariants(all, q, false, 12) : []), [all, q]);
+  useEffect(() => {
+    const close = (e: PointerEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
 
   const availFrom = (f: Found) => f.available[from] ?? 0;
 
+  /** Scanning a piece that's already listed adds one more of it. */
   function add(f: Found) {
     setDone("");
-    setLines((cur) => (cur.some((l) => l.id === f.id) ? cur : [...cur, { ...f, qty: "1" }]));
+    setError("");
+    setLines((cur) =>
+      cur.some((l) => l.id === f.id)
+        ? cur.map((l) => (l.id === f.id ? { ...l, qty: String((parseInt(l.qty, 10) || 0) + 1) } : l))
+        : [...cur, { ...f, qty: "1" }],
+    );
     setQ("");
-    setResults([]);
+    setOpen(false);
+    searchRef.current?.focus();
+  }
+
+  function onSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((i) => (results.length ? (i + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length : 0));
+    } else if (e.key === "Enter") {
+      // a scanner types the code and presses Enter
+      e.preventDefault();
+      const exact = findVariants(all, q, true);
+      const pick = exact.length === 1 ? exact[0] : open ? results[active] : undefined;
+      if (!pick) {
+        if (q.trim()) setError("ما لقينا قطعة بهالباركود أو الاسم.");
+        return;
+      }
+      if (availFrom(pick) < 1) {
+        setError(`${pick.name} — ${pick.size} ${pick.color_en}: ما في منها بالفرع المرسِل.`);
+        setQ("");
+        return;
+      }
+      add(pick);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
   }
 
   const parsed = lines.map((l) => ({ line: l, qty: parseInt(l.qty, 10) }));
@@ -136,6 +199,7 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
     setDone(`تمّ التحويل (${totalPieces} قطعة) — المرجع ${String(data).slice(0, 8)}.`);
     setLines([]);
     setNote("");
+    void reload();
     router.refresh();
   }
 
@@ -167,26 +231,38 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
         </div>
       </div>
 
-      <div className="relative space-y-1">
+      <div ref={boxRef} className="relative space-y-1">
         <Label htmlFor="tr-search">زيد قطعة</Label>
         <Input
+          ref={searchRef}
           id="tr-search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="SKU، باركود أو اسم القطعة…"
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+            setActive(0);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onSearchKey}
+          placeholder={all.length ? "امسح الباركود أو فتّش بالاسم / SKU / اللون…" : "عم نحمّل القطع…"}
           autoComplete="off"
+          role="combobox"
+          aria-expanded={open && results.length > 0}
+          aria-controls="tr-results"
         />
-        {results.length > 0 ? (
-          <ul className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-auto border bg-background">
-            {results.map((f) => {
+        {loadErr ? <p className="text-xs text-destructive">{loadErr}</p> : null}
+        {open && results.length > 0 ? (
+          <ul id="tr-results" role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 max-h-[50vh] overflow-auto border bg-background">
+            {results.map((f, i) => {
               const a = availFrom(f);
               return (
-                <li key={f.id}>
+                <li key={f.id} role="option" aria-selected={i === active}>
                   <button
                     type="button"
                     disabled={a < 1}
                     onClick={() => add(f)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-40"
+                    onMouseEnter={() => setActive(i)}
+                    className={`flex min-h-12 w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-40 ${i === active ? "bg-muted" : ""}`}
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <Thumb src={photoFor(photos, f.product_id, f.color_en)} size="md" />
@@ -201,6 +277,8 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
               );
             })}
           </ul>
+        ) : open && q.trim().length >= 2 && all.length ? (
+          <p className="absolute inset-x-0 top-full z-20 mt-1 border bg-background px-3 py-2 text-sm text-muted-foreground">ما في نتايج</p>
         ) : null}
       </div>
 
@@ -258,7 +336,7 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
         </table>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">لسّا ما زدت قطع — دوّر بالخانة فوق واكبس على القطعة لتزيدها.</p>
+        <p className="text-sm text-muted-foreground">لسّا ما زدت قطع — امسح الباركود أو دوّر بالخانة فوق واكبس على القطعة. مسح نفس القطعة مرّة تانية بيزيد واحد.</p>
       )}
 
       <div className="space-y-1">
