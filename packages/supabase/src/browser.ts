@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-import { failureOf, type SupabaseFailure } from "./failure";
+import { failureOf, fetchWithRetry, type SupabaseFailure } from "./failure";
 
 export type { SupabaseFailure } from "./failure";
 
@@ -14,7 +14,7 @@ export function setSupabaseFailureHook(fn: ((f: SupabaseFailure) => void) | null
 }
 
 async function trackedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const res = await fetch(input, init);
+  const res = await fetchWithRetry(input, init);
   if (res.ok || !onFailure) return res;
   try {
     const f = await failureOf(res, input, init);

@@ -45,10 +45,31 @@ export function describeFailure(f: SupabaseFailure): string {
   return `${target} → ${f.status}${f.code ? ` ${f.code}` : ""}: ${f.message}`;
 }
 
+const RETRY_STATUS = new Set([502, 503, 504]);
+
+/**
+ * Supabase's gateway now and then answers one read with 502/503/504, or drops
+ * the connection. A read (GET/HEAD) is safe to send again, so it gets one more
+ * try before anyone sees the failure; writes are never repeated.
+ */
+export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+  if (method !== "GET" && method !== "HEAD") return fetch(input, init);
+  try {
+    const res = await fetch(input, init);
+    if (!RETRY_STATUS.has(res.status) || init?.signal?.aborted) return res;
+    void res.body?.cancel().catch(() => undefined);
+  } catch (e) {
+    if (init?.signal?.aborted) throw e;
+  }
+  await new Promise((r) => setTimeout(r, 400));
+  return fetch(input, init);
+}
+
 /** Server side: post a failure straight to log_app_error (no session, no visitor data). */
 export function trackedServerFetch(where: string) {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const res = await fetch(input, init);
+    const res = await fetchWithRetry(input, init);
     if (res.ok) return res;
     try {
       const f = await failureOf(res, input, init);

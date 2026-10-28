@@ -70,15 +70,35 @@ export function reportError(e: ErrorInput) {
   }
 }
 
+/**
+ * A readable line for anything thrown. Browser objects (DOMException, a fetch
+ * Response, GeolocationPositionError…) keep their fields on the prototype, so
+ * JSON turns them into "{}" — name the type and read the usual fields instead.
+ */
 function messageOf(reason: unknown): { message: string; stack?: string } {
   if (reason instanceof Error) return { message: `${reason.name}: ${reason.message}`, stack: reason.stack };
   if (typeof reason === "string") return { message: reason };
-  try {
-    return { message: JSON.stringify(reason).slice(0, 500) };
-  } catch {
-    return { message: String(reason) };
+  if (reason && typeof reason === "object") {
+    const r = reason as Record<string, unknown>;
+    const type = Object.prototype.toString.call(reason).slice(8, -1);
+    const fields = ["name", "message", "code", "status", "url"]
+      .filter((k) => r[k] != null && r[k] !== "")
+      .map((k) => `${k}=${String(r[k]).slice(0, 160)}`);
+    let json = "";
+    try {
+      json = JSON.stringify(reason) ?? "";
+    } catch {
+      /* circular */
+    }
+    const body = fields.length ? fields.join(" ") : json !== "{}" ? json : "";
+    return { message: `${type}${body ? ` ${body}` : ""}`.slice(0, 500), stack: typeof r.stack === "string" ? r.stack : undefined };
   }
+  return { message: String(reason) };
 }
+
+/** A network drop (fetch, a page chunk) — not a bug in our code. */
+export const NETWORK_ERROR =
+  /Failed to fetch|NetworkError|Load failed|AbortError|The operation was aborted|ChunkLoadError|Loading (CSS )?chunk .* failed|Failed to load chunk|Importing a module script failed|error loading dynamically imported module/i;
 
 /**
  * In-app browsers (Instagram, Facebook) and Chrome on iPhone inject their own
@@ -105,7 +125,10 @@ export function startErrorTracking(which: ErrorApp): () => void {
   const onRejection = (ev: PromiseRejectionEvent) => {
     const { message, stack } = messageOf(ev.reason);
     // a dropped connection isn't a bug (the POS works offline on purpose)
-    if (/Failed to fetch|NetworkError|Load failed|AbortError|The operation was aborted/i.test(message)) return;
+    if (NETWORK_ERROR.test(message)) return;
+    // an empty object with no stack says nothing; it comes from scripts the
+    // browser injects (password managers on sign-in forms), not from ours
+    if (message === "Object" && !stack) return;
     if (!fromOurCode(stack) || /webkit\.messageHandlers/.test(message)) return;
     reportError({ kind: "unhandled", message, stack });
   };
