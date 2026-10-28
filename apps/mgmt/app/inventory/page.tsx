@@ -37,7 +37,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     supabase
       .from("product_variants")
       .select(
-        "id, sku, size, color_ar, color_en, product_id, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
+        "id, sku, barcode, size, color_ar, color_en, product_id, is_active, products(name_en), inventory_levels(branch_id, quantity, reserved, reorder_threshold)",
       )
       .order("sku")
       .range(from, from + 999);
@@ -106,8 +106,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           <MovementForm
             variants={(variants ?? []).map((v) => ({
               id: v.id,
-              label: `${(v.products as unknown as { name_en: string })?.name_en ?? ""} — ${v.size} ${v.color_ar} (${v.sku})`,
+              name: (v.products as unknown as { name_en: string })?.name_en ?? "",
+              size: v.size,
+              color: v.color_ar ?? v.color_en,
+              sku: v.sku,
+              barcode: v.barcode,
               photo: photoFor(photos, v.product_id, v.color_en),
+              stock: Object.fromEntries((v.inventory_levels ?? []).map((l) => [l.branch_id, l.quantity])),
             }))}
             branches={branchList}
           />
