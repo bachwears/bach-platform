@@ -15,11 +15,14 @@ export interface SearchableVariant {
 const latin = (s: string) => s.replace(/[٠-٩۰-۹]/g, (d) => String(((d.charCodeAt(0) - 0x0660) % 0x90) % 10));
 const norm = (s: string) => latin(s).trim().toLowerCase();
 
+/** How many matches a search list shows: enough for every size and colour of a piece. */
+export const SEARCH_LIMIT = 200;
+
 /**
  * A scanned / typed barcode or SKU (exact) picks its piece at once; words
  * (name, colour, size, SKU, in any order) list up to `limit` matches.
  */
-export function findVariants<T extends SearchableVariant>(variants: T[], query: string, exact: boolean, limit = 8): T[] {
+export function findVariants<T extends SearchableVariant>(variants: T[], query: string, exact: boolean, limit = SEARCH_LIMIT): T[] {
   const q = norm(query);
   if (!q) return [];
   if (exact) {

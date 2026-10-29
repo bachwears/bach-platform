@@ -9,7 +9,7 @@ import { Label } from "@bach/ui/components/label";
 import { Select } from "@bach/ui/components/select";
 import { Thumb } from "@bach/ui/components/thumb";
 
-import { findVariants } from "../lib/variant-search";
+import { findVariants, SEARCH_LIMIT } from "../lib/variant-search";
 
 const REASONS = [
   { value: "purchase", label: "استلام بضاعة" },
@@ -45,7 +45,13 @@ export function MovementForm({
   const [active, setActive] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const results = useMemo(() => (query.trim().length >= 2 ? findVariants(variants, query, false) : []), [variants, query]);
+  // one past the limit, to know when there's more than the list shows
+  const found = useMemo(() => (query.trim().length >= 2 ? findVariants(variants, query, false, SEARCH_LIMIT + 1) : []), [variants, query]);
+  const results = found.slice(0, SEARCH_LIMIT);
+  // arrow keys move the highlight: keep it in view in the scrolling list
+  useEffect(() => {
+    document.getElementById(`m-opt-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [active]);
   const chosen = variants.find((v) => v.id === variantId);
 
   useEffect(() => {
@@ -173,7 +179,7 @@ export function MovementForm({
             {open && results.length > 0 ? (
               <ul id="m-variant-list" role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 max-h-[50vh] overflow-y-auto border bg-background">
                 {results.map((v, i) => (
-                  <li key={v.id} role="option" aria-selected={i === active}>
+                  <li key={v.id} id={`m-opt-${i}`} role="option" aria-selected={i === active}>
                     <button
                       type="button"
                       className={`flex min-h-12 w-full items-center justify-between gap-3 px-3 py-2 text-right hover:bg-muted ${i === active ? "bg-muted" : ""}`}
@@ -195,6 +201,9 @@ export function MovementForm({
                     </button>
                   </li>
                 ))}
+                {found.length > SEARCH_LIMIT ? (
+                  <li className="px-3 py-2 text-xs text-muted-foreground">في أكتر من {SEARCH_LIMIT} نتيجة — زيد كلمة (مثلاً المقاس أو اللون) لتضيّق.</li>
+                ) : null}
               </ul>
             ) : open && query.trim().length >= 2 ? (
               <p className="absolute inset-x-0 top-full z-20 mt-1 border bg-background px-3 py-2 text-sm text-muted-foreground">ما في نتايج</p>

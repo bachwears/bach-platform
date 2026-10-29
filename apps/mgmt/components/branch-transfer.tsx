@@ -10,7 +10,7 @@ import { Select } from "@bach/ui/components/select";
 import { Thumb } from "@bach/ui/components/thumb";
 import { loadFrontPhotos, photoFor, type PhotoMap } from "@bach/ui/lib/photos";
 
-import { findVariants } from "../lib/variant-search";
+import { findVariants, SEARCH_LIMIT } from "../lib/variant-search";
 
 interface Branch {
   id: string;
@@ -118,7 +118,13 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
   const [active, setActive] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const results = useMemo(() => (q.trim().length >= 2 ? findVariants(all, q, false, 12) : []), [all, q]);
+  // one past the limit, to know when there's more than the list shows
+  const found = useMemo(() => (q.trim().length >= 2 ? findVariants(all, q, false, SEARCH_LIMIT + 1) : []), [all, q]);
+  const results = found.slice(0, SEARCH_LIMIT);
+  // arrow keys move the highlight: keep it in view in the scrolling list
+  useEffect(() => {
+    document.getElementById(`tr-opt-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [active]);
   useEffect(() => {
     const close = (e: PointerEvent) => {
       if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
@@ -256,7 +262,7 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
             {results.map((f, i) => {
               const a = availFrom(f);
               return (
-                <li key={f.id} role="option" aria-selected={i === active}>
+                <li key={f.id} id={`tr-opt-${i}`} role="option" aria-selected={i === active}>
                   <button
                     type="button"
                     disabled={a < 1}
@@ -276,6 +282,9 @@ export function BranchTransfer({ branches }: { branches: Branch[] }) {
                 </li>
               );
             })}
+            {found.length > SEARCH_LIMIT ? (
+              <li className="px-3 py-2 text-xs text-muted-foreground">في أكتر من {SEARCH_LIMIT} نتيجة — زيد كلمة (مثلاً المقاس أو اللون) لتضيّق.</li>
+            ) : null}
           </ul>
         ) : open && q.trim().length >= 2 && all.length ? (
           <p className="absolute inset-x-0 top-full z-20 mt-1 border bg-background px-3 py-2 text-sm text-muted-foreground">ما في نتايج</p>
