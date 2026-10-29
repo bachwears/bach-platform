@@ -311,7 +311,7 @@ const SIZE_SETS: Array<[string, string[]]> = [
   ["صبابيط", ["39", "40", "41", "42", "43", "44", "45", "46"]],
   ["بناطيل", ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40"]],
   // belt length in cm, as the big brands sell them (≈ trouser waist + 10 cm)
-  ["أحزمة (سم)", ["80", "85", "90", "95", "100", "105", "110", "115", "120"]],
+  ["أحزمة (سم)", ["80", "85", "90", "95", "100", "105", "110", "115", "120", "125", "130", "135"]],
 ];
 
 export function SizePicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
