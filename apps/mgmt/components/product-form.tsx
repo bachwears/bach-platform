@@ -227,6 +227,15 @@ export function ProductEditorProvider({
     }
 
     if (isNew) {
+      // Two pieces can share a name (the same belt in two colours): give the link
+      // the first free -2, -3… ending instead of refusing the save.
+      const { data: taken } = await supabase.from("products").select("slug").or(`slug.eq.${row.slug},slug.like.${row.slug}-*`);
+      const used = new Set((taken ?? []).map((p) => p.slug as string));
+      if (used.has(row.slug)) {
+        let n = 2;
+        while (used.has(`${row.slug}-${n}`)) n++;
+        row.slug = `${row.slug}-${n}`;
+      }
       const { data, error: insertError } = await supabase.from("products").insert(row).select("id").single();
       if (insertError || !data) {
         setError(

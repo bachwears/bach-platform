@@ -98,7 +98,7 @@ function messageOf(reason: unknown): { message: string; stack?: string } {
 
 /** A network drop (fetch, a page chunk) — not a bug in our code. */
 export const NETWORK_ERROR =
-  /Failed to fetch|NetworkError|Load failed|AbortError|The operation was aborted|ChunkLoadError|Loading (CSS )?chunk .* failed|Failed to load chunk|Importing a module script failed|error loading dynamically imported module/i;
+  /Failed to fetch|Network ?Error|Load failed|AbortError|The operation was aborted|ChunkLoadError|Loading (CSS )?chunk .* failed|Failed to load chunk|Importing a module script failed|error loading dynamically imported module/i;
 
 /**
  * In-app browsers (Instagram, Facebook) and Chrome on iPhone inject their own

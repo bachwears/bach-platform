@@ -47,22 +47,27 @@ export function describeFailure(f: SupabaseFailure): string {
 
 const RETRY_STATUS = new Set([502, 503, 504]);
 
+// waits before each extra try of a read: the gateway's hiccups can outlast one quick retry
+const RETRY_DELAYS = [400, 1500];
+
 /**
- * Supabase's gateway now and then answers one read with 502/503/504, or drops
- * the connection. A read (GET/HEAD) is safe to send again, so it gets one more
- * try before anyone sees the failure; writes are never repeated.
+ * Supabase's gateway now and then answers a read with 502/503/504, or drops
+ * the connection. A read (GET/HEAD) is safe to send again, so it gets two more
+ * tries before anyone sees the failure; writes are never repeated.
  */
 export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
   if (method !== "GET" && method !== "HEAD") return fetch(input, init);
-  try {
-    const res = await fetch(input, init);
-    if (!RETRY_STATUS.has(res.status) || init?.signal?.aborted) return res;
-    void res.body?.cancel().catch(() => undefined);
-  } catch (e) {
-    if (init?.signal?.aborted) throw e;
+  for (const delay of RETRY_DELAYS) {
+    try {
+      const res = await fetch(input, init);
+      if (!RETRY_STATUS.has(res.status) || init?.signal?.aborted) return res;
+      void res.body?.cancel().catch(() => undefined);
+    } catch (e) {
+      if (init?.signal?.aborted) throw e;
+    }
+    await new Promise((r) => setTimeout(r, delay));
   }
-  await new Promise((r) => setTimeout(r, 400));
   return fetch(input, init);
 }
 
