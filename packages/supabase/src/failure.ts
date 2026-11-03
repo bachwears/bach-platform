@@ -49,22 +49,34 @@ const RETRY_STATUS = new Set([502, 503, 504]);
 
 // waits before each extra try of a read: the gateway's hiccups can outlast one quick retry
 const RETRY_DELAYS = [400, 1500];
+// waits before each extra try of a refused write (429): give the busy service room
+const BUSY_DELAYS = [1000, 3000];
 
 /**
  * Supabase's gateway now and then answers a read with 502/503/504, or drops
  * the connection. A read (GET/HEAD) is safe to send again, so it gets two more
- * tries before anyone sees the failure; writes are never repeated.
+ * tries before anyone sees the failure.
+ *
+ * A write is repeated only on 429 (e.g. Storage's "SlowDown: Too many
+ * connections"): the request was turned away before anything was written, so
+ * sending it again can't save twice. Only bodies that can be re-sent qualify
+ * (text, Blob, FormData; not a stream).
  */
 export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
-  if (method !== "GET" && method !== "HEAD") return fetch(input, init);
-  for (const delay of RETRY_DELAYS) {
+  const read = method === "GET" || method === "HEAD";
+  const resendable = !(input instanceof Request) && !(typeof ReadableStream !== "undefined" && init?.body instanceof ReadableStream);
+  if (!read && !resendable) return fetch(input, init);
+  const delays = read ? RETRY_DELAYS : BUSY_DELAYS;
+  for (const delay of delays) {
     try {
       const res = await fetch(input, init);
-      if (!RETRY_STATUS.has(res.status) || init?.signal?.aborted) return res;
+      const again = res.status === 429 || (read && RETRY_STATUS.has(res.status));
+      if (!again || init?.signal?.aborted) return res;
       void res.body?.cancel().catch(() => undefined);
     } catch (e) {
-      if (init?.signal?.aborted) throw e;
+      // a dropped connection on a write may have reached the server: never repeat it
+      if (init?.signal?.aborted || !read) throw e;
     }
     await new Promise((r) => setTimeout(r, delay));
   }
