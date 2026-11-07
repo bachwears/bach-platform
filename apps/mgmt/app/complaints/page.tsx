@@ -4,15 +4,14 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { ComplaintsQueue } from "../../components/complaints-queue";
 import { Nav } from "../../components/nav";
+import { pageUser } from "../../lib/page-user";
 
 const QUEUE_ROLES = new Set(["super_admin", "store_manager", "support_agent"]);
 
 export default async function ComplaintsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/complaints");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const allowed = QUEUE_ROLES.has(profile?.role ?? "");
 
   return (
@@ -31,7 +30,7 @@ export default async function ComplaintsPage() {
           }}
         />
         {allowed ? (
-          <ComplaintsQueue myId={user!.id} />
+          <ComplaintsQueue myId={user.id} />
         ) : (
           <p className="border p-8 text-center text-sm text-muted-foreground">دورك ما بيسمح بإدارة الشكاوى — إذا لازمك، احكي السوبر أدمن.</p>
         )}

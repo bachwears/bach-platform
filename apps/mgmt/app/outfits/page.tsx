@@ -3,15 +3,14 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { OutfitsList } from "../../components/outfits-list";
+import { pageUser } from "../../lib/page-user";
 
 const EDITORS = new Set(["super_admin", "store_manager", "marketing_manager"]);
 
 export default async function OutfitsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/outfits");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
   return (
     <div className="min-h-dvh bg-background">

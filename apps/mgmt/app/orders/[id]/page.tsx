@@ -13,6 +13,7 @@ import { PICKUP_BADGE } from "../../../components/fulfilment";
 import { paymentLabel } from "../../../lib/order-status";
 import { fmt } from "../../../lib/time";
 import { Icon, type IconName } from "@bach/ui/components/icon";
+import { pageUser } from "../../../lib/page-user";
 
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -30,9 +31,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       )
       .eq("id", id)
       .maybeSingle(),
-    supabase.auth.getUser().then(async ({ data: { user } }) =>
-      supabase.from("profiles").select("role").eq("id", user!.id).single(),
-    ),
+    pageUser(supabase, `/orders/${id}`).then((user) => supabase.from("profiles").select("role").eq("id", user.id).single()),
   ]);
 
   if (!order) notFound();

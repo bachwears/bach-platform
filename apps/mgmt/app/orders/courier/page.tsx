@@ -4,6 +4,7 @@ import { PageHeader } from "@bach/ui/components/page-header";
 import { CourierCash, type WaitingOrder } from "../../../components/courier-cash";
 import { Nav } from "../../../components/nav";
 import { fmt } from "../../../lib/time";
+import { pageUser } from "../../../lib/page-user";
 
 const usd = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const DEST: Record<string, string> = { drawer: "درج المحل", safe: "الخزنة", bank: "البنك", other: "غير مكان" };
@@ -28,11 +29,9 @@ interface Settlement {
  */
 export default async function CourierCashPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await pageUser(supabase, "/orders/courier");
   const [{ data: profile }, { data: waiting, error }, { data: history }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user!.id).single(),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase
       .from("orders")
       .select("id, number, total_usd_cents, delivered_at, ship_name, ship_city")

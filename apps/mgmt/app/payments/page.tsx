@@ -3,13 +3,12 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { PaymentsConfig } from "../../components/payments-config";
+import { pageUser } from "../../lib/page-user";
 
 export default async function PaymentsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/payments");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const allowed = profile?.role === "super_admin";
 
   return (

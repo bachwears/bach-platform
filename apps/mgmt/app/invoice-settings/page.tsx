@@ -3,17 +3,16 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { InvoiceSettingsForm } from "../../components/invoice-settings";
 import { Nav } from "../../components/nav";
+import { pageUser } from "../../lib/page-user";
 
 // the roles allowed to write site_content
 const EDITORS = new Set(["super_admin", "store_manager"]);
 
 export default async function InvoiceSettingsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await pageUser(supabase, "/invoice-settings");
   const [{ data: profile }, { data: branch }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user!.id).single(),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase.from("branches").select("name").eq("is_active", true).order("created_at").limit(1).maybeSingle(),
   ]);
 

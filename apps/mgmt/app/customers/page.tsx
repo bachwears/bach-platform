@@ -4,13 +4,12 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { CustomersManager } from "../../components/customers-manager";
+import { pageUser } from "../../lib/page-user";
 
 export default async function CustomersPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/customers");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = profile?.role ?? "";
   const canDecide = ["super_admin", "store_manager"].includes(role);
   // loyalty points: managers adjust by hand; cashiers can also convert to wallet credit

@@ -3,17 +3,16 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { CategoryImages, type CategoryImageRow } from "../../../components/category-images";
 import { Nav } from "../../../components/nav";
+import { pageUser } from "../../../lib/page-user";
 
 // Same roles the categories table and product-media storage policies allow to write.
 const EDITORS = new Set(["super_admin", "store_manager", "marketing_manager"]);
 
 export default async function CategoryImagesPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await pageUser(supabase, "/categories/images");
   const [{ data: profile }, { data }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user!.id).single(),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase
       .from("categories")
       .select("id, code, name_en, name_ar, parent_id, sort, banner_url, banner_mobile_url, products(count)")

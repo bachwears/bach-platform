@@ -3,6 +3,7 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { LabelPrinting } from "../../components/label-printing";
 import { Nav } from "../../components/nav";
+import { pageUser } from "../../lib/page-user";
 
 const LABEL_ROLES = new Set(["super_admin", "store_manager", "inventory_manager"]);
 
@@ -13,10 +14,8 @@ export default async function LabelsPage({ searchParams }: { searchParams: Promi
     /^[0-9a-f-]{36}$/i.test(id),
   );
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/labels");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
   return (
     <div className="min-h-dvh bg-background">

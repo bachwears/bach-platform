@@ -6,6 +6,7 @@ import { Dashboard } from "../components/dashboard";
 import { MissingPhotosAlert } from "../components/missing-photos-alert";
 import { canOpen } from "../lib/access";
 import { Nav } from "../components/nav";
+import { pageUser } from "../lib/page-user";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "سوبر أدمن",
@@ -36,10 +37,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   const days = [7, 30, 90].includes(parseInt(daysParam ?? "", 10)) ? parseInt(daysParam!, 10) : 30;
 
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/");
+  const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).single();
 
   return (
     <div className="min-h-dvh bg-background">

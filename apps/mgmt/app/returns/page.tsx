@@ -5,15 +5,14 @@ import { PageHeader } from "@bach/ui/components/page-header";
 import { Nav } from "../../components/nav";
 import { ReturnsPolicySettings } from "../../components/returns-policy-settings";
 import { ReturnsRequestsQueue } from "../../components/returns-requests-queue";
+import { pageUser } from "../../lib/page-user";
 
 const QUEUE_ROLES = new Set(["super_admin", "store_manager", "support_agent", "cashier"]);
 
 export default async function ReturnsRequestsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/returns");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const allowed = QUEUE_ROLES.has(profile?.role ?? "");
 
   return (

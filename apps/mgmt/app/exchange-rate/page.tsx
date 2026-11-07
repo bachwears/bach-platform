@@ -6,6 +6,7 @@ import { PageHeader } from "@bach/ui/components/page-header";
 import { Nav } from "../../components/nav";
 import { RateForm } from "../../components/rate-form";
 import { fmt } from "../../lib/time";
+import { pageUser } from "../../lib/page-user";
 
 function lbp(n: number): string {
   return `${Math.round(n).toLocaleString("en-US")} ل.ل`;
@@ -13,12 +14,10 @@ function lbp(n: number): string {
 
 export default async function ExchangeRatePage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await pageUser(supabase, "/exchange-rate");
 
   const [{ data: profile }, { data: history }, { data: hint }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user!.id).single(),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase
       .from("exchange_rates")
       .select("id, lbp_per_usd, effective_at, profiles(full_name)")

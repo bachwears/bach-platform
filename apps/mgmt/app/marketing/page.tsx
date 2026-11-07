@@ -5,15 +5,14 @@ import { LoyaltySettings } from "../../components/loyalty-settings";
 import { Marketing } from "../../components/marketing";
 import { Nav } from "../../components/nav";
 import { NewsletterCard } from "../../components/newsletter-card";
+import { pageUser } from "../../lib/page-user";
 
 const MARKETING_ROLES = new Set(["super_admin", "store_manager", "marketing_manager"]);
 
 export default async function MarketingPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/marketing");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const allowed = MARKETING_ROLES.has(profile?.role ?? "");
 
   return (

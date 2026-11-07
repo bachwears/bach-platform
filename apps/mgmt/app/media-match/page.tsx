@@ -3,13 +3,12 @@ import { PageHeader } from "@bach/ui/components/page-header";
 
 import { Nav } from "../../components/nav";
 import { MediaMatch } from "../../components/media-match";
+import { pageUser } from "../../lib/page-user";
 
 export default async function MediaMatchPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/media-match");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const canEdit = ["super_admin", "store_manager", "inventory_manager", "marketing_manager"].includes(
     profile?.role ?? "",
   );

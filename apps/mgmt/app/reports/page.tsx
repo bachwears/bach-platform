@@ -3,15 +3,14 @@ import { supabaseServer } from "@bach/supabase/server";
 import { Nav } from "../../components/nav";
 import { PageHeader } from "@bach/ui/components/page-header";
 import { Reports } from "../../components/reports";
+import { pageUser } from "../../lib/page-user";
 
 const REPORT_ROLES = new Set(["super_admin", "store_manager"]);
 
 export default async function ReportsPage() {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const user = await pageUser(supabase, "/reports");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const allowed = REPORT_ROLES.has(profile?.role ?? "");
 
   return (

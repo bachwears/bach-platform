@@ -177,10 +177,14 @@ function ColourCard({
         setMsg(`عم نرفع ${i + 1} من ${list.length}…`);
         const n = nextViewNumber(working, color, addView);
         const url = await uploadRenditions(sb, file, dir, viewTag(addView, n));
+        // The product's front/back slots as the database has them now: another
+        // upload (a second tap, another tab) may have filled one since this list loaded.
+        const { data: slots } = await sb.from("media_assets").select("kind").eq("product_id", productId).neq("kind", "other");
+        const taken = new Set([...working.map((m) => m.kind), ...(slots ?? []).map((m) => m.kind as string)]);
         const kind =
-          addView === "front" && !working.some((m) => m.kind === "front")
+          addView === "front" && !taken.has("front")
             ? "front"
-            : addView === "back" && color && color === heroColor && !working.some((m) => m.kind === "back")
+            : addView === "back" && color && color === heroColor && !taken.has("back")
               ? "back"
               : "other";
         const sort = kind === "front" ? 0 : kind === "back" ? 1 : nextShownSort(working, color);
