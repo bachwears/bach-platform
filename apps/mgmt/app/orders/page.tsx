@@ -15,6 +15,9 @@ const CHANNEL_LABELS: Record<string, string> = { pos: "المحل", online: "أ�
 // online orders the team took for the customer
 const SOURCE_LABELS: Record<string, string> = { instagram: "عبر إنستغرام", whatsapp: "عبر واتساب", phone: "عبر التلفون", other: "طلب يدوي" };
 
+// one page of the order history; the pager below the table walks the rest
+const PAGE_SIZE = 50;
+
 function usd(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -22,25 +25,63 @@ function usd(cents: number): string {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
-  const { status, q: rawQ = "" } = await searchParams;
+  const { status, q: rawQ = "", page: rawPage } = await searchParams;
   const q = rawQ.trim().replace(/^#/, "");
+  const page = Math.max(1, Math.floor(Number(rawPage)) || 1);
   const supabase = await supabaseServer();
+  // the list's own address with one setting changed (filters and search carry over)
+  const href = (next: { status?: string | null; q?: string | null; page?: number }) => {
+    const sp = new URLSearchParams();
+    const st = next.status === undefined ? status : next.status;
+    const qq = next.q === undefined ? rawQ : next.q;
+    if (st) sp.set("status", st);
+    if (qq) sp.set("q", qq);
+    if (next.page && next.page > 1) sp.set("page", String(next.page));
+    const s = sp.toString();
+    return s ? `/orders?${s}` : "/orders";
+  };
 
   // "Today" is the Beirut calendar day, not the server's (UTC).
   const startOfDay = beirutDayStart();
+
+  // Search runs in the database over the whole history: order number, the name
+  // or phone on the order, or a customer record's name or phone (digits only, so
+  // +961 and spaces don't matter).
+  const digits = q.replace(/\D/g, "");
+  const like = q.replace(/[%_,()*\\]/g, " ").trim();
+  let matchCustomers: string[] = [];
+  if (q && like) {
+    const { data: cs } = await supabase
+      .from("customers")
+      .select("id")
+      .or([`full_name.ilike.*${like}*`, ...(digits.length >= 3 ? [`phone.ilike.*${digits}*`] : [])].join(","))
+      .limit(200);
+    matchCustomers = (cs ?? []).map((c) => c.id as string);
+  }
 
   let query = supabase
     .from("orders")
     .select(
       "id, number, channel, source, status, fulfilment, total_usd_cents, created_at, payment_method, ship_name, ship_phone, branches(name), profiles!orders_cashier_id_fkey(full_name), customers(full_name, phone), order_items(quantity)",
+      { count: "exact" },
     )
     .order("created_at", { ascending: false })
-    .limit(q ? 500 : 100);
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (status && STATUS_LABELS[status]) query = query.eq("status", status);
+  if (q) {
+    const ors = [
+      ...(/^\d{1,9}$/.test(q) ? [`number.eq.${q}`] : []),
+      ...(like ? [`ship_name.ilike.*${like}*`] : []),
+      ...(digits.length >= 3 ? [`ship_phone.ilike.*${digits}*`] : []),
+      ...(matchCustomers.length ? [`customer_id.in.(${matchCustomers.join(",")})`] : []),
+    ];
+    // nothing searchable in what was typed: match no order
+    query = ors.length ? query.or(ors.join(",")) : query.eq("number", -1);
+  }
 
-  const [{ data: rows }, { data: todayOrders }, { data: todayPays }, { data: profile }, { data: pickupPays }, { data: atCourier }] = await Promise.all([
+  const [{ data: rows, count }, { data: todayOrders }, { data: todayPays }, { data: profile }, { data: pickupPays }, { data: atCourier }] = await Promise.all([
     query,
     supabase
       .from("orders")
@@ -89,18 +130,9 @@ export default async function OrdersPage({
     const c = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
     return { name: o.ship_name ?? c?.full_name ?? null, phone: o.ship_phone ?? c?.phone ?? null };
   };
-  // Search: order number, customer name or phone (digits only, so +961 / spaces don't matter).
-  const digits = q.replace(/\D/g, "");
-  const orders = q
-    ? (rows ?? []).filter((o) => {
-        const c = customerOf(o);
-        return (
-          String(o.number) === q ||
-          (c.name ?? "").toLowerCase().includes(q.toLowerCase()) ||
-          (digits.length >= 3 && (c.phone ?? "").replace(/\D/g, "").includes(digits))
-        );
-      })
-    : (rows ?? []);
+  const orders = rows ?? [];
+  const total = count ?? orders.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const todayTotal = (todayOrders ?? []).reduce((s, o) => s + o.total_usd_cents, 0);
   const drawerPays = [...(todayPays ?? []), ...(pickupPays ?? [])];
@@ -161,7 +193,7 @@ export default async function OrdersPage({
             دوّر
           </button>
           {q ? (
-            <Link href={status ? `/orders?status=${status}` : "/orders"} className="text-sm text-muted-foreground underline underline-offset-4">
+            <Link href={href({ q: null })} className="text-sm text-muted-foreground underline underline-offset-4">
               امسح البحث
             </Link>
           ) : null}
@@ -169,7 +201,7 @@ export default async function OrdersPage({
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 border-b text-sm" aria-label="فلترة حسب الحالة">
           <Link
-            href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"}
+            href={href({ status: null })}
             aria-current={!status ? "page" : undefined}
             className={`-mb-px border-b pb-2 ${!status ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
@@ -178,7 +210,7 @@ export default async function OrdersPage({
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <Link
               key={k}
-              href={`/orders?status=${k}${q ? `&q=${encodeURIComponent(rawQ)}` : ""}`}
+              href={href({ status: k })}
               aria-current={status === k ? "page" : undefined}
               className={`-mb-px border-b pb-2 ${status === k ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
@@ -200,7 +232,7 @@ export default async function OrdersPage({
               }
               action={
                 status ? (
-                  <Link href={q ? `/orders?q=${encodeURIComponent(rawQ)}` : "/orders"} className="inline-block text-sm underline underline-offset-4 hover:text-foreground">
+                  <Link href={href({ status: null })} className="inline-block text-sm underline underline-offset-4 hover:text-foreground">
                     اعرض كل الطلبات
                   </Link>
                 ) : null
@@ -267,8 +299,64 @@ export default async function OrdersPage({
           )}
         </div>
 
+        {total > 0 ? <Pager page={page} pages={pages} total={total} href={(n) => href({ page: n })} /> : null}
+
         <PickupSettings canEdit={canEditPickup} />
       </main>
     </div>
+  );
+}
+
+/** Page numbers around the current one, with the first and last always reachable. */
+function pageList(page: number, pages: number): Array<number | "…"> {
+  const keep = new Set([1, pages, page - 1, page, page + 1].filter((n) => n >= 1 && n <= pages));
+  const out: Array<number | "…"> = [];
+  let prev = 0;
+  for (const n of [...keep].sort((a, b) => a - b)) {
+    if (n - prev > 1) out.push("…");
+    out.push(n);
+    prev = n;
+  }
+  return out;
+}
+
+function Pager({ page, pages, total, href }: { page: number; pages: number; total: number; href: (n: number) => string }) {
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+  const cell = "inline-flex h-9 min-w-9 items-center justify-center border px-3 text-sm";
+  return (
+    <nav aria-label="صفحات الطلبات" className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm text-muted-foreground">
+        {from > total ? "ما في طلبات بهالصفحة" : <>عم نعرض <span className="font-mono">{from}–{to}</span> من <span className="font-mono">{total}</span> طلب</>}
+      </p>
+      {pages > 1 ? (
+        <div className="flex flex-wrap items-center gap-1">
+          {page > 1 ? (
+            <Link href={href(page - 1)} className={`${cell} hover:bg-muted`} rel="prev">
+              السابقة
+            </Link>
+          ) : null}
+          {pageList(page, pages).map((n, i) =>
+            n === "…" ? (
+              <span key={`gap-${i}`} className="px-1 text-sm text-muted-foreground">…</span>
+            ) : (
+              <Link
+                key={n}
+                href={href(n)}
+                aria-current={n === page ? "page" : undefined}
+                className={`${cell} font-mono ${n === page ? "border-foreground bg-foreground text-background" : "hover:bg-muted"}`}
+              >
+                {n}
+              </Link>
+            ),
+          )}
+          {page < pages ? (
+            <Link href={href(page + 1)} className={`${cell} hover:bg-muted`} rel="next">
+              التالية
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+    </nav>
   );
 }

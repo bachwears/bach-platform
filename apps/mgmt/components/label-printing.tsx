@@ -23,7 +23,7 @@ const STOCKS: Array<{ key: string; label: string; w: number; h: number }> = [
 const MAX_LABELS = 1500;
 
 const SELECT =
-  "id, product_id, sku, barcode, size, color_en, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status, category_id), inventory_levels(quantity)";
+  "id, product_id, sku, barcode, size, color_en, products!inner(name_en, price_usd_cents, sale_price_usd_cents, status, auto_archived, category_id), inventory_levels(quantity)";
 
 interface LabelVariant {
   id: string;
@@ -93,7 +93,8 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
     // itself or anywhere underneath
     void Promise.all([
       supabase.from("categories").select("id, name_ar, parent_id").eq("is_active", true).order("sort").order("name_ar"),
-      supabase.from("products").select("category_id").neq("status", "archived"),
+      // sold-out pieces archived by the system still get labels for the next delivery
+      supabase.from("products").select("category_id").or("status.neq.archived,auto_archived.eq.true"),
     ]).then(([{ data: tree }, { data: prods }]) => {
       const all = (tree ?? []) as Array<{ id: string; name_ar: string; parent_id: string | null }>;
       const used = new Set(((prods ?? []) as Array<{ category_id: string | null }>).map((p) => p.category_id));
@@ -215,7 +216,8 @@ export function LabelPrinting({ productIds = [] }: { productIds?: string[] }) {
         .from("product_variants")
         .select(SELECT)
         .eq("is_active", true)
-        .neq("products.status", "archived"); // drafts are sold in the shop too
+        // drafts are sold in the shop too; auto-archived = sold out, labels for the next delivery
+        .or("status.neq.archived,auto_archived.eq.true", { referencedTable: "products" });
       // a category prints everything underneath it too (Shoes → Boots, Trainers…)
       if (bulkCat !== "all") q = q.in("products.category_id", subtree(bulkCat));
       return q.order("id").range(a, b);

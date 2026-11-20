@@ -31,6 +31,8 @@ type Row = {
   price_usd_cents: number;
   sale_price_usd_cents: number | null;
   status: string;
+  /** archived by the database because nothing was left to sell; comes back with stock */
+  auto_archived: boolean;
   tags: string[] | null;
   categories: { name_ar: string } | null;
   product_variants: Array<{ sku: string | null; inventory_levels: Array<{ quantity: number; reserved: number }> }>;
@@ -45,7 +47,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const { data: all } = await supabase
     .from("products")
     .select(
-      "id, name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, tags, categories(name_ar), product_variants(sku, inventory_levels(quantity, reserved)), media_assets(kind, storage_path)",
+      "id, name_en, name_ar, price_usd_cents, sale_price_usd_cents, status, auto_archived, tags, categories(name_ar), product_variants(sku, inventory_levels(quantity, reserved)), media_assets(kind, storage_path)",
     )
     .order("created_at", { ascending: false });
 
@@ -201,7 +203,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const status = STATUS_LABELS[p.status] ?? STATUS_LABELS.draft!;
+                  const status = p.auto_archived
+                    ? { label: "خلص — مؤرشف تلقائي", variant: "outline" as const }
+                    : (STATUS_LABELS[p.status] ?? STATUS_LABELS.draft!);
                   const onSale = p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents;
                   return (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">

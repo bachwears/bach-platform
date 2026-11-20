@@ -44,10 +44,11 @@ export function visibility(s: SavedState): { visible: boolean; blockers: string[
   const blockers: string[] = [];
   const warnings: string[] = [];
   if (s.status === "draft") blockers.push("مسودة — غيّر الحالة لـ «منشور»");
-  if (s.status === "archived") blockers.push("مؤرشف");
+  if (s.status === "archived")
+    blockers.push(s.stock <= 0 ? "مؤرشف — خلص الستوك؛ إذا انأرشف تلقائي، بيرجع ينزل عالموقع لحالو لمّا يدخل ستوك" : "مؤرشف");
   if (!s.front) blockers.push("ما إلو صورة أساسية (قدّام)");
   if (!s.activeVariants) warnings.push("ما في مقاسات فعّالة — ما حدا فيه يطلبو");
-  else if (s.stock <= 0) warnings.push("خالص من الستوك — بيبيّن «Sold out»");
+  else if (s.stock <= 0) warnings.push("خالص من الستوك — مع أوّل حركة مخزون بيتأرشف وبينخفى عن الموقع لحالو");
   return { visible: !blockers.length, blockers, warnings };
 }
 

@@ -160,7 +160,8 @@ export function MediaMatch() {
         supabase
           .from("products")
           .select("id, name_en, name_ar, slug, status, category_id, product_variants(sku, color_en, is_active)")
-          .neq("status", "archived")
+          // sold-out pieces archived by the system still get their photos matched
+          .or("status.neq.archived,auto_archived.eq.true")
           .order("name_en"),
         supabase.from("categories").select("id, name_ar, name_en, parent_id"),
         loadMedia(),
