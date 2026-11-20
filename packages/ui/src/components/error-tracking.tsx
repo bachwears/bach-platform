@@ -39,7 +39,7 @@ function reloadAfterNetworkDrop(error: Error): boolean {
 /**
  * The screen a crashed page falls back to (app/error.tsx, app/global-error.tsx):
  * reports the error once, then offers to try again. A dropped connection
- * reloads the page instead and isn't reported.
+ * reloads the page instead (at most once a minute) and is never reported.
  */
 export function ErrorScreen({
   app,
@@ -60,6 +60,9 @@ export function ErrorScreen({
       setReloading(true);
       return;
     }
+    // A dropped connection that can't reload now (it already did a moment ago):
+    // the screen offers "Try again", but it isn't a bug to report.
+    if (NETWORK_ERROR.test(`${error.name}: ${error.message}`)) return;
     // the boundary can mount before the layout's tracker
     startErrorTracking(app);
     reportError({

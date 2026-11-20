@@ -45,7 +45,8 @@ export function describeFailure(f: SupabaseFailure): string {
   return `${target} → ${f.status}${f.code ? ` ${f.code}` : ""}: ${f.message}`;
 }
 
-const RETRY_STATUS = new Set([502, 503, 504]);
+// gateway errors, and Cloudflare's in front of Supabase (520–524: origin unreachable / timed out)
+const RETRY_STATUS = new Set([502, 503, 504, 520, 521, 522, 523, 524]);
 
 // waits before each extra try of a read: the gateway's hiccups can outlast one quick retry
 const RETRY_DELAYS = [400, 1500];

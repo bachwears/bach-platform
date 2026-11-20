@@ -42,8 +42,12 @@ function visitor(): string {
 
 export const RELEASE = (process.env.NEXT_PUBLIC_BUILD_SHA ?? "").slice(0, 12) || null;
 
+// Crawlers (Facebook's meta-externalagent, search bots) run pages half-way and
+// fail on things no shopper meets: their errors aren't ours to fix.
+const CRAWLER = /bot|crawl|spider|slurp|meta-externalagent|facebookexternalhit|headless|lighthouse|pagespeed/i;
+
 export function reportError(e: ErrorInput) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || CRAWLER.test(navigator.userAgent)) return;
   try {
     const key = `${e.kind}|${e.message}`;
     const now = Date.now();
