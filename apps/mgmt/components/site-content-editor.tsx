@@ -10,6 +10,7 @@ import { HintDot } from "@bach/ui/components/hint-dot";
 import { Icon } from "@bach/ui/components/icon";
 
 import { CropUpload } from "./crop-upload";
+import { IntlWaitlistList } from "./intl-waitlist-list";
 
 interface Hero {
   eyebrow: string;
@@ -362,6 +363,8 @@ export function SiteContentEditor() {
           احفظ العبارة
         </Button>
       </div>
+
+      <IntlWaitlistList />
 
       <div className="space-y-3 border p-5">
         <h2 className="flex items-center gap-2 font-medium">

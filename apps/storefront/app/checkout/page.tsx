@@ -17,6 +17,8 @@ import { DeliveryProgress } from "../../components/delivery-progress";
 import { PointsEarn } from "../../components/points-earn";
 import { lhref, useLocale } from "../../lib/locale-client";
 import { track } from "../../lib/track";
+import { isLebanesePhone } from "../../lib/phone";
+import { IntlWaitlist } from "../../components/intl-waitlist";
 
 interface SummaryLine {
   key: string;
@@ -72,6 +74,8 @@ export default function CheckoutPage() {
   // set by a tap on "Place order" with details missing: from then on the button
   // area names the first detail still missing, until there is none
   const [askedMissing, setAskedMissing] = useState(false);
+  // "Outside Lebanon?" opened the international waitlist by hand
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -236,10 +240,15 @@ export default function CheckoutPage() {
   }, [payMethod, walletOffered]);
     const phoneOk = phone.replace(/[^0-9+]/g, "").length >= 7;
   const emailOk = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  // Delivery within Lebanon only: a number from abroad can't place a delivery
+  // order (the shop would cancel it) — it's offered the international waitlist.
+  // Pickup from the shop stays open to anyone.
+  const abroad = shipping.lebanonOnly && !isPickup && phoneOk && !isLebanesePhone(phone);
   // the first detail still missing, in the order the form asks for them
   const missing: Array<[string, string]> = [
     ...(name.trim() ? [] : [["name", "sf.co.errName"]] as Array<[string, string]>),
     ...(phoneOk ? [] : [["phone", "sf.co.errPhone"]] as Array<[string, string]>),
+    ...(abroad ? [["abroad", "sf.intl.abroadPhone"]] as Array<[string, string]> : []),
     ...(emailOk ? [] : [["email", "sf.co.errEmail"]] as Array<[string, string]>),
     ...(isPickup || city.trim() ? [] : [["city", "sf.co.errAddress"]] as Array<[string, string]>),
     ...(isPickup || address.trim() ? [] : [["address", "sf.co.errAddress"]] as Array<[string, string]>),
@@ -248,6 +257,9 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (canPlace) step("ready");
   }, [canPlace]);
+  useEffect(() => {
+    if (abroad) step("abroad");
+  }, [abroad]);
 
   async function placeOrder() {
     // The button stays tappable: a tap with details missing says which one and
@@ -256,7 +268,8 @@ export default function CheckoutPage() {
       const [field] = missing[0]!;
       setError("");
       setAskedMissing(true);
-      document.getElementById(`co-${field}`)?.focus();
+      if (field === "abroad") document.getElementById("co-intl")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      else document.getElementById(`co-${field}`)?.focus();
       track("checkout_step", { source: "blocked", meta: { missing: missing.map(([f]) => f).join(",") } });
       return;
     }
@@ -441,6 +454,11 @@ export default function CheckoutPage() {
               </div>
             </Step>
 
+            {abroad ? <p className="-mt-6 text-xs text-destructive">{t(locale, "sf.intl.abroadPhone")}</p> : null}
+            {abroad || (waitlistOpen && shipping.lebanonOnly) ? (
+              <IntlWaitlist id="co-intl" name={name} email={email} phone={phone} bagCents={subtotal} />
+            ) : null}
+
             {pickup ? (
               <Step n={2} title={t(locale, "sf.co.stepMethod")}>
                 <div role="radiogroup" aria-label={t(locale, "sf.co.stepMethod")} className="border-t">
@@ -495,9 +513,22 @@ export default function CheckoutPage() {
             ) : (
               <Step n={pickup ? 3 : 2} title={t(locale, "sf.co.stepAddress")}>
                 {shipping.lebanonOnly ? (
-                  <p className="type-meta flex items-center gap-2 border border-foreground px-4 py-3">
+                  <p className="type-meta flex flex-wrap items-center gap-2 border border-foreground px-4 py-3">
                     <Icon name="courier" size={14} />
                     {shipping.notice}
+                    {!abroad && !waitlistOpen ? (
+                      <button
+                        type="button"
+                        className="underline underline-offset-4 hover:opacity-60"
+                        onClick={() => {
+                          setWaitlistOpen(true);
+                          step("outside");
+                          requestAnimationFrame(() => document.getElementById("co-intl")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+                        }}
+                      >
+                        {t(locale, "sf.intl.outside")}
+                      </button>
+                    ) : null}
                   </p>
                 ) : null}
                 <div className="grid gap-6 sm:grid-cols-2">

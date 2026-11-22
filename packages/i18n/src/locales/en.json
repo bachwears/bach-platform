@@ -575,5 +575,17 @@
   "sf.nav.special": "Special Prices",
   "sf.shop.specialTitle": "Special Prices",
   "sf.nav.more": "More",
-  "sf.pdp.details": "Details"
+  "sf.pdp.details": "Details",
+  "sf.intl.title": "International delivery is coming soon",
+  "sf.intl.body": "For now we deliver within Lebanon only. Leave your email or WhatsApp number and we'll tell you the day we start shipping to you.",
+  "sf.intl.email": "Email",
+  "sf.intl.whatsapp": "WhatsApp number",
+  "sf.intl.cta": "Notify me",
+  "sf.intl.sending": "Sending…",
+  "sf.intl.done": "You're on the list. We'll let you know the day international delivery opens.",
+  "sf.intl.failed": "That didn't go through. Please try again.",
+  "sf.intl.needContact": "Add an email or a WhatsApp number.",
+  "sf.intl.privacy": "We'll only use it to tell you when international delivery opens.",
+  "sf.intl.abroadPhone": "This looks like a number from outside Lebanon. We deliver within Lebanon only for now — see below to hear when international delivery opens, or use a Lebanese number.",
+  "sf.intl.outside": "Outside Lebanon?"
 }
