@@ -126,6 +126,20 @@ function unit(s: string): number {
  * row stays the featured pieces (price anchor / pinned hero). Other sorts keep a
  * piece's colours together. With a colour filter, each piece shows once, in it.
  */
+/**
+ * With a size picked, a card offers only the colours that size can still be
+ * bought in: its swatches, the colour it opens on and its quick-add sizes.
+ */
+function inSize(card: CardProduct, size: string): CardProduct {
+  const ok = new Set((card.variants ?? []).filter((v) => v.size === size && !v.soldOut).map((v) => v.color));
+  if (!ok.size) return card;
+  return {
+    ...card,
+    colors: (card.colors ?? []).filter((c) => ok.has(c)),
+    variants: (card.variants ?? []).filter((v) => ok.has(v.color)),
+  };
+}
+
 function listColours(cards: CardProduct[], on: boolean, colourFilter: string, scatter: boolean): Listed[] {
   // a colour that can still be bought (sold-out colours get no card of their own)
   const buyable = (card: CardProduct, c: string) => (card.variants ?? []).some((v) => v.color === c && !v.soldOut);
@@ -249,11 +263,12 @@ export default async function ShopPage({
   const sizeFacets = [
     ...new Set(all.flatMap((p) => p.product_variants.filter(inStock).map((v) => v.size))),
   ].sort((a, b) => sizeRank(a) - sizeRank(b));
-  // Value stays color_en (stable URLs); label localizes via color_ar.
+  // Value stays color_en (stable URLs); label localizes via color_ar. With a size
+  // picked, only colours that size can be bought in.
   const colorFacets = [
     ...new Map(
       all
-        .flatMap((p) => p.product_variants.filter(inStock))
+        .flatMap((p) => p.product_variants.filter((v) => inStock(v) && (!size || v.size === size)))
         .map((v) => [v.color_en, pick(locale, v.color_en, v.color_ar)] as const),
     ).entries(),
   ]
@@ -275,8 +290,9 @@ export default async function ShopPage({
     if (f.cat && !(f.cat === cat ? catMatch : catCodes(f.cat)).has(p.categories?.code ?? "")) return false;
     if (f.col && !p.product_collections.some((pc) => pc.collections?.slug === f.col)) return false;
     // a size or colour filter means "I can buy it in this" — sold-out ones don't count
-    if (f.size && !p.product_variants.some((v) => inStock(v) && v.size === f.size)) return false;
-    if (f.color && !p.product_variants.some((v) => inStock(v) && v.color_en === f.color)) return false;
+    // both together: that colour in that size
+    if ((f.size || f.color) && !p.product_variants.some((v) => inStock(v) && (!f.size || v.size === f.size) && (!f.color || v.color_en === f.color)))
+      return false;
     if (f.sale && p.sale_price_usd_cents == null) return false;
     // Special Prices = pieces ticked in MGMT + everything on sale
     if (f.special && !(p.tags ?? []).includes("special") && !(p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents))
@@ -305,7 +321,7 @@ export default async function ShopPage({
   // A page of the grid at a time: only the shown pieces are rendered and sent to the
   // browser (the full catalogue would be a heavy page at 500+ models). "Load more"
   // links to the same page with a bigger ?show=, so it also works without script.
-  const listed = listColours(items.map(toCardProduct), colourCards, color, sort === "featured");
+  const listed = listColours(items.map(toCardProduct).map((c) => (size ? inSize(c, size) : c)), colourCards, color, sort === "featured");
   const show = Math.min(listed.length, Math.max(PAGE, Math.floor(Number(params.show) / PAGE) * PAGE || PAGE));
   const cards = listed.slice(0, show);
   // MGMT switch (site_content shop.outfit_cards): looks mixed into the plain featured grid

@@ -40,6 +40,7 @@ export interface CardRow {
     color_en: string;
     color_code?: string | null;
     is_active: boolean;
+    sold_out_since?: string | null;
     inventory_levels?: Array<{ quantity: number; reserved: number }> | null;
   }> | null;
 }
@@ -60,9 +61,30 @@ export const inStock = (v: StockVariant) =>
  */
 export const isSellable = (p: { product_variants?: StockVariant[] | null }) => (p.product_variants ?? []).some(inStock);
 
+/** A colour sold out in every size for this long leaves the storefront (founder 2026-11-22). */
+const RETIRE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * The variants a shopper sees: active ones, minus colours that have been sold
+ * out in every size for 30+ days (product_variants.sold_out_since, stamped by the
+ * database; stock coming back clears it, so the colour returns). A piece never
+ * loses its last colour this way — a fully sold-out piece is archived instead.
+ */
+export function shownVariants<
+  T extends { is_active?: boolean; color_en: string; sold_out_since?: string | null } & StockVariant,
+>(variants: T[]): T[] {
+  const active = variants.filter((v) => v.is_active !== false);
+  const cutoff = Date.now() - RETIRE_AFTER_MS;
+  const gone = (v: T) => !inStock(v) && v.sold_out_since != null && Date.parse(v.sold_out_since) < cutoff;
+  const colours = new Set(active.map((v) => v.color_en));
+  const retired = new Set([...colours].filter((c) => active.every((v) => v.color_en !== c || gone(v))));
+  if (!retired.size || retired.size === colours.size) return active;
+  return active.filter((v) => !retired.has(v.color_en));
+}
+
 /** Columns a card needs from `products` (embed-ready). */
 export const CARD_COLUMNS =
-  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, inventory_levels(quantity, reserved))";
+  "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, is_active, sold_out_since, inventory_levels(quantity, reserved))";
 
 /**
  * A listing card from a product row: the photographed colour's photos to swipe,
@@ -84,7 +106,7 @@ export function toCardProduct(p: CardRow): CardProduct {
     if (c !== heroColor) photos[c] = ordered(extras.filter((m) => m.color_en === c));
   }
 
-  const active = (p.product_variants ?? []).filter((v) => v.is_active);
+  const active = shownVariants(p.product_variants ?? []);
   const variants = active
     .filter((v) => v.id && v.size)
     .sort((a, b) => sizeRank(a.size!) - sizeRank(b.size!))

@@ -12,7 +12,7 @@ import { PdpColourGallery, PdpColourProvider } from "../../../components/pdp-col
 import { PdpTopBar } from "../../../components/pdp-topbar";
 import type { GalleryImage } from "../../../components/pdp-gallery";
 import { ProductCard, type CardProduct } from "../../../components/product-card";
-import { CARD_COLUMNS, isSellable, toCardProduct, type CardRow } from "../../../lib/card";
+import { CARD_COLUMNS, isSellable, shownVariants, toCardProduct, type CardRow } from "../../../lib/card";
 import { photoView } from "../../../lib/media";
 import { sizeRun } from "../../../lib/sizes";
 import { RecentlyViewed } from "../../../components/recently-viewed";
@@ -34,6 +34,7 @@ interface VariantRow {
   color_en: string;
   color_ar: string | null;
   is_active: boolean;
+  sold_out_since: string | null;
   inventory_levels: Array<{ quantity: number; reserved: number }>;
 }
 
@@ -47,7 +48,7 @@ const getProduct = cache(async (slug: string) => {
   const { data } = await supabase
     .from("products")
     .select(
-      "id, slug, name_en, name_ar, description_en, description_ar, meta_title_en, meta_description_en, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(*), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, inventory_levels(quantity, reserved))",
+      "id, slug, name_en, name_ar, description_en, description_ar, meta_title_en, meta_description_en, price_usd_cents, sale_price_usd_cents, material_en, material_ar, care_en, care_ar, fit, category_id, categories(code, name_en, name_ar), media_assets(*), product_seasons(season), product_collections(collection_id), product_variants(id, size, color_code, color_en, color_ar, is_active, sold_out_since, inventory_levels(quantity, reserved))",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -149,9 +150,8 @@ export default async function ProductPage({
     (colorGalleries[m.color_en!] ??= []).push(toImage(m));
   }
 
-  const variants = ((product.product_variants as unknown as VariantRow[]) ?? []).filter(
-    (v) => v.is_active,
-  );
+  // colours sold out in every size for 30+ days are off the site (lib/card.ts)
+  const variants = shownVariants((product.product_variants as unknown as VariantRow[]) ?? []);
   // ?color=NAV opens on that colour (shared links keep the shopper's pick)
   const linkedColor = colorParam ? variants.find((v) => v.color_code === colorParam.toUpperCase()) : undefined;
   const onSale = product.sale_price_usd_cents != null && product.sale_price_usd_cents < product.price_usd_cents;

@@ -18,6 +18,9 @@ import { DeliveryProgress, useBagGoods } from "./delivery-progress";
 import { FIT_OPEN_EVENT } from "./fit-finder";
 import { colorFill, swatchBackground } from "../lib/colors";
 
+/** a size with this many pieces or fewer is tagged "Few left" */
+const FEW_LEFT = 2;
+
 /** "Regular fit" → "This product has a regular fit." */
 function fitSentence(fit: string) {
   const f = fit.trim().replace(/\s*fit$/i, "").toLowerCase();
@@ -531,11 +534,13 @@ export function AddToCart({
                               ? t(locale, "sf.shop.outOfStock")
                               : out
                               ? t(locale, "sf.pdp.notifyShort")
-                              : isMine
-                                ? t(locale, "sf.pdp.yourSizeTag")
-                                : v.available <= 3
-                                  ? t(locale, "sf.pdp.fewLeft")
-                                  : ""}
+                              : [
+                                  isMine ? t(locale, "sf.pdp.yourSizeTag") : "",
+                                  // 1 or 2 pieces left (founder 2026-11-22)
+                                  v.available <= FEW_LEFT ? t(locale, "sf.pdp.fewLeft") : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                           </span>
                         </button>
                       </li>

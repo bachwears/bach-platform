@@ -5,7 +5,7 @@ import { t } from "@bach/i18n";
 
 import { ProductCard, type CardProduct } from "../../components/product-card";
 import { SearchTracker } from "../../components/track-events";
-import { isSellable, toCardProduct } from "../../lib/card";
+import { isSellable, shownVariants, toCardProduct } from "../../lib/card";
 import { SearchField } from "../../components/search-field";
 import { getLocale, lhref } from "../../lib/locale";
 import { exclusivePieces, getOutfitCatalog } from "../../lib/outfits";
@@ -31,7 +31,7 @@ interface Row {
   created_at: string;
   categories: { name_en: string } | null;
   media_assets: Array<{ kind: string; storage_path: string }>;
-  product_variants: Array<{ id: string; size: string; color_en: string; sku: string | null; is_active: boolean }>;
+  product_variants: Array<{ id: string; size: string; color_en: string; sku: string | null; is_active: boolean; sold_out_since?: string | null }>;
   product_collections: Array<{ collections: { name_en: string } | null }>;
 }
 
@@ -92,7 +92,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     supabase
       .from("products")
       .select(
-        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, sku, is_active, inventory_levels(quantity, reserved)), product_collections(collections(name_en))",
+        "slug, name_en, name_ar, price_usd_cents, sale_price_usd_cents, fit, created_at, category_id, categories(name_en), media_assets(kind, storage_path, color_en, sort), product_variants(id, size, color_en, color_code, sku, is_active, sold_out_since, inventory_levels(quantity, reserved)), product_collections(collections(name_en))",
       )
       .eq("status", "published")
       .order("created_at", { ascending: false }),
@@ -125,7 +125,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const indexed = words.length
     ? all.map((p) => {
-        const active = p.product_variants.filter((v) => v.is_active);
+        const active = shownVariants(p.product_variants);
         const hay = [
           p.name_en,
           p.categories?.name_en ?? "",
