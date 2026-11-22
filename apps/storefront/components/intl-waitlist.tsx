@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@bach/supabase/browser";
 import { t } from "@bach/i18n";
 
@@ -31,6 +31,15 @@ export function IntlWaitlist({
   const [phone, setPhone] = useState(initialPhone);
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  // The box opens while the shopper is still typing the checkout's phone/email:
+  // keep following those until they type into these fields themselves.
+  const edited = useRef({ email: false, phone: false });
+  useEffect(() => {
+    if (!edited.current.email) setEmail(initialEmail);
+  }, [initialEmail]);
+  useEffect(() => {
+    if (!edited.current.phone) setPhone(initialPhone);
+  }, [initialPhone]);
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
@@ -77,7 +86,10 @@ export function IntlWaitlist({
                 <input
                   className={INPUT}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    edited.current.email = true;
+                    setEmail(e.target.value);
+                  }}
                   inputMode="email"
                   autoComplete="email"
                   placeholder="you@example.com"
@@ -89,7 +101,10 @@ export function IntlWaitlist({
                 <input
                   className={INPUT}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    edited.current.phone = true;
+                    setPhone(e.target.value);
+                  }}
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder="+966 5x xxx xxxx"
