@@ -82,6 +82,7 @@
   "sf.cart.remove": "Remove",
   "sf.cart.subtotal": "Subtotal",
   "sf.cart.checkout": "Checkout",
+  "sf.pdp.colorSoldOut": "Sold out",
   "sf.pdp.color": "Color",
   "sf.pdp.size": "Size",
   "sf.pdp.selectColor": "Select a color first.",

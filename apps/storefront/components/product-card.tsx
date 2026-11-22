@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { t, type Locale } from "@bach/i18n";
 
-import { colorFill } from "../lib/colors";
+import { colorFill, swatchBackground } from "../lib/colors";
 import { photoSrc } from "../lib/media";
 import { availableFirst } from "../lib/sizes";
 import { trackRecClick } from "../lib/track";
@@ -79,9 +79,14 @@ export function ProductCard({
 
   const variants = product.variants ?? [];
   const colours = [...new Set(variants.map((v) => v.color))];
-  // Start on the colour the photos show, so a quick add matches what the shopper sees.
+  // colours sold out in every size: crossed-out swatches, and never the one a card opens on
+  const soldOutColours = new Set(colours.filter((c) => variants.every((v) => v.color !== c || v.soldOut)));
+  // Start on the colour the photos show (so a quick add matches what the shopper
+  // sees) unless it's sold out and another colour isn't.
   const [colour, setColour] = useState<string | null>(
     (initialColour && colours.includes(initialColour) ? initialColour : null) ??
+      colours.find((c) => c === product.heroColor && !soldOutColours.has(c)) ??
+      colours.find((c) => !soldOutColours.has(c)) ??
       colours.find((c) => c === product.heroColor) ??
       colours[0] ??
       null,
@@ -147,7 +152,7 @@ export function ProductCard({
           ) : (
             <p className="type-meta mt-1 tabular-nums">{usd(product.price_usd_cents)}</p>
           )}
-          <ColorChips colors={product.colors} selected={colour} onPick={variants.length ? setColour : undefined} />
+          <ColorChips colors={product.colors} selected={colour} soldOut={soldOutColours} onPick={variants.length ? setColour : undefined} />
           {sizes.length ? <QuickShop sizes={sizes} name={name} color={showColour} slug={product.slug} source={source} /> : null}
         </div>
       )}
@@ -308,22 +313,26 @@ function CardPhotos({
 function ColorChips({
   colors,
   selected,
+  soldOut,
   onPick,
 }: {
   colors?: string[];
   selected: string | null;
+  /** colours with no size left: drawn crossed out */
+  soldOut?: Set<string>;
   onPick?: (c: string) => void;
 }) {
   const swatches = [...new Set(colors ?? [])]
     .map((c) => ({ name: c, hex: colorFill(c) }))
     .filter((c): c is { name: string; hex: string } => c.hex != null);
   if (swatches.length < 2) return null;
-  const chip = (s: { hex: string }, on: boolean) => (
+  const chip = (s: { name: string; hex: string }, on: boolean) => (
     <span
-      className={`block h-2.5 w-2.5 border ${on ? "border-foreground outline outline-1 outline-offset-2 outline-foreground" : "border-black/15 dark:border-white/25"}`}
-      style={{ background: s.hex }}
+      className={`block h-2.5 w-2.5 border ${on ? "border-foreground outline outline-1 outline-offset-2 outline-foreground" : "border-black/15 dark:border-white/25"} ${soldOut?.has(s.name) ? "opacity-60" : ""}`}
+      style={{ background: swatchBackground(s.hex, !!soldOut?.has(s.name)) }}
     />
   );
+  const labelOf = (name: string) => (soldOut?.has(name) ? `${name} — Sold out` : name);
   // one row on a phone card: six squares fit the full card width; with more, five and a +N
   const shown = swatches.length > 6 ? 5 : 6;
   return (
@@ -339,8 +348,8 @@ function ColorChips({
           <button
             key={s.name}
             type="button"
-            title={s.name}
-            aria-label={s.name}
+            title={labelOf(s.name)}
+            aria-label={labelOf(s.name)}
             aria-pressed={s.name === selected}
             onClick={() => onPick(s.name)}
             className="grid h-7 w-7 place-items-center"
@@ -348,7 +357,7 @@ function ColorChips({
             {chip(s, s.name === selected)}
           </button>
         ) : (
-          <span key={s.name} title={s.name} className="grid h-7 w-7 place-items-center">
+          <span key={s.name} title={labelOf(s.name)} className="grid h-7 w-7 place-items-center">
             {chip(s, false)}
           </span>
         ),

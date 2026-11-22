@@ -16,7 +16,7 @@ import { lhref, useLocale } from "../lib/locale-client";
 import { availableFirst } from "../lib/sizes";
 import { DeliveryProgress, useBagGoods } from "./delivery-progress";
 import { FIT_OPEN_EVENT } from "./fit-finder";
-import { colorFill } from "../lib/colors";
+import { colorFill, swatchBackground } from "../lib/colors";
 
 /** "Regular fit" → "This product has a regular fit." */
 function fitSentence(fit: string) {
@@ -108,6 +108,11 @@ export function AddToCart({
     ],
     [variants, locale],
   );
+  // colours with nothing left in any size: still pickable (photos, "notify me"), drawn crossed out
+  const soldOutColors = useMemo(() => {
+    const live = new Set(variants.filter((v) => v.available > 0).map((v) => v.color_code));
+    return new Set(variants.map((v) => v.color_code).filter((c) => !live.has(c)));
+  }, [variants]);
   const { setColor: setGalleryColor } = usePdpColour();
   // Open on a linked colour, else the photographed colour when it can be bought, else any colour in stock.
   const [color, setColor] = useState(
@@ -305,7 +310,8 @@ export function AddToCart({
     sizes.find((v) => v.size === pickedSize && v.available > 0) ??
     (pickedSize == null && mine && mine.available > 0 ? mine : undefined);
   const soldOutEverywhere = variants.every((v) => v.available <= 0);
-  const addLabel = soldOutEverywhere ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
+  // the picked colour sold out: the button says so (it opens the sizes with "notify me")
+  const addLabel = soldOutEverywhere || soldOutColors.has(color) ? t(locale, "sf.pdp.soldOutAll") : t(locale, "sf.pdp.add");
 
   // picking a colour: swap the photos (and bring them into view on phones), keep the link shareable
   function chooseColor(code: string) {
@@ -335,20 +341,22 @@ export function AddToCart({
         const en = variants.find((v) => v.color_code === code)?.color_en ?? "";
         // the MGMT colour list first, the built-in palette as a fallback; never a word
         const fill = colourFills[en.toLowerCase()] ?? colorFill(en) ?? "var(--muted)";
+        const out = soldOutColors.has(code);
+        const name = out ? `${label} — ${t(locale, "sf.pdp.colorSoldOut")}` : label;
         return (
           <button
             key={code}
             type="button"
             role="radio"
             aria-checked={color === code}
-            aria-label={label}
-            title={label}
+            aria-label={name}
+            title={name}
             onClick={() => chooseColor(code)}
             className={`grid shrink-0 place-items-center border transition-colors ${
               color === code ? "border-foreground" : "border-transparent hover:border-border"
             } ${small ? "h-7 w-7 p-[3px]" : "h-8 w-8 p-[3px]"}`}
           >
-            <span className="block h-full w-full border border-black/10" style={{ background: fill }} />
+            <span className={`block h-full w-full border border-black/10 ${out ? "opacity-60" : ""}`} style={{ background: swatchBackground(fill, out) }} />
           </button>
         );
       })}
@@ -369,6 +377,7 @@ export function AddToCart({
         <div className="hidden lg:block">
           <p className="type-meta text-muted-foreground">
             {t(locale, "sf.pdp.color")} — <span className="text-foreground">{colors.find(([c]) => c === color)?.[1]}</span>
+            {soldOutColors.has(color) ? <span> · {t(locale, "sf.pdp.colorSoldOut")}</span> : null}
           </p>
           <div className="mt-3">{swatchesOf(false)}</div>
           {shownNote}

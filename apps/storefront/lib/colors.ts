@@ -53,3 +53,13 @@ export function colorFill(name: string): string | null {
   if (parts.length === 1) return parts[0]!;
   return `linear-gradient(135deg, ${parts[0]} 50%, ${parts[1]} 50%)`;
 }
+
+// A grey diagonal stroke across a swatch, read on light and dark colours alike:
+// the colour is sold out in every size (as a crossed-out size is).
+const SOLD_OUT_STROKE =
+  "linear-gradient(to top right, transparent calc(50% - 0.75px), #8a8a8a calc(50% - 0.75px), #8a8a8a calc(50% + 0.75px), transparent calc(50% + 0.75px))";
+
+/** CSS background for a colour swatch; sold-out colours get the stroke on top. */
+export function swatchBackground(fill: string, soldOut: boolean): string {
+  return soldOut ? `${SOLD_OUT_STROKE}, ${fill}` : fill;
+}

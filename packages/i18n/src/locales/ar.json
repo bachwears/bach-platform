@@ -82,6 +82,7 @@
   "sf.cart.remove": "شيل",
   "sf.cart.subtotal": "المجموع الجزئي",
   "sf.cart.checkout": "إتمام الطلب",
+  "sf.pdp.colorSoldOut": "خلص",
   "sf.pdp.color": "اللون",
   "sf.pdp.size": "القياس",
   "sf.pdp.selectColor": "اختار اللون أولًا.",
