@@ -70,7 +70,8 @@ export function AddToCart({
   categoryCodes = [],
   name,
   priceLabel,
-  priceOnSale,
+  priceWas,
+  priceOff,
   sizeGuide,
   fit,
   heading,
@@ -94,8 +95,9 @@ export function AddToCart({
   categoryCodes?: string[];
   name: string;
   priceLabel: string;
-  /** sale price: shown in the sale red */
-  priceOnSale?: boolean;
+  /** on sale: the price before, shown crossed out, and the cut in % (the price is then sale red) */
+  priceWas?: string;
+  priceOff?: number;
   sizeGuide?: React.ReactNode;
   /** the product's fit (Regular fit, Oversized…), said at the top of the size list */
   fit?: string | null;
@@ -581,7 +583,11 @@ export function AddToCart({
           <div className="min-w-0 flex-1">
             <p className="type-meta truncate">{name}</p>
             <div className="mt-1 flex min-w-0 items-center gap-3">
-              <span className={`type-meta shrink-0 tabular-nums ${priceOnSale ? "text-destructive" : ""}`}>{priceLabel}</span>
+              <span className="type-meta flex shrink-0 items-center gap-2 tabular-nums">
+                <span className={priceWas ? "text-destructive" : ""}>{priceLabel}</span>
+                {priceWas ? <span className="text-muted-foreground line-through">{priceWas}</span> : null}
+                {priceWas && priceOff ? <span className="bg-destructive px-1 text-destructive-foreground">-{priceOff}%</span> : null}
+              </span>
               {colors.length > 1 ? <div className="min-w-0">{swatchesOf(true)}</div> : null}
             </div>
           </div>

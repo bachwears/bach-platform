@@ -473,7 +473,8 @@ export default async function ProductPage({
             sizeRun={sizeRun(variants.map((v) => v.size), product.fit)}
             name={displayName}
             priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
-            priceOnSale={onSale}
+            priceWas={onSale ? usd(product.price_usd_cents) : undefined}
+            priceOff={onSale ? Math.round((1 - product.sale_price_usd_cents! / product.price_usd_cents) * 100) : undefined}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             fit={product.fit}
             colourFills={colourFills}
@@ -485,6 +486,9 @@ export default async function ProductPage({
                   <>
                     <span className="text-destructive">{usd(product.sale_price_usd_cents!)}</span>
                     <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
+                    <span className="bg-destructive px-1.5 text-destructive-foreground">
+                      -{Math.round((1 - product.sale_price_usd_cents! / product.price_usd_cents) * 100)}%
+                    </span>
                   </>
                 ) : (
                   usd(product.price_usd_cents)
