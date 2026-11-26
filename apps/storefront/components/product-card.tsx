@@ -141,10 +141,10 @@ export function ProductCard({
             <h3 className="type-meta line-clamp-2">{name}</h3>
           </Link>
           {onSale ? (
-            // was-price on its own line, then the cut and the price together in one black tag
+            // was-price on its own line, then the cut and the price together in one red sale tag
             <p className="type-meta mt-1 tabular-nums">
               <span className="block text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
-              <span className="mt-1 inline-flex gap-3 bg-foreground px-1.5 py-0.5 text-background">
+              <span className="mt-1 inline-flex gap-3 bg-destructive px-1.5 py-0.5 text-destructive-foreground">
                 <span>-{off}%</span>
                 <span>{usd(product.sale_price_usd_cents!)}</span>
               </span>

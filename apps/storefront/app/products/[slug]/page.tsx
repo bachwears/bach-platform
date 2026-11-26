@@ -473,6 +473,7 @@ export default async function ProductPage({
             sizeRun={sizeRun(variants.map((v) => v.size), product.fit)}
             name={displayName}
             priceLabel={usd(Math.min(product.sale_price_usd_cents ?? product.price_usd_cents, product.price_usd_cents))}
+            priceOnSale={onSale}
             sizeGuide={guide ? <SizeGuide guide={guide} label={t(locale, "sf.pdp.sizeGuide")} /> : undefined}
             fit={product.fit}
             colourFills={colourFills}
@@ -482,7 +483,7 @@ export default async function ProductPage({
               <p className="type-label mt-2 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums">
                 {onSale ? (
                   <>
-                    <span>{usd(product.sale_price_usd_cents!)}</span>
+                    <span className="text-destructive">{usd(product.sale_price_usd_cents!)}</span>
                     <span className="text-muted-foreground line-through">{usd(product.price_usd_cents)}</span>
                   </>
                 ) : (

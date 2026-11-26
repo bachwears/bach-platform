@@ -21,6 +21,8 @@ interface ProductRow {
 }
 interface Analytics {
   days: number;
+  /** when the cached report was computed (refreshed every 15 minutes) */
+  computed_at?: string;
   free_over_cents: number;
   totals: {
     visitors: number;
@@ -125,7 +127,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <PageHeader
           icon="analytics"
           title="تحليلات الموقع"
-          description={`آخر ${days} يوم (بتوقيت UTC) — هل الاقتراحات وشريط التوصيل المجاني عم يبيعوا؟`}
+          description={`آخر ${days} يوم (بتوقيت UTC) — هل الاقتراحات وشريط التوصيل المجاني عم يبيعوا؟${a?.computed_at ? ` · محدّث ${new Date(a.computed_at).toLocaleTimeString("en-GB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" })} (كل ربع ساعة)` : ""}`}
           hint={{
             title: "تحليلات الموقع",
             what: "شو عم يعملوا الزوار عالموقع: مين شاف قطعة، مين حط بالسلة، مين بلّش الدفع ومين طلب — وقديش عم تشتغل الاقتراحات وشريط التوصيل المجاني.",

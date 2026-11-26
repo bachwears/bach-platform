@@ -174,8 +174,8 @@ export function OutfitView({ outfit, colourFills }: { outfit: OutfitViewData; co
           <p className="type-label mt-2 text-[15px] tabular-nums">
             {lookSaving.saving > 0 ? (
               <>
-                <span className="text-muted-foreground line-through">{usd(lookSaving.sum)}</span> {usd(lookSaving.pay)}
-                <span className="ms-2 bg-foreground px-1 text-background">SAVE {usd(lookSaving.saving)}</span>
+                <span className="text-muted-foreground line-through">{usd(lookSaving.sum)}</span> <span className="text-destructive">{usd(lookSaving.pay)}</span>
+                <span className="ms-2 bg-destructive px-1 text-destructive-foreground">SAVE {usd(lookSaving.saving)}</span>
               </>
             ) : (
               usd(lookSaving.pay)
@@ -233,7 +233,7 @@ export function OutfitView({ outfit, colourFills }: { outfit: OutfitViewData; co
                       <p className="type-meta tabular-nums">
                         {p.sale_price_usd_cents != null && p.sale_price_usd_cents < p.price_usd_cents ? (
                           <>
-                            {usd(p.sale_price_usd_cents)} <span className="text-muted-foreground line-through">{usd(p.price_usd_cents)}</span>
+                            <span className="text-destructive">{usd(p.sale_price_usd_cents)}</span> <span className="text-muted-foreground line-through">{usd(p.price_usd_cents)}</span>
                           </>
                         ) : (
                           usd(p.price_usd_cents)
@@ -327,7 +327,7 @@ export function OutfitView({ outfit, colourFills }: { outfit: OutfitViewData; co
             <p className="type-meta tabular-nums">
               {total.saving > 0 ? (
                 <>
-                  <span className="text-muted-foreground line-through">{usd(total.sum)}</span> {usd(total.pay)} · SAVE {usd(total.saving)}
+                  <span className="text-muted-foreground line-through">{usd(total.sum)}</span> <span className="text-destructive">{usd(total.pay)} · SAVE {usd(total.saving)}</span>
                 </>
               ) : (
                 usd(total.pay)

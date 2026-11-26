@@ -29,7 +29,7 @@ export function OutfitCard({ outfit, priority = false }: { outfit: Outfit; prior
         {price.saving > 0 ? (
           <>
             <span className="block text-muted-foreground line-through">{usd(price.sum)}</span>
-            <span className="mt-1 inline-flex gap-3 bg-foreground px-1.5 py-0.5 text-background">
+            <span className="mt-1 inline-flex gap-3 bg-destructive px-1.5 py-0.5 text-destructive-foreground">
               <span>-{Math.round((price.saving / price.sum) * 100)}%</span>
               <span>{usd(price.pay)}</span>
             </span>
