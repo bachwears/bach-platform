@@ -1,6 +1,7 @@
 # Production stack for the BACH VPS (/srv/bach). Deployed by GitHub Actions.
-# Public traffic (ports 80/443, TLS) is handled by the shared neutral edge proxy in /srv/edge,
-# which joins the "bach" network. This project's site config ships to /srv/edge/sites/bach.caddy.
+# TLS terminates in bach's own Caddy (below, certificates in /srv/bach/caddy). Ports 80/443 belong
+# to the neutral edge router in /srv/edge (HAProxy, TLS passthrough), which reaches this project
+# only through 127.0.0.1:9080/9443 and joins no project network.
 name: bach
 services:
   storefront:
@@ -17,6 +18,20 @@ services:
     image: ghcr.io/bachwears/bach-mgmt:latest
     restart: unless-stopped
     networks: [bach]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [storefront, pos, mgmt]
+    ports:
+      - "127.0.0.1:9080:80"
+      - "127.0.0.1:9443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    networks: [bach]
+    mem_limit: 256m
 
 networks:
   bach:

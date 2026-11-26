@@ -71,14 +71,14 @@ jobs:
           EOS
           scp /tmp/f2b.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/f2b.sh
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo bash /tmp/f2b.sh && rm /tmp/f2b.sh"
-      - name: Ship compose + site config
+      - name: Ship compose + Caddyfile
         run: |
           scp deploy/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/bach/docker-compose.yml
-          # Bach's sites are served by the shared edge proxy (/srv/edge); reload it without downtime.
-          scp deploy/Caddyfile ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/edge/sites/bach.caddy
+          scp deploy/Caddyfile ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/bach/Caddyfile.new
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
-            docker compose -f /srv/edge/compose.yaml exec -T caddy caddy validate --config /etc/caddy/Caddyfile &&
-            docker compose -f /srv/edge/compose.yaml exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+            docker run --rm -v /srv/bach/Caddyfile.new:/etc/caddy/Caddyfile:ro caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile &&
+            cat /srv/bach/Caddyfile.new > /srv/bach/Caddyfile && rm /srv/bach/Caddyfile.new &&
+            mkdir -p /srv/bach/caddy/data /srv/bach/caddy/config
           "
       - name: Pull and restart stack
         run: |
@@ -87,6 +87,7 @@ jobs:
             cd /srv/bach &&
             docker compose pull &&
             docker compose up -d --remove-orphans &&
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile &&
             docker image prune -f &&
             docker logout ghcr.io
           "
@@ -95,5 +96,5 @@ jobs:
           sleep 5
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             docker compose -f /srv/bach/docker-compose.yml ps --format '{{.Name}}: {{.Status}}' &&
-            curl -sf -o /dev/null -w 'storefront via edge proxy: %{http_code}\n' http://localhost/
+            curl -sf -o /dev/null --resolve bachwears.com:443:127.0.0.1 -w 'storefront via edge + bach caddy: %{http_code}\n' https://bachwears.com/
           "
