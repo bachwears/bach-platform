@@ -1,3 +1,30 @@
+# Bach's own Caddy — /srv/bach/Caddyfile, compose service "caddy" in /srv/bach.
+# TLS terminates HERE with bach's own certificates (/srv/bach/caddy/data). The neutral edge
+# router (/srv/edge, HAProxy) only passes TLS through by SNI to 127.0.0.1:9443 (port 80 → :9080),
+# prepending the PROXY protocol header so {remote_host} is the real client address.
+{
+	servers :443 {
+		listener_wrappers {
+			proxy_protocol {
+				timeout 5s
+				# Loopback publish arrives via Docker's proxy/bridge gateway.
+				allow 127.0.0.1/32 172.16.0.0/12
+			}
+			tls
+		}
+		# No HTTP/3: UDP 443 is not routed by the passthrough edge.
+		protocols h1 h2
+	}
+	servers :80 {
+		listener_wrappers {
+			proxy_protocol {
+				timeout 5s
+				allow 127.0.0.1/32 172.16.0.0/12
+			}
+		}
+	}
+}
+
 bachwears.com, www.bachwears.com {
 	reverse_proxy storefront:3000
 }
@@ -8,4 +35,10 @@ pos.bachwears.com {
 
 mgmt.bachwears.com {
 	reverse_proxy mgmt:3000
+}
+
+# Explicit port-80 site so the :80 listener carries the PROXY-protocol wrapper
+# (Caddy's automatic redirect server would not). ACME HTTP challenges are still served.
+http://bachwears.com, http://www.bachwears.com, http://pos.bachwears.com, http://mgmt.bachwears.com {
+	redir https://{host}{uri} 308
 }
